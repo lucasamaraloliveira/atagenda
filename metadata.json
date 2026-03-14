@@ -1,0 +1,5 @@
+{
+  "name": "ATAgenda",
+  "description": "Sistema completo de agendamento médico com gestão de pacientes, médicos e histórico.",
+  "requestFramePermissions": []
+}

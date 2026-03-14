@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-indigo-50: #e5f5fc;
+  --color-indigo-100: #ccebf9;
+  --color-indigo-200: #99d7f3;
+  --color-indigo-300: #66c3ed;
+  --color-indigo-400: #33afe7;
+  --color-indigo-500: #009BDB;
+  --color-indigo-600: #007caf;
+  --color-indigo-700: #005d83;
+  --color-indigo-800: #003e57;
+  --color-indigo-900: #001f2b;
+}
+
+/* Custom Scrollbar Styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Chrome, Edge, and Safari */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4f46e5; /* indigo-600 */
+}
+
+/* Utility to hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
