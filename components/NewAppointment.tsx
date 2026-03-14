@@ -62,11 +62,32 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     e.preventDefault();
     
     // Find or create patient
-    let patientId = mockPatients.find(p => p.name === formData.patientName)?.id;
+    let patient = mockPatients.find(p => p.name === formData.patientName);
+    
+    // If not found by name, check by CPF
+    if (!patient && formData.cpf) {
+      patient = mockPatients.find(p => p.cpf === formData.cpf);
+      if (patient) {
+        toast.warning(`Paciente encontrado pelo CPF: ${patient.name}. Usando cadastro existente.`);
+      }
+    }
+
+    let patientId = patient?.id;
+
     if (!patientId) {
+      if (formData.cpf) {
+        const existingByCPF = mockPatients.find(p => p.cpf === formData.cpf);
+        if (existingByCPF) {
+          toast.error(`CPF ${formData.cpf} já pertence ao paciente ${existingByCPF.name}. Verifique os dados.`);
+          return;
+        }
+      }
+
       patientId = Math.random().toString(36).substr(2, 9);
+      const nextRecordNumber = `PR-${(mockPatients.length + 1001).toString()}`;
       mockPatients.push({
         id: patientId,
+        recordNumber: nextRecordNumber,
         name: formData.patientName,
         cpf: formData.cpf,
         birthDate: formData.birthDate,

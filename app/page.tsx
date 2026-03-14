@@ -11,6 +11,7 @@ import NewAppointment from '@/components/NewAppointment';
 import SystemSettings from '@/components/SystemSettings';
 import Reports from '@/components/Reports';
 import UserProfileModal from '@/components/UserProfileModal';
+import GuidedTour from '@/components/GuidedTour';
 import { View } from '@/lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, User, LogIn } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function Home() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string } | null>(null);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   
   // Login State
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -166,6 +168,7 @@ export default function Home() {
           title={getViewTitle()} 
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onStartTour={() => setIsTourOpen(true)}
         />
         
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50/50">
@@ -188,6 +191,11 @@ export default function Home() {
           onClose={() => setIsProfileModalOpen(false)}
         />
       )}
+      <GuidedTour 
+        isOpen={isTourOpen} 
+        onClose={() => setIsTourOpen(false)} 
+        onSetView={setCurrentView}
+      />
     </div>
   );
 }

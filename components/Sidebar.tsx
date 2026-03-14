@@ -100,10 +100,11 @@ export default function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-6 space-y-2 overflow-y-auto no-scrollbar">
+        <nav id="sidebar-nav" className="flex-1 px-2 py-6 space-y-2 overflow-y-auto no-scrollbar">
           {menuItems.map((item) => (
             <button
               key={item.id}
+              id={`nav-${item.id}`}
               onClick={() => {
                 setView(item.id as View);
                 if (window.innerWidth < 1024) setIsOpen(false);
@@ -180,6 +181,7 @@ export default function Sidebar({
           {!isCollapsed ? (
             <div className="flex flex-col gap-3">
               <button 
+                id="user-profile-button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className={cn(
                   "flex items-center gap-3 px-2 py-2 rounded-2xl transition-all text-left group",

@@ -9,12 +9,16 @@ import {
   AlertTriangle,
   MoveHorizontal,
   Calendar as CalendarIcon,
-  User
+  User,
+  ShieldCheck,
+  Activity,
+  ArrowRight
 } from 'lucide-react';
 import { Appointment, Patient, Doctor } from '@/lib/types';
 import { mockDoctors } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-toastify';
+import CustomSelect from './CustomSelect';
 
 interface AppointmentStatusModalProps {
   appointment: Appointment;
@@ -31,7 +35,7 @@ export default function AppointmentStatusModal({
   onUpdateStatus,
   onTransfer
 }: AppointmentStatusModalProps) {
-  const [activeTab, setActiveTab] = useState<'status' | 'transfer'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'transfer' | 'audit'>('status');
   const [transferData, setTransferData] = useState({
     date: appointment.date,
     time: appointment.time,
@@ -125,7 +129,16 @@ export default function AppointmentStatusModal({
                 activeTab === 'transfer' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
               )}
             >
-              <MoveHorizontal size={14} /> Transferência
+              <MoveHorizontal size={14} /> Transferir
+            </button>
+            <button 
+              onClick={() => setActiveTab('audit')}
+              className={cn(
+                "flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2",
+                activeTab === 'audit' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              < ShieldCheck size={14} /> Auditoria
             </button>
           </div>
         </div>
@@ -185,7 +198,7 @@ export default function AppointmentStatusModal({
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeTab === 'transfer' ? (
             <div className="space-y-6">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Reagendamento</h3>
               {isCompleted ? (
@@ -226,20 +239,14 @@ export default function AppointmentStatusModal({
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Médico Executante</label>
-                      <div className="relative">
-                        <select 
-                          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
-                          value={transferData.doctorId}
-                          onChange={(e) => setTransferData({...transferData, doctorId: e.target.value})}
-                        >
-                          {mockDoctors.map(doctor => (
-                            <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-                          ))}
-                        </select>
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      </div>
+                    <div className="space-y-1.5 doctor-select-transfer">
+                      <CustomSelect 
+                        label="Médico Executante"
+                        options={mockDoctors.map(d => ({ id: d.id, name: d.name }))}
+                        value={transferData.doctorId}
+                        onChange={(val) => setTransferData({ ...transferData, doctorId: val })}
+                        className="w-full"
+                      />
                     </div>
                   </div>
 
@@ -252,6 +259,52 @@ export default function AppointmentStatusModal({
                   </button>
                 </form>
               )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between ml-1">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest uppercase">Linha do Tempo</h3>
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1">
+                  <Activity size={10} /> ATIVO
+                </span>
+              </div>
+              
+              <div className="relative pl-6 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                <div className="relative">
+                   <div className="absolute -left-[20px] top-1 w-3 h-3 rounded-full bg-indigo-600 border-2 border-white shadow-sm ring-4 ring-indigo-50" />
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Agendamento Criado</p>
+                   <p className="text-sm font-bold text-slate-800">Recepcionista: Maria Silva</p>
+                   <p className="text-xs text-slate-500 mt-1">Status inicial definido como <strong>Agendado</strong>.</p>
+                </div>
+
+                {appointment.status !== 'agendado' && (
+                  <div className="relative">
+                    <div className="absolute -left-[20px] top-1 w-3 h-3 rounded-full bg-indigo-400 border-2 border-white shadow-sm ring-4 ring-indigo-50" />
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Alteração de Status</p>
+                    <p className="text-sm font-bold text-slate-800">Ação do Sistema</p>
+                    <div className="flex items-center gap-2 mt-2">
+                       <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-bold">Agendado</span>
+                       <ArrowRight size={12} className="text-slate-300" />
+                       <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded font-bold capitalize">{appointment.status}</span>
+                    </div>
+                  </div>
+                )}
+
+                {(appointment.date !== transferData.date || appointment.time !== transferData.time) && (
+                   <div className="relative border-l-2 border-amber-400 pl-4 py-1 -ml-[2px]">
+                      <div className="absolute -left-[20px] top-1 w-3 h-3 rounded-full bg-amber-500 border-2 border-white shadow-sm ring-4 ring-amber-50" />
+                      <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider mb-1">Transferência Realizada</p>
+                      <p className="text-sm font-bold text-slate-800">Motivo: Solicitação do Paciente</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Horário anterior: {appointment.time} em {appointment.date.split('-').reverse().join('/')}</p>
+                   </div>
+                )}
+                
+                <div className="pt-4">
+                  <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest text-center italic">
+                    Fim do log de auditoria
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

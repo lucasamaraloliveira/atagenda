@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import { mockPatients, mockAppointments } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { Patient } from '@/lib/types';
 import PatientFormModal from './PatientFormModal';
+import PatientHistoryModal from './PatientHistoryModal';
 import { toast } from 'react-toastify';
 
 export default function Patients({ searchQuery = '' }: { searchQuery?: string }) {
   const [selectedPatientForForm, setSelectedPatientForForm] = useState<Patient | null | 'new'>(null);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [patientForHistory, setPatientForHistory] = useState<Patient | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0); 
   const [sortConfig, setSortConfig] = useState<{ key: keyof Patient; direction: 'asc' | 'desc' } | null>(null);
 
@@ -27,16 +29,26 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     const formattedDob = `${day}/${month}/${year}`;
     return p.name.toLowerCase().includes(search) || 
            p.cpf.includes(search) ||
+           (p.recordNumber && p.recordNumber.toLowerCase().includes(search)) ||
            formattedDob.includes(search);
   }).sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
-    if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-    if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+    const valA = a[key] || '';
+    const valB = b[key] || '';
+    if (valA < valB) return direction === 'asc' ? -1 : 1;
+    if (valA > valB) return direction === 'asc' ? 1 : -1;
     return 0;
   });
 
   const handleSavePatient = (patientData: Patient) => {
+    // Check for duplicate CPF
+    const duplicateCPF = mockPatients.find(p => p.cpf === patientData.cpf && p.id !== patientData.id);
+    if (duplicateCPF) {
+      toast.error(`Já existe um paciente cadastrado com este CPF (${duplicateCPF.name})`);
+      return;
+    }
+
     const index = mockPatients.findIndex(p => p.id === patientData.id);
     if (index >= 0) {
       mockPatients[index] = patientData;
@@ -111,7 +123,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th 
-                  className="px-8 py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
@@ -122,7 +134,18 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  onClick={() => handleSort('recordNumber')}
+                >
+                  <div className="flex items-center gap-2">
+                    Prontuário
+                    {sortConfig?.key === 'recordNumber' && (
+                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('cpf')}
                 >
                   <div className="flex items-center gap-2">
@@ -133,7 +156,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('birthDate')}
                 >
                   <div className="flex items-center gap-2">
@@ -144,7 +167,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                   </div>
                 </th>
                 <th 
-                  className="px-8 py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('phone')}
                 >
                   <div className="flex items-center gap-2">
@@ -154,32 +177,42 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                     )}
                   </div>
                 </th>
-                <th className="px-8 py-5 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Ações</th>
+                <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredPatients.map((patient) => (
                 <tr key={patient.id} className="hover:bg-indigo-50/30 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg shadow-inner">
+                  <td className="px-4 py-4 min-w-[200px]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base shadow-sm shrink-0">
                         {patient.name.charAt(0)}
                       </div>
-                      <div>
-                        <p className="font-bold text-slate-900">{patient.name}</p>
-                        <p className="text-xs text-slate-400">{patient.email}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 truncate text-sm">{patient.name}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{patient.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-sm text-slate-600 font-mono">
-                    <span className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">{patient.cpf}</span>
+                  <td className="px-4 py-4 text-sm font-bold text-indigo-600 font-mono whitespace-nowrap">
+                    <span className="bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{patient.recordNumber || '-'}</span>
                   </td>
-                  <td className="px-8 py-5 text-sm text-slate-500 font-medium">
+                  <td className="px-4 py-4 text-sm text-slate-600 font-mono whitespace-nowrap">
+                    <span className="bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">{patient.cpf}</span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">
                     {patient.birthDate.split('-').reverse().join('/')}
                   </td>
-                  <td className="px-8 py-5 text-sm text-slate-500 font-medium">{patient.phone}</td>
-                  <td className="px-8 py-5 text-right">
+                  <td className="px-4 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">{patient.phone}</td>
+                  <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                      <button 
+                        onClick={() => setPatientForHistory(patient)}
+                        className="p-2.5 hover:bg-white text-emerald-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-emerald-100"
+                        title="Ver Histórico"
+                      >
+                        <Eye size={16} />
+                      </button>
                       <button 
                         onClick={() => setSelectedPatientForForm(patient)}
                         className="p-2.5 hover:bg-white text-indigo-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
@@ -211,12 +244,23 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 leading-tight">{patient.name}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1 bg-slate-50 px-2 py-0.5 rounded-md inline-block">
-                      {patient.cpf}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest bg-slate-50 px-2 py-0.5 rounded-md inline-block">
+                        {patient.cpf}
+                      </p>
+                      <p className="text-[10px] text-indigo-600 uppercase font-bold tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md inline-block">
+                        {patient.recordNumber}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => setPatientForHistory(patient)}
+                    className="p-3 bg-emerald-50 text-emerald-600 rounded-xl active:scale-90 transition-all font-bold flex items-center gap-1"
+                  >
+                    <Eye size={18} />
+                  </button>
                   <button 
                     onClick={() => setSelectedPatientForForm(patient)}
                     className="p-3 bg-slate-50 text-indigo-600 rounded-xl active:scale-90 transition-all"
@@ -259,6 +303,13 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
           patient={selectedPatientForForm === 'new' ? null : selectedPatientForForm}
           onClose={() => setSelectedPatientForForm(null)}
           onSave={handleSavePatient}
+        />
+      )}
+
+      {patientForHistory && (
+        <PatientHistoryModal 
+          patient={patientForHistory}
+          onClose={() => setPatientForHistory(null)}
         />
       )}
 

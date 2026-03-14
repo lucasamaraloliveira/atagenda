@@ -335,14 +335,16 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       <div className="p-3 md:p-4 border-b border-slate-200 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
-            <CustomSelect 
-              options={doctorOptions}
-              value={selectedDoctor}
-              onChange={setSelectedDoctor}
-              className="w-full sm:w-64"
-            />
+            <div id="doctor-select">
+              <CustomSelect 
+                options={doctorOptions}
+                value={selectedDoctor}
+                onChange={setSelectedDoctor}
+                className="w-full sm:w-64"
+              />
+            </div>
 
-            <div className="flex items-center bg-slate-100 rounded-lg p-1 shrink-0">
+            <div id="view-toggle" className="flex items-center bg-slate-100 rounded-lg p-1 shrink-0">
               <button 
                 onClick={() => setViewType('dia')}
                 className={cn(
@@ -397,7 +399,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-auto">
+      <div id="agenda-grid" className="flex-1 overflow-auto">
         <div className={cn(
           "grid min-w-[500px] md:min-w-[800px]",
           viewType === 'dia' 

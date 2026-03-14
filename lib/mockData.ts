@@ -1,10 +1,10 @@
 import { Patient, Doctor, Appointment, ScheduleBlock, ScheduleConfig, Procedure } from './types';
 
 export const mockPatients: Patient[] = [
-  { id: '1', name: 'Maria Aparecida da Silva', cpf: '123.456.789-00', birthDate: '1978-05-13', gender: 'Feminino', phone: '(11) 98888-7777', email: 'maria@example.com' },
-  { id: '2', name: 'José Adair Pereira Magalhães', cpf: '234.567.890-11', birthDate: '1965-10-22', gender: 'Masculino', phone: '(11) 97777-6666', email: 'jose@example.com' },
-  { id: '3', name: 'Eliane Silva Marra', cpf: '345.678.901-22', birthDate: '1982-03-05', gender: 'Feminino', phone: '(11) 96666-5555', email: 'eliane@example.com' },
-  { id: '4', name: 'Angelica Correia Costa', cpf: '456.789.012-33', birthDate: '1990-12-15', gender: 'Feminino', phone: '(11) 95555-4444', email: 'angelica@example.com' },
+  { id: '1', recordNumber: 'PR-1001', name: 'Maria Aparecida da Silva', cpf: '123.456.789-00', birthDate: '1978-05-13', gender: 'Feminino', phone: '(11) 98888-7777', email: 'maria@example.com' },
+  { id: '2', recordNumber: 'PR-1002', name: 'José Adair Pereira Magalhães', cpf: '234.567.890-11', birthDate: '1965-10-22', gender: 'Masculino', phone: '(11) 97777-6666', email: 'jose@example.com' },
+  { id: '3', recordNumber: 'PR-1003', name: 'Eliane Silva Marra', cpf: '345.678.901-22', birthDate: '1982-03-05', gender: 'Feminino', phone: '(11) 96666-5555', email: 'eliane@eliane.com' },
+  { id: '4', recordNumber: 'PR-1004', name: 'Angelica Correia Costa', cpf: '456.789.012-33', birthDate: '1990-12-15', gender: 'Feminino', phone: '(11) 95555-4444', email: 'angelica@angelica.com' },
 ];
 
 export const mockDoctors: Doctor[] = [

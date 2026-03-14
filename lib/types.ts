@@ -2,6 +2,7 @@ export type View = 'agenda' | 'pacientes' | 'medicos' | 'historico' | 'novo-agen
 
 export interface Patient {
   id: string;
+  recordNumber?: string;
   name: string;
   cpf: string;
   birthDate: string;

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, CreditCard, Calendar, Phone, Mail, ChevronDown } from 'lucide-react';
+import { X, Save, User, CreditCard, Calendar, Phone, Mail, ChevronDown, Hash } from 'lucide-react';
 import { Patient } from '@/lib/types';
+import { mockPatients } from '@/lib/mockData';
 import CustomSelect from './CustomSelect';
 
 interface PatientFormModalProps {
@@ -36,8 +37,15 @@ export default function PatientFormModal({ patient, onClose, onSave }: PatientFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let recordNumber = patient?.recordNumber;
+    if (!recordNumber && !patient) {
+      recordNumber = `PR-${(mockPatients.length + 1001).toString()}`;
+    }
+
     onSave({
       id: patient?.id || Math.random().toString(36).substr(2, 9),
+      recordNumber,
       ...formData,
     });
   };
@@ -71,7 +79,14 @@ export default function PatientFormModal({ patient, onClose, onSave }: PatientFo
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-slate-50/50">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">{patient ? 'Editar Paciente' : 'Novo Paciente'}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-slate-900">{patient ? 'Editar Paciente' : 'Novo Paciente'}</h2>
+              {patient?.recordNumber && (
+                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  #{patient.recordNumber}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-slate-500 mt-1">Prencha as informações cadastrais do paciente</p>
           </div>
           <button 

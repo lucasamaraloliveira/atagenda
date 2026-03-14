@@ -105,6 +105,8 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
 
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [profileFormOpen, setProfileFormOpen] = useState(false);
+  const [profileToEdit, setProfileToEdit] = useState<any>(null);
 
   const confirmDelete = () => {
     const itemToRemove = itemToDelete;
@@ -112,15 +114,17 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
     setProfiles(profiles.filter(p => p.id !== itemToRemove.id));
     
     toast.info(
-      <div className="flex items-center justify-between w-full">
-        <span>Perfil <strong>{itemToRemove.name}</strong> excluído</span>
+      <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
+        <span className="text-[11px] font-medium truncate min-w-0">
+          Perfil <strong>{itemToRemove.name}</strong> excluído
+        </span>
         <button 
           onClick={() => {
             setProfiles(previousProfiles);
             toast.dismiss();
             toast.success('Exclusão desfeita!');
           }}
-          className="ml-4 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors"
+          className="shrink-0 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors whitespace-nowrap"
         >
           DESFAZER
         </button>
@@ -140,6 +144,23 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
     setSelectedProfile(null);
   };
 
+  const handleSaveProfile = (data: any) => {
+    if (profileToEdit) {
+      setProfiles(profiles.map(p => p.id === profileToEdit.id ? { ...p, ...data } : p));
+      toast.success('Perfil atualizado com sucesso!');
+    } else {
+      const newProfile = {
+        id: Date.now(),
+        ...data,
+        permissions: ['Agenda'] // Default permission
+      };
+      setProfiles([...profiles, newProfile]);
+      toast.success('Novo perfil de acesso criado!');
+    }
+    setProfileFormOpen(false);
+    setProfileToEdit(null);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {filteredProfiles.map((profile) => (
@@ -155,7 +176,14 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
+              <button 
+                onClick={() => {
+                  setProfileToEdit(profile);
+                  setProfileFormOpen(true);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                title="Editar Nome/Cor"
+              >
                 <Edit2 size={16} />
               </button>
               <button 
@@ -190,7 +218,13 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           Nenhum perfil encontrado para "{searchQuery}"
         </div>
       )}
-      <button className="group relative flex flex-col items-center justify-center p-8 rounded-[2rem] border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all bg-white hover:bg-indigo-50/30 min-h-[160px]">
+      <button 
+        onClick={() => {
+          setProfileToEdit(null);
+          setProfileFormOpen(true);
+        }}
+        className="group relative flex flex-col items-center justify-center p-8 rounded-[2rem] border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all bg-white hover:bg-indigo-50/30 min-h-[160px]"
+      >
         <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-all">
           <Plus size={24} />
         </div>
@@ -202,6 +236,14 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           profile={selectedProfile}
           onClose={() => setSelectedProfile(null)}
           onSave={handleSavePermissions}
+        />
+      )}
+
+      {profileFormOpen && (
+        <ProfileModal 
+          profile={profileToEdit}
+          onClose={() => setProfileFormOpen(false)}
+          onSave={handleSaveProfile}
         />
       )}
 
@@ -440,15 +482,17 @@ function Insurances({ searchQuery = '' }: { searchQuery: string }) {
     setInsurances(insurances.filter(i => i.id !== itemToRemove.id));
     
     toast.info(
-      <div className="flex items-center justify-between w-full">
-        <span>Convênio <strong>{itemToRemove.name}</strong> excluído</span>
+      <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
+        <span className="text-[11px] font-medium truncate min-w-0">
+          Convênio <strong>{itemToRemove.name}</strong> excluído
+        </span>
         <button 
           onClick={() => {
             setInsurances(previousInsurances);
             toast.dismiss();
             toast.success('Exclusão desfeita!');
           }}
-          className="ml-4 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors"
+          className="shrink-0 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors whitespace-nowrap"
         >
           DESFAZER
         </button>
@@ -636,15 +680,17 @@ function Procedures({ searchQuery = '' }: { searchQuery: string }) {
     setProcedures(procedures.filter(p => p.id !== itemToRemove.id));
     
     toast.info(
-      <div className="flex items-center justify-between w-full">
-        <span>Procedimento <strong>{itemToRemove.name}</strong> excluído</span>
+      <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
+        <span className="text-[11px] font-medium truncate min-w-0">
+          Procedimento <strong>{itemToRemove.name}</strong> excluído
+        </span>
         <button 
           onClick={() => {
             setProcedures(previousProcedures);
             toast.dismiss();
             toast.success('Exclusão desfeita!');
           }}
-          className="ml-4 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors"
+          className="shrink-0 px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold shadow-sm hover:bg-indigo-50 transition-colors whitespace-nowrap"
         >
           DESFAZER
         </button>
@@ -1066,6 +1112,104 @@ function DeleteConfirmationModal({ itemName, itemType, onClose, onConfirm }: { i
           <button onClick={onClose} className="py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">Não, Manter</button>
           <button onClick={onConfirm} className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-100">Sim, Excluir</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () => void, onSave: (data: any) => void }) {
+  const [name, setName] = useState(profile?.name || '');
+  const [color, setColor] = useState(profile?.color || 'bg-indigo-500');
+
+  const colors = [
+    { name: 'Índigo', class: 'bg-indigo-500' },
+    { name: 'Esmeralda', class: 'bg-emerald-500' },
+    { name: 'Céu', class: 'bg-sky-500' },
+    { name: 'Rosa', class: 'bg-rose-500' },
+    { name: 'Âmbar', class: 'bg-amber-500' },
+    { name: 'Violeta', class: 'bg-violet-500' },
+    { name: 'Slate', class: 'bg-slate-600' },
+    { name: 'Orange', class: 'bg-orange-500' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+          <h2 className="text-xl font-bold text-slate-900">{profile ? 'Editar Perfil' : 'Novo Perfil de Acesso'}</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+            <X size={20} />
+          </button>
+        </div>
+        <form 
+          onSubmit={(e) => { 
+            e.preventDefault(); 
+            if (!name.trim()) return;
+            onSave({ name, color }); 
+          }} 
+          className="p-8 space-y-6"
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Perfil</label>
+              <input 
+                type="text" 
+                required
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Financeiro, TI, etc..."
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Cor de Identificação</label>
+              <div className="grid grid-cols-4 gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100">
+                {colors.map((c) => (
+                  <button
+                    key={c.class}
+                    type="button"
+                    onClick={() => setColor(c.class)}
+                    className={cn(
+                      "w-10 h-10 rounded-xl transition-all flex items-center justify-center relative",
+                      c.class,
+                      color === c.class ? "ring-4 ring-offset-2 ring-indigo-500 scale-90" : "hover:scale-105"
+                    )}
+                    title={c.name}
+                  >
+                    {color === c.class && <Check size={16} className="text-white" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 mt-2">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm", color)}>
+                  {name ? name.charAt(0).toUpperCase() : '?'}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{name || 'Nome do Perfil'}</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Visualização Prévia</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              disabled={!name.trim()}
+              className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 px-8 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Save size={18} /> {profile ? 'Salvar Alterações' : 'Criar Perfil'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
