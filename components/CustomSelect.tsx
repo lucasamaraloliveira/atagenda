@@ -17,9 +17,10 @@ interface CustomSelectProps {
   placeholder?: string;
   label?: string;
   className?: string;
+  direction?: 'up' | 'down';
 }
 
-export default function CustomSelect({ options, value, onChange, placeholder = "Selecione...", label, className }: CustomSelectProps) {
+export default function CustomSelect({ options, value, onChange, placeholder = "Selecione...", label, className, direction = 'down' }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -63,11 +64,14 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            initial={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            exit={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden py-1.5"
+            className={cn(
+              "absolute z-50 w-full bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden py-1.5",
+              direction === 'up' ? "bottom-full mb-2" : "top-full mt-2"
+            )}
           >
             <div className="max-h-60 overflow-y-auto custom-scrollbar">
               {options.length === 0 ? (

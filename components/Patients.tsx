@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { mockPatients, mockAppointments } from '@/lib/mockData';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 import { Patient } from '@/lib/types';
 import PatientFormModal from './PatientFormModal';
 import PatientHistoryModal from './PatientHistoryModal';
+import ImportPatientsModal from './ImportPatientsModal';
 import { toast } from 'react-toastify';
+import { Upload } from 'lucide-react';
 
 export default function Patients({ searchQuery = '' }: { searchQuery?: string }) {
   const [selectedPatientForForm, setSelectedPatientForForm] = useState<Patient | null | 'new'>(null);
@@ -15,6 +17,9 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
   const [patientForHistory, setPatientForHistory] = useState<Patient | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0); 
   const [sortConfig, setSortConfig] = useState<{ key: keyof Patient; direction: 'asc' | 'desc' } | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const handleSort = (key: keyof Patient) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -24,12 +29,12 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     setSortConfig({ key, direction });
   };
   const filteredPatients = mockPatients.filter(p => {
-    const search = searchQuery.toLowerCase();
+    const search = normalizeString(searchQuery);
     const [year, month, day] = p.birthDate.split('-');
     const formattedDob = `${day}/${month}/${year}`;
-    return p.name.toLowerCase().includes(search) || 
+    return normalizeString(p.name).includes(search) || 
            p.cpf.includes(search) ||
-           (p.recordNumber && p.recordNumber.toLowerCase().includes(search)) ||
+           (p.recordNumber && normalizeString(p.recordNumber).includes(search)) ||
            formattedDob.includes(search);
   }).sort((a, b) => {
     if (!sortConfig) return 0;
@@ -40,6 +45,17 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     if (valA > valB) return direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+  const paginatedPatients = filteredPatients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to first page when searching
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleSavePatient = (patientData: Patient) => {
     // Check for duplicate CPF
@@ -58,6 +74,11 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
       toast.success('Novo paciente cadastrado com sucesso!');
     }
     setSelectedPatientForForm(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleImportPatients = (importedPatients: Patient[]) => {
+    mockPatients.push(...importedPatients);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -106,7 +127,14 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
   return (
     <div className="space-y-6" key={refreshKey}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
+        <button 
+          onClick={() => setShowImportModal(true)}
+          className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-indigo-600 border border-indigo-100 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all shadow-sm active:scale-[0.98]"
+        >
+          <Upload size={18} />
+          Importar Lista
+        </button>
         <button 
           onClick={() => setSelectedPatientForForm('new')}
           className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-[0.98]"
@@ -123,107 +151,129 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th 
-                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('name')}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     Paciente
                     {sortConfig?.key === 'name' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                      sortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('recordNumber')}
                 >
-                  <div className="flex items-center gap-2">
-                    Prontuário
+                  <div className="flex items-center gap-1">
+                    Pront.
                     {sortConfig?.key === 'recordNumber' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                      sortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('cpf')}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     CPF
                     {sortConfig?.key === 'cpf' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                      sortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('birthDate')}
                 >
-                  <div className="flex items-center gap-2">
-                    Nascimento
+                  <div className="flex items-center gap-1">
+                    Nasc.
                     {sortConfig?.key === 'birthDate' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                      sortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('phone')}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     Contato
                     {sortConfig?.key === 'phone' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                      sortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
                     )}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Ações</th>
+                <th className="px-2 py-4 text-[9px] font-bold uppercase tracking-wider text-slate-400 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredPatients.map((patient) => (
+              {paginatedPatients.map((patient) => (
                 <tr key={patient.id} className="hover:bg-indigo-50/30 transition-colors group">
-                  <td className="px-4 py-4 min-w-[200px]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+                  <td className="px-2 py-3 min-w-[140px]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
                         {patient.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-900 truncate text-sm">{patient.name}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{patient.email}</p>
+                        <p className="font-bold text-slate-900 truncate text-[12px]">{patient.name}</p>
+                        <a 
+                          href={`mailto:${patient.email}`}
+                          className="text-[9px] text-slate-400 truncate hover:text-indigo-600 transition-colors flex items-center gap-1"
+                        >
+                          {patient.email}
+                        </a>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm font-bold text-indigo-600 font-mono whitespace-nowrap">
-                    <span className="bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{patient.recordNumber || '-'}</span>
+                  <td className="px-2 py-3 text-[11px] font-bold text-indigo-600 font-mono whitespace-nowrap">
+                    <span className="bg-indigo-50 px-1 py-0.5 rounded-lg border border-indigo-100">{patient.recordNumber || '-'}</span>
                   </td>
-                  <td className="px-4 py-4 text-sm text-slate-600 font-mono whitespace-nowrap">
-                    <span className="bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">{patient.cpf}</span>
+                  <td className="px-2 py-3 text-[11px] text-slate-600 font-mono whitespace-nowrap">
+                    <span className="bg-slate-50 px-1 py-0.5 rounded-lg border border-slate-100">{patient.cpf}</span>
                   </td>
-                  <td className="px-4 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">
+                  <td className="px-2 py-3 text-[11px] text-slate-500 font-medium whitespace-nowrap">
                     {patient.birthDate.split('-').reverse().join('/')}
                   </td>
-                  <td className="px-4 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">{patient.phone}</td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                  <td className="px-2 py-3 text-[11px] text-slate-500 font-medium whitespace-nowrap">
+                    <div className="flex flex-col gap-0.5">
+                      <a 
+                        href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-indigo-600 hover:text-emerald-600 transition-all group/wa w-fit"
+                        title="Enviar WhatsApp"
+                      >
+                        <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover/wa:scale-110 group-hover/wa:bg-emerald-500 group-hover/wa:text-white transition-all">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.626 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                          </svg>
+                        </div>
+                        <span className="font-bold font-mono tracking-tighter text-slate-700 group-hover/wa:text-emerald-600 transition-colors text-[10px] uppercase">{patient.phone}</span>
+                      </a>
+                    </div>
+                  </td>
+                  <td className="px-2 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-1 group-hover:translate-x-0">
                       <button 
                         onClick={() => setPatientForHistory(patient)}
-                        className="p-2.5 hover:bg-white text-emerald-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-emerald-100"
+                        className="p-1.5 hover:bg-white text-emerald-600 rounded-lg transition-all hover:shadow-md border border-transparent hover:border-emerald-100"
                         title="Ver Histórico"
                       >
-                        <Eye size={16} />
+                        <Eye size={14} />
                       </button>
                       <button 
                         onClick={() => setSelectedPatientForForm(patient)}
-                        className="p-2.5 hover:bg-white text-indigo-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
+                        className="p-1.5 hover:bg-white text-indigo-600 rounded-lg transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                       </button>
                       <button 
                         onClick={() => setPatientToDelete(patient)}
-                        className="p-2.5 hover:bg-white text-red-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-red-100"
+                        className="p-1.5 hover:bg-white text-red-600 rounded-lg transition-all hover:shadow-md border border-transparent hover:border-red-100"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
@@ -235,7 +285,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
         {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-slate-100">
-          {filteredPatients.map((patient) => (
+          {paginatedPatients.map((patient) => (
             <div key={patient.id} className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -288,6 +338,59 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
             </div>
           ))}
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 bg-slate-50/10">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              Mostrando <span className="text-slate-600">{paginatedPatients.length}</span> de <span className="text-slate-600">{filteredPatients.length}</span> pacientes
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                  })
+                  .map((page, index, array) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span className="text-slate-300 px-1 font-bold">...</span>
+                      )}
+                      <button 
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "w-10 h-10 rounded-xl text-xs font-bold transition-all",
+                          currentPage === page 
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                            : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  ))}
+              </div>
+
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {filteredPatients.length === 0 && (
           <div className="p-20 text-center">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
@@ -310,6 +413,14 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         <PatientHistoryModal 
           patient={patientForHistory}
           onClose={() => setPatientForHistory(null)}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportPatientsModal 
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportPatients}
+          existingPatients={mockPatients}
         />
       )}
 

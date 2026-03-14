@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileBarChart, ChevronDown, Lock, Printer, Download, Eye, FileText, MoveHorizontal, X } from 'lucide-react';
-import { mockDoctors, mockAppointments, mockPatients, mockScheduleBlocks, mockScheduleConfigs } from '@/lib/mockData';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileBarChart, ChevronDown, Lock, Printer, Download, Eye, FileText, MoveHorizontal, X, Zap, AlertTriangle, ListChecks, Users, Clock } from 'lucide-react';
+import { mockDoctors, mockAppointments, mockPatients, mockScheduleBlocks, mockScheduleConfigs, mockUnits, mockProcedures, mockSystemSettings } from '@/lib/mockData';
+import { Procedure } from '@/lib/types';
+import { cn, normalizeString } from '@/lib/utils';
+import { Building2 } from 'lucide-react';
 import { format, addDays, startOfWeek, eachDayOfInterval, isSameDay, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CustomSelect from './CustomSelect';
@@ -17,16 +20,16 @@ interface AgendaProps {
   searchQuery?: string;
 }
 
-export const getDaySchedule = (doctorId: string, date: Date) => {
-  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId);
+export const getDaySchedule = (doctorId: string, unitId: string, date: Date) => {
+  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId && c.unitId === unitId);
   if (!config || !config.schedule) return null;
   const dayOfWeek = date.getDay().toString();
   return config.schedule[dayOfWeek];
 };
 
-export const isTimeOverbook = (doctorId: string, date: Date, time: string) => {
-  const schedule = getDaySchedule(doctorId, date);
-  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId);
+export const isTimeOverbook = (doctorId: string, unitId: string, date: Date, time: string) => {
+  const schedule = getDaySchedule(doctorId, unitId, date);
+  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId && c.unitId === unitId);
   const slotDuration = config?.slotDuration || 15;
 
   if (!schedule || !schedule.active) return true;
@@ -47,7 +50,8 @@ export const isTimeOverbook = (doctorId: string, date: Date, time: string) => {
 };
 
 export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaProps) {
-  const [selectedDoctor, setSelectedDoctor] = useState(mockDoctors[0].id);
+  const [selectedDoctor, setSelectedDoctor] = useState(mockDoctors[0]?.id || '');
+  const [selectedUnit, setSelectedUnit] = useState(mockUnits[0]?.id || '');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<'dia' | 'semana'>('dia');
   const [blockToRemove, setBlockToRemove] = useState<any>(null);
@@ -58,14 +62,24 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(), 'yyyy-MM-dd')
   });
+  const [showDailyGlobalModal, setShowDailyGlobalModal] = useState(false);
+  const [hoverDaily, setHoverDaily] = useState(false);
+  const [hoverReport, setHoverReport] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const doctorOptions = mockDoctors.map(doc => ({
-    id: doc.id,
-    name: `Médico: ${doc.name}`
+  const doctorOptions = mockDoctors
+    .filter(doc => doc.type !== 'solicitante')
+    .map(doc => ({
+      id: doc.id,
+      name: `Médico: ${doc.name}`
+    }));
+
+  const unitOptions = mockUnits.map(unit => ({
+    id: unit.id,
+    name: `Unidade: ${unit.name}`
   }));
 
-  const doctorConfig = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor);
+  const doctorConfig = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
   const slotDuration = doctorConfig?.slotDuration || 15;
 
   const weekDays = eachDayOfInterval({
@@ -109,7 +123,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   }
   
   mockAppointments.forEach(app => {
-    if (app.doctorId === selectedDoctor && formattedRelevantDates.includes(app.date)) {
+    if (app.doctorId === selectedDoctor && app.unitId === selectedUnit && formattedRelevantDates.includes(app.date)) {
       timesSet.add(app.time);
     }
   });
@@ -119,6 +133,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   const getAppointment = (date: Date, time: string) => {
     const app = mockAppointments.find(app => 
       app.doctorId === selectedDoctor && 
+      app.unitId === selectedUnit &&
       app.date === format(date, 'yyyy-MM-dd') && 
       app.time === time
     );
@@ -127,9 +142,9 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
 
     // Filter by search query if provided
     if (searchQuery) {
-      const patientName = getPatientName(app.patientId).toLowerCase();
-      const procedure = app.procedure.toLowerCase();
-      const search = searchQuery.toLowerCase();
+      const patientName = normalizeString(getPatientName(app.patientId));
+      const procedure = normalizeString(app.procedure);
+      const search = normalizeString(searchQuery);
       if (!patientName.includes(search) && !procedure.includes(search)) {
         return null;
       }
@@ -146,6 +161,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     const formattedDate = format(date, 'yyyy-MM-dd');
     return mockScheduleBlocks.find(block => 
       block.doctorId === selectedDoctor && 
+      block.unitId === selectedUnit &&
       block.date === formattedDate && 
       time >= block.startTime && 
       time < block.endTime
@@ -153,32 +169,33 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   const checkIsOverbook = (date: Date, time: string) => {
-    return isTimeOverbook(selectedDoctor, date, time);
+    return isTimeOverbook(selectedDoctor, selectedUnit, date, time);
   };
 
   const isLunchBreakInternal = (date: Date, time: string) => {
-    const schedule = getDaySchedule(selectedDoctor, date);
+    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date);
     if (!schedule || !schedule.active) return false;
     return time >= schedule.lunchStart && time < schedule.lunchEnd;
   };
 
   const isInactiveDayInternal = (date: Date) => {
-    const schedule = getDaySchedule(selectedDoctor, date);
+    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date);
     return !schedule || !schedule.active;
   };
 
   const getOverbookStatus = (date: Date) => {
-    const config = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor);
+    const config = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
     if (!config || config.maxOverbooksPerDay === 0) return { allowed: false, max: 0, current: 0 };
     
     const formattedDate = format(date, 'yyyy-MM-dd');
     const dailyAppointments = mockAppointments.filter(app => 
-      app.doctorId === selectedDoctor && app.date === formattedDate
+      app.doctorId === selectedDoctor && app.unitId === selectedUnit && app.date === formattedDate
     );
     
     let overbookCount = 0;
     dailyAppointments.forEach(app => {
-      if (checkIsOverbook(date, app.time)) {
+      const isAppOverbook = app.isOverbook ?? checkIsOverbook(date, app.time);
+      if (isAppOverbook) {
         overbookCount++;
       }
     });
@@ -224,7 +241,94 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   const handleStatusUpdate = (appointmentId: string, newStatus: any) => {
     const appointment = mockAppointments.find(a => a.id === appointmentId);
     if (appointment) {
+      const oldStatus = appointment.status;
       appointment.status = newStatus;
+      
+      if (!appointment.statusHistory) appointment.statusHistory = [];
+      appointment.statusHistory.push({
+        id: Math.random().toString(36).substr(2, 9),
+        status: newStatus,
+        timestamp: new Date().toISOString(),
+        user: 'Administrador',
+        note: `Alteração de status: ${oldStatus} -> ${newStatus}`
+      });
+      
+      // Trigger Integration if status changed to 'realizado'
+      if (newStatus === 'realizado' && oldStatus !== 'realizado') {
+        const proc = mockProcedures.find((p: Procedure) => p.name === appointment.procedure);
+        if (proc?.integraRis) {
+          const isGlobalRisEnabled = mockSystemSettings.integracao.risEnabled;
+          
+          if (!isGlobalRisEnabled) {
+            // Error case: Procedure requires RIS but global integration is disabled
+            toast.error(
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 font-bold">
+                  <AlertTriangle size={14} />
+                  <span>Erro de Integração RIS</span>
+                </div>
+                <p className="text-[10px] opacity-90">O procedimento exige integração, mas o módulo RIS global está desativado nas configurações.</p>
+              </div>,
+              { autoClose: 5000 }
+            );
+            console.error('❌ RIS Integration Failed: Global RIS module is disabled.');
+          } else if (!mockSystemSettings.integracao.pacsUrl) {
+             // Error case: Global RIS is enabled but no PACS URL is configured
+             toast.error(
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 font-bold">
+                  <AlertTriangle size={14} />
+                  <span>Configuração Incompleta</span>
+                </div>
+                <p className="text-[10px] opacity-90">A URL do servidor PACS não foi configurada nos parâmetros de integração.</p>
+              </div>,
+              { autoClose: 5000 }
+            );
+            console.error('❌ RIS Integration Failed: PACS URL is missing.');
+          } else {
+            // Success case: Log only, as requested by user
+            const patient = mockPatients.find(p => p.id === appointment.patientId);
+            const doctor = mockDoctors.find(d => d.id === appointment.doctorId);
+            const unit = mockUnits.find(u => u.id === appointment.unitId);
+            
+            const integrationPayload = {
+              event: 'APPOINTMENT_COMPLETED',
+              timestamp: new Date().toISOString(),
+              data: {
+                appointmentId: appointment.id,
+                date: appointment.date,
+                time: appointment.time,
+                status: appointment.status,
+                patient: {
+                  id: patient?.id,
+                  name: patient?.name,
+                  cpf: patient?.cpf,
+                  recordNumber: patient?.recordNumber
+                },
+                doctor: {
+                  id: doctor?.id,
+                  name: doctor?.name,
+                  crm: doctor?.crm,
+                  specialty: doctor?.specialty
+                },
+                procedure: {
+                  name: proc.name,
+                  modality: proc.modality,
+                  price: proc.price
+                },
+                unit: {
+                  id: unit?.id,
+                  name: unit?.name
+                },
+                insurance: appointment.insurance
+              }
+            };
+            
+            console.log('🚀 RIS Integration Triggered (Silent Success):', integrationPayload);
+          }
+        }
+      }
+
       setRefreshKey(k => k + 1);
       setSelectedAppointmentForStatus(null);
       toast.success(`Status do agendamento atualizado para "${newStatus}"`);
@@ -234,9 +338,22 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   const handleTransfer = (appointmentId: string, newDate: string, newTime: string, newDoctorId: string) => {
     const appointment = mockAppointments.find(a => a.id === appointmentId);
     if (appointment) {
+      const oldDate = appointment.date;
+      const oldTime = appointment.time;
+      
       appointment.date = newDate;
       appointment.time = newTime;
       appointment.doctorId = newDoctorId;
+      appointment.unitId = selectedUnit; 
+      
+      if (!appointment.statusHistory) appointment.statusHistory = [];
+      appointment.statusHistory.push({
+        id: Math.random().toString(36).substr(2, 9),
+        status: appointment.status,
+        timestamp: new Date().toISOString(),
+        user: 'Administrador',
+        note: `Transferência: ${oldTime} (${oldDate}) -> ${newTime} (${newDate})`
+      });
       setRefreshKey(k => k + 1);
       setSelectedAppointmentForStatus(null);
       toast.success('Agendamento transferido com sucesso!', {
@@ -252,30 +369,86 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const doctor = mockDoctors.find(d => d.id === selectedDoctor);
+    const unit = mockUnits.find(u => u.id === selectedUnit);
+    
+    // Dynamic Title based on Period
+    const reportTitle = reportPeriod === 'dia' ? 'Lista de Agendamentos do Dia' :
+                        reportPeriod === 'semana' ? 'Lista de Agendamentos da Semana' :
+                        'Lista de Agendamentos (Personalizado)';
+
     const periodLabel = reportPeriod === 'dia' ? format(currentDate, 'dd/MM/yyyy') : 
-                        reportPeriod === 'semana' ? 'Semanal' : 
-                        `${format(parse(reportDateRange.startDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')} - ${format(parse(reportDateRange.endDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}`;
+                        reportPeriod === 'semana' ? `${format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'dd/MM/yyyy')} a ${format(addDays(startOfWeek(currentDate, { weekStartsOn: 0 }), 6), 'dd/MM/yyyy')}` : 
+                        `${format(parse(reportDateRange.startDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')} a ${format(parse(reportDateRange.endDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}`;
 
     // Header styling
-    doc.setFillColor(79, 70, 229); // Indigo 600
+    doc.setFillColor(0, 155, 219); // #009BDB
     doc.rect(0, 0, 210, 40, 'F');
     
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ATAgenda - Relatório de Atendimentos', 15, 20);
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const now = format(new Date(), 'dd/MM/yyyy HH:mm');
-    doc.text(`Gerado em: ${now}`, 15, 30);
-    doc.text(`Período: ${periodLabel}`, 15, 35);
+    if (unit?.logo) {
+      try {
+        const imgProps = doc.getImageProperties(unit.logo);
+        const ratio = imgProps.width / imgProps.height;
+        const maxHeight = 26;
+        const maxWidth = 80;
+        let displayWidth = maxHeight * ratio;
+        let displayHeight = maxHeight;
 
-    // Doctor info
+        if (displayWidth > maxWidth) {
+          displayWidth = maxWidth;
+          displayHeight = maxWidth / ratio;
+        }
+
+        const yPos = (40 - displayHeight) / 2;
+        doc.addImage(unit.logo, 'PNG', 15, yPos, displayWidth, displayHeight);
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        const textX = 15 + displayWidth + 8;
+        doc.text(unit?.name || 'ATAgenda', textX, 22);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const now = format(new Date(), 'dd/MM/yyyy HH:mm');
+        doc.text(`Gerado em: ${now}`, textX, 30);
+        doc.text(`Período: ${periodLabel}`, textX, 35);
+      } catch (e) {
+        // Fallback if image fails
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text(unit?.name || 'Relatório de Atendimentos', 15, 20);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const now = format(new Date(), 'dd/MM/yyyy HH:mm');
+        doc.text(`Gerado em: ${now}`, 15, 30);
+        doc.text(`Período: ${periodLabel}`, 15, 35);
+      }
+    } else {
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(unit?.name || 'Relatório de Atendimentos', 15, 20);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const now = format(new Date(), 'dd/MM/yyyy HH:mm');
+      doc.text(`Gerado em: ${now}`, 15, 30);
+      doc.text(`Período: ${periodLabel}`, 15, 35);
+    }
+
     doc.setTextColor(51, 65, 85);
     doc.setFontSize(12);
     doc.text(`Médico: ${doctor?.name || 'Não selecionado'}`, 15, 50);
     doc.text(`CRM: ${doctor?.crm || '-'}`, 15, 56);
+
+    // Centralized Dynamic Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    const titleWidth = doc.getTextWidth(reportTitle);
+    const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    doc.text(reportTitle, (pageWidth - titleWidth) / 2, 65);
 
     const filteredApps = mockAppointments
       .filter(app => {
@@ -302,11 +475,10 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     ]);
 
     autoTable(doc, {
-      startY: 65,
-      head: [['Data', 'Hora', 'Paciente', 'Procedimento', 'Status']],
+      startY: 72, head: [['Data', 'Hora', 'Paciente', 'Procedimento', 'Status']],
       body: tableData,
       headStyles: { 
-        fillColor: [79, 70, 229],
+        fillColor: [0, 155, 219],
         fontSize: 10,
         fontStyle: 'bold',
         halign: 'center'
@@ -322,8 +494,46 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       },
       alternateRowStyles: {
         fillColor: [248, 250, 252]
+      },
+      didDrawPage: (data) => {
+        // Footer
+        const pageSize = doc.internal.pageSize;
+        const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+        
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        
+        // Branding text
+        const footerText = 'powered by Alrion Tech • todos os direitos reservados';
+        doc.text(footerText, 15, pageHeight - 10);
+        
+        // Pagination
+        const pageNumber = `Página ${data.pageNumber}`;
+        const totalPages = doc.getNumberOfPages();
+        const pageLabel = `${pageNumber} de ${totalPages}`;
+        const pageWidth = pageSize.width ? pageSize.width : pageSize.getWidth();
+        const textWidth = doc.getTextWidth(pageLabel);
+        doc.text(pageLabel, pageWidth - textWidth - 15, pageHeight - 10);
       }
     });
+
+    // Final total pages update (jsPDF autoTable pagination fix)
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.width ? pageSize.width : pageSize.getWidth();
+      const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+      const pageLabel = `Página ${i} de ${totalPages}`;
+      const textWidth = doc.getTextWidth(pageLabel);
+      
+      // Clean previous label area and write final
+      doc.setFillColor(255, 255, 255);
+      doc.rect(pageWidth - 50, pageHeight - 15, 40, 10, 'F');
+      doc.text(pageLabel, pageWidth - textWidth - 15, pageHeight - 10);
+    }
 
     doc.save(`relatorio_atendimentos_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
     toast.success('Relatório PDF gerado com sucesso!');
@@ -340,6 +550,15 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                 options={doctorOptions}
                 value={selectedDoctor}
                 onChange={setSelectedDoctor}
+                className="w-full sm:w-64"
+              />
+            </div>
+
+            <div id="unit-select">
+              <CustomSelect 
+                options={unitOptions}
+                value={selectedUnit}
+                onChange={setSelectedUnit}
                 className="w-full sm:w-64"
               />
             </div>
@@ -387,13 +606,53 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                 <ChevronRight size={18} />
               </button>
             </div>
-              <button 
-                onClick={() => setShowReportModal(true)}
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
-                title="Relatório de Atendimentos"
-              >
-                <FileBarChart size={18} />
-              </button>
+              <div className="relative flex items-center">
+                <button 
+                  onClick={() => setShowDailyGlobalModal(true)}
+                  onMouseEnter={() => setHoverDaily(true)}
+                  onMouseLeave={() => setHoverDaily(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg text-indigo-600 bg-indigo-50 border border-indigo-100 transition-all active:scale-95"
+                >
+                  <ListChecks size={18} />
+                </button>
+                <AnimatePresence>
+                  {hoverDaily && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                      className="absolute top-full mt-2 right-0 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-[100] shadow-xl pointer-events-none"
+                    >
+                      Agendamentos do Dia
+                      <div className="absolute bottom-full right-4 border-8 border-transparent border-b-slate-900" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="relative flex items-center">
+                <button 
+                  onClick={() => setShowReportModal(true)}
+                  onMouseEnter={() => setHoverReport(true)}
+                  onMouseLeave={() => setHoverReport(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-all active:scale-95"
+                >
+                  <FileBarChart size={18} />
+                </button>
+                <AnimatePresence>
+                  {hoverReport && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                      className="absolute top-full mt-2 right-0 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-[100] shadow-xl pointer-events-none"
+                    >
+                      Relatório de Atendimentos
+                      <div className="absolute bottom-full right-4 border-8 border-transparent border-b-slate-900" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
           </div>
         </div>
       </div>
@@ -432,6 +691,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                   date={currentDate}
                   time={time}
                   doctorId={selectedDoctor}
+                  unitId={selectedUnit}
                   appointment={getAppointment(currentDate, time)} 
                   patientName={getAppointment(currentDate, time) ? getPatientName(getAppointment(currentDate, time)!.patientId) : ''}
                   block={getBlock(currentDate, time)}
@@ -451,6 +711,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                     date={day}
                     time={time}
                     doctorId={selectedDoctor}
+                    unitId={selectedUnit}
                     appointment={getAppointment(day, time)} 
                     patientName={getAppointment(day, time) ? getPatientName(getAppointment(day, time)!.patientId) : ''}
                     block={getBlock(day, time)}
@@ -643,6 +904,15 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
           </div>
         </div>
       )}
+
+      {showDailyGlobalModal && (
+        <DailyAppointmentsModal 
+          date={currentDate}
+          initialUnitId={selectedUnit}
+          onClose={() => setShowDailyGlobalModal(false)}
+          onAppointmentClick={setSelectedAppointmentForStatus}
+        />
+      )}
     </div>
   );
 }
@@ -651,6 +921,7 @@ function TimeSlot({
   date, 
   time, 
   doctorId, 
+  unitId,
   appointment, 
   patientName, 
   block,
@@ -666,6 +937,7 @@ function TimeSlot({
   date: Date, 
   time: string, 
   doctorId: string, 
+  unitId: string,
   appointment?: any, 
   patientName?: string, 
   block?: any,
@@ -673,11 +945,13 @@ function TimeSlot({
   isLunchBreak?: boolean,
   isInactiveDay?: boolean,
   overbookStatus?: { allowed: boolean, max: number, current: number },
-  onNewAppointment?: (date: string, time: string, doctorId: string) => void,
+  onNewAppointment?: (date: string, time: string, doctorId: string, unitId: string) => void,
   onBlockClick?: (block: any) => void,
   onAppointmentClick?: (appointment: any) => void,
   onShowOverbookModal?: (max: number) => void
 }) {
+  const [hoverAdd, setHoverAdd] = useState(false);
+
   if (isInactiveDay && !appointment) {
     return (
       <div className="border-b border-r border-slate-100 h-12 p-1 relative bg-slate-50 flex items-center justify-center">
@@ -712,7 +986,7 @@ function TimeSlot({
     );
   }
 
-  const isOverbookSlot = isOverbook;
+  const isOverbookSlot = appointment ? (appointment.isOverbook ?? isOverbook) : isOverbook;
   const showAddButton = !appointment && (!isOverbookSlot || (overbookStatus && overbookStatus.max > 0));
 
   const handleAddClick = () => {
@@ -720,17 +994,26 @@ function TimeSlot({
       if (onShowOverbookModal) onShowOverbookModal(overbookStatus.max);
       return;
     }
-    onNewAppointment?.(format(date, 'yyyy-MM-dd'), time, doctorId);
+    onNewAppointment?.(format(date, 'yyyy-MM-dd'), time, doctorId, unitId);
   };
 
   return (
-    <div className={cn(
-      "border-b border-r border-slate-100 h-12 p-0.5 relative group transition-colors",
-      isOverbookSlot ? "bg-amber-50/30 hover:bg-amber-50/80" : "hover:bg-slate-50/50"
-    )}>
+    <div 
+      onClick={!appointment && showAddButton ? handleAddClick : undefined}
+      onMouseEnter={() => !appointment && showAddButton && setHoverAdd(true)}
+      onMouseLeave={() => !appointment && showAddButton && setHoverAdd(false)}
+      className={cn(
+        "border-b border-r border-slate-100 h-12 p-0.5 relative group transition-colors",
+        isOverbookSlot ? "bg-amber-50/30 hover:bg-amber-50/80" : "hover:bg-slate-50/50",
+        !appointment && showAddButton && "cursor-pointer"
+      )}
+    >
       {appointment ? (
         <div 
-          onClick={() => onAppointmentClick?.(appointment)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAppointmentClick?.(appointment);
+          }}
           className={cn(
             "h-full w-full rounded-md p-1.5 text-[10px] flex flex-col justify-between shadow-sm border-l-4 cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all",
             isOverbookSlot 
@@ -758,16 +1041,30 @@ function TimeSlot({
           <p className="opacity-70 truncate">{appointment.procedure}</p>
         </div>
       ) : showAddButton ? (
-        <button 
-          onClick={handleAddClick}
-          className={cn(
-            "absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer",
-            isOverbookSlot ? "text-amber-500" : "text-indigo-400"
-          )}
-          title={isOverbookSlot ? "Adicionar Encaixe" : "Novo Agendamento"}
-        >
-          <PlusCircle size={16} />
-        </button>
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none">
+          <div 
+            className={cn(
+              "w-8 h-8 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+              isOverbookSlot ? "text-amber-500 bg-amber-50 rounded-full" : "text-indigo-400 bg-indigo-50 rounded-full"
+            )}
+          >
+            <PlusCircle size={18} />
+          </div>
+          
+          <AnimatePresence>
+            {hoverAdd && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[9px] font-bold rounded-md whitespace-nowrap z-[100] shadow-lg"
+              >
+                {isOverbookSlot ? 'Adicionar Encaixe' : 'Novo Agendamento'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       ) : (
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <span className="text-[9px] md:text-[10px] text-slate-300 font-medium text-center leading-tight">
@@ -787,5 +1084,203 @@ function PlusCircle({ size }: { size: number }) {
       <line x1="12" y1="8" x2="12" y2="16" />
       <line x1="8" y1="12" x2="16" y2="12" />
     </svg>
+  );
+}
+
+function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentClick }: { date: Date, initialUnitId: string, onClose: () => void, onAppointmentClick: (app: any) => void }) {
+  const [selectedUnit, setSelectedUnit] = useState(initialUnitId);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const formattedDate = format(date, 'yyyy-MM-dd');
+
+  const unitOptions = mockUnits.map(unit => ({
+    id: unit.id,
+    name: unit.name
+  }));
+
+  const perPageOptions = [
+    { id: '20', name: '20 pacientes' },
+    { id: '50', name: '50 pacientes' },
+    { id: '75', name: '75 pacientes' },
+  ];
+
+  const allFilteredApps = mockAppointments.filter(app => 
+    app.date === formattedDate && app.unitId === selectedUnit
+  ).sort((a, b) => a.time.localeCompare(b.time));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedUnit, itemsPerPage]);
+
+  const totalItems = allFilteredApps.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedApps = allFilteredApps.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+          <div className="flex items-center gap-3 overflow-hidden">
+             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+                <ListChecks size={20} />
+             </div>
+             <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900 truncate">Agendamentos do Dia</h2>
+                <p className="text-xs text-slate-500 font-medium truncate">{format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-4 shrink-0 min-w-[200px]">
+             <CustomSelect 
+               options={unitOptions}
+               value={selectedUnit}
+               onChange={(val) => setSelectedUnit(val)}
+             />
+             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+                <X size={20} />
+             </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+           {totalItems === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 text-slate-400 italic">
+                <Clock size={48} className="mb-4 opacity-20" />
+                <p>Nenhum agendamento encontrado para esta unidade nesta data.</p>
+             </div>
+           ) : (
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-separate border-spacing-y-2">
+                 <thead>
+                   <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4">
+                     <th className="pb-4 pl-4">Hora</th>
+                     <th className="pb-4">Médico</th>
+                     <th className="pb-4">Paciente</th>
+                     <th className="pb-4">Procedimento</th>
+                     <th className="pb-4">Status</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                    {paginatedApps.map(app => {
+                      const doctor = mockDoctors.find(d => d.id === app.doctorId);
+                      const patient = mockPatients.find(p => p.id === app.patientId);
+                      return (
+                        <tr 
+                          key={app.id} 
+                          onClick={() => onAppointmentClick(app)}
+                          className="bg-slate-50/50 hover:bg-slate-50 transition-colors group cursor-pointer"
+                        >
+                          <td className="py-4 pl-4 rounded-l-2xl">
+                             <span className="text-xs font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">{app.time}</span>
+                          </td>
+                          <td className="py-4">
+                             <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400">
+                                   <Users size={14} />
+                                </div>
+                                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">{doctor?.name}</span>
+                             </div>
+                          </td>
+                          <td className="py-4">
+                             <span className="text-xs font-medium text-slate-700 whitespace-nowrap">{patient?.name}</span>
+                          </td>
+                          <td className="py-4">
+                             <span className="text-xs text-slate-500 uppercase font-bold text-[10px] truncate block max-w-[200px]">{app.procedure}</span>
+                          </td>
+                          <td className="py-4 pr-4 rounded-r-2xl">
+                             <div className="flex flex-col items-end gap-1">
+                               <span className={cn(
+                                 "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm",
+                                 app.isOverbook && app.status === 'agendado' ? "bg-amber-100 text-amber-700 font-black border border-amber-200" :
+                                 app.status === 'agendado' ? "bg-indigo-100 text-indigo-700" :
+                                 app.status === 'confirmado' ? "bg-sky-100 text-sky-700" :
+                                 app.status === 'em-atendimento' ? "bg-violet-100 text-violet-700" :
+                                 app.status === 'realizado' ? "bg-emerald-100 text-emerald-700" :
+                                 "bg-slate-100 text-slate-600"
+                               )}>
+                                 {app.status}
+                               </span>
+                               {app.isOverbook && (
+                                 <span className="text-[8px] font-bold text-amber-600 uppercase tracking-tighter bg-white px-1 border border-amber-100 rounded">
+                                   Encaixe
+                                 </span>
+                               )}
+                             </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                 </tbody>
+               </table>
+             </div>
+           )}
+        </div>
+        
+        <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-6">
+           <div className="flex flex-col md:flex-row items-center gap-6">
+              <p className="text-xs text-slate-400 font-medium whitespace-nowrap">Total de <strong>{totalItems}</strong> agendamentos.</p>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                   <button 
+                     disabled={currentPage === 1}
+                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                     className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                   >
+                     <ChevronLeft size={16} />
+                   </button>
+                   
+                   <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button 
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={cn(
+                            "w-8 h-8 rounded-lg text-xs font-bold transition-all",
+                            currentPage === page 
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                              : "text-slate-400 hover:bg-white hover:text-slate-600 border border-transparent hover:border-slate-100"
+                          )}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                   </div>
+
+                   <button 
+                     disabled={currentPage === totalPages}
+                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                     className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                   >
+                     <ChevronRight size={16} />
+                   </button>
+                </div>
+              )}
+           </div>
+
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exibir:</span>
+                 <CustomSelect 
+                    options={perPageOptions}
+                    value={itemsPerPage.toString()}
+                    onChange={(val) => setItemsPerPage(parseInt(val))}
+                    className="w-40"
+                    direction="up"
+                 />
+              </div>
+              <button 
+                onClick={onClose}
+                className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.98]"
+              >
+                Fechar
+              </button>
+           </div>
+        </div>
+      </div>
+    </div>
   );
 }

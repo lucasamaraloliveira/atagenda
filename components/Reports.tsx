@@ -12,7 +12,8 @@ import {
   ChevronUp,
   FileText,
   Calendar,
-  Search
+  Search,
+  Check
 } from 'lucide-react';
 import { mockProcedures } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,19 @@ import autoTable from 'jspdf-autotable';
 export default function Reports() {
   const [reportPeriod, setReportPeriod] = useState('Este Mês');
   const [isExporting, setIsExporting] = useState(false);
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const periods = [
+    'Hoje',
+    'Ontem',
+    'Esta Semana',
+    'Mês Passado',
+    'Este Mês',
+    'Este Ano',
+    'Personalizado'
+  ];
 
   // Stats calculation (mocking some data for the charts)
   const totalValue = mockProcedures.reduce((acc, curr) => acc + parseFloat(curr.price), 0);
@@ -51,7 +65,10 @@ export default function Reports() {
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139); // Slate-500
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 15, 28);
-    doc.text(`Período: ${reportPeriod}`, 15, 33);
+    const periodText = reportPeriod === 'Personalizado' 
+      ? `Período: ${new Date(customStartDate).toLocaleDateString('pt-BR')} até ${new Date(customEndDate).toLocaleDateString('pt-BR')}`
+      : `Período: ${reportPeriod}`;
+    doc.text(periodText, 15, 33);
 
     // Summary Cards
     doc.setFontSize(12);
@@ -101,21 +118,83 @@ export default function Reports() {
           <p className="text-slate-500 font-medium">Análise de desempenho e valores de procedimentos.</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-600">
-            <Calendar size={16} className="text-indigo-600" />
-            <span>{reportPeriod}</span>
-            <ChevronDown size={14} />
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="relative">
+              <button 
+                onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all min-w-[140px] justify-between group"
+              >
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-indigo-600" />
+                  <span>{reportPeriod}</span>
+                </div>
+                <ChevronDown size={14} className={cn("transition-transform duration-300", isPeriodDropdownOpen ? "rotate-180" : "")} />
+              </button>
+
+              {isPeriodDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsPeriodDropdownOpen(false)}
+                  />
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    {periods.map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => {
+                          setReportPeriod(period);
+                          setIsPeriodDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-4 py-2 rounded-xl text-sm transition-all flex items-center justify-between group",
+                          reportPeriod === period 
+                            ? "bg-indigo-50 text-indigo-700 font-bold" 
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        )}
+                      >
+                        {period}
+                        {reportPeriod === period && <Check size={14} className="text-indigo-600" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <button 
+              onClick={exportToPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <Download size={18} /> 
+              {isExporting ? 'Exportando...' : 'Exportar PDF'}
+            </button>
           </div>
-          
-          <button 
-            onClick={exportToPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            <Download size={18} /> 
-            {isExporting ? 'Exportando...' : 'Exportar PDF'}
-          </button>
+
+          {reportPeriod === 'Personalizado' && (
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex flex-col">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1">Início</label>
+                <input 
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+                />
+              </div>
+              <div className="h-px w-3 bg-slate-200 mt-5" />
+              <div className="flex flex-col">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1">Fim</label>
+                <input 
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

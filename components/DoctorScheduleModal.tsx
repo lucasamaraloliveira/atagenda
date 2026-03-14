@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { X, Calendar, Clock, AlertCircle, Save, Plus, Check, Trash2, RotateCcw } from 'lucide-react';
+import { X, Calendar, Clock, AlertCircle, Save, Plus, Check, Trash2, RotateCcw, LayoutGrid } from 'lucide-react';
 import { Doctor, DaySchedule } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import CustomSelect from './CustomSelect';
-import { mockScheduleConfigs, mockScheduleBlocks } from '@/lib/mockData';
+import { mockScheduleConfigs, mockScheduleBlocks, mockUnits } from '@/lib/mockData';
+import { Building2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface DoctorScheduleModalProps {
@@ -11,7 +12,7 @@ interface DoctorScheduleModalProps {
   onClose: () => void;
 }
 
-type Tab = 'escala' | 'bloqueio' | 'encaixe';
+type Tab = 'escala' | 'bloqueio' | 'encaixe' | 'multi';
 
 const defaultDaySchedule: DaySchedule = {
   active: false,
@@ -23,24 +24,56 @@ const defaultDaySchedule: DaySchedule = {
 
 export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('escala');
+  const [selectedUnit, setSelectedUnit] = useState(mockUnits[0]?.id || '');
 
   // Load existing config if available
-  const existingConfig = mockScheduleConfigs.find(c => c.doctorId === doctor.id);
+  const existingConfig = useMemo(() =>
+    mockScheduleConfigs.find(c => c.doctorId === doctor.id && c.unitId === selectedUnit),
+    [doctor.id, selectedUnit]);
 
   // Escala State
-  const [schedule, setSchedule] = useState<Record<string, DaySchedule>>(
-    existingConfig?.schedule || {
-      '0': { ...defaultDaySchedule },
-      '1': { ...defaultDaySchedule, active: true },
-      '2': { ...defaultDaySchedule, active: true },
-      '3': { ...defaultDaySchedule, active: true },
-      '4': { ...defaultDaySchedule, active: true },
-      '5': { ...defaultDaySchedule, active: true },
-      '6': { ...defaultDaySchedule },
-    }
-  );
+  const [schedule, setSchedule] = useState<Record<string, DaySchedule>>({
+    '0': { ...defaultDaySchedule },
+    '1': { ...defaultDaySchedule },
+    '2': { ...defaultDaySchedule },
+    '3': { ...defaultDaySchedule },
+    '4': { ...defaultDaySchedule },
+    '5': { ...defaultDaySchedule },
+    '6': { ...defaultDaySchedule },
+  });
   const [selectedDay, setSelectedDay] = useState<string>('1');
-  const [slotDuration, setSlotDuration] = useState(existingConfig?.slotDuration?.toString() || '15');
+  const [slotDuration, setSlotDuration] = useState('15');
+
+  // Update schedule when config changes (on unit change)
+  React.useEffect(() => {
+    if (existingConfig) {
+      setSchedule(existingConfig.schedule);
+      setSlotDuration(existingConfig.slotDuration.toString());
+      setMaxOverbooks(existingConfig.maxOverbooksPerDay.toString());
+    } else {
+      setSchedule({
+        '0': { ...defaultDaySchedule },
+        '1': { ...defaultDaySchedule, active: true },
+        '2': { ...defaultDaySchedule, active: true },
+        '3': { ...defaultDaySchedule, active: true },
+        '4': { ...defaultDaySchedule, active: true },
+        '5': { ...defaultDaySchedule, active: true },
+        '6': { ...defaultDaySchedule },
+      });
+      setSlotDuration('15');
+      setMaxOverbooks('2');
+    }
+  }, [existingConfig, selectedUnit]);
+
+  const [multiStrategy, setMultiStrategy] = useState<'next_minute' | 'next_slot'>(existingConfig?.multiProcedureStrategy || 'next_minute');
+
+  React.useEffect(() => {
+    if (existingConfig) {
+      setMultiStrategy(existingConfig.multiProcedureStrategy || 'next_minute');
+    } else {
+      setMultiStrategy('next_minute');
+    }
+  }, [existingConfig, selectedUnit]);
 
   const getPreset = () => {
     const activeDays = Object.keys(schedule).filter(day => schedule[day].active);
@@ -52,7 +85,7 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
 
   const handlePresetChange = (preset: string) => {
     if (preset === 'custom') return;
-    
+
     const newSchedule = { ...schedule };
     Object.keys(newSchedule).forEach(day => {
       if (preset === 'weekdays') {
@@ -74,9 +107,14 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
   const [blockStartTime, setBlockStartTime] = useState('');
   const [blockEndTime, setBlockEndTime] = useState('');
   const [blockReason, setBlockReason] = useState('');
-  const [localBlocks, setLocalBlocks] = useState([...mockScheduleBlocks.filter(b => b.doctorId === doctor.id)]);
+  const [localBlocks, setLocalBlocks] = useState([...mockScheduleBlocks.filter(b => b.doctorId === doctor.id && b.unitId === selectedUnit)]);
   const [blockToDelete, setBlockToDelete] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Update local blocks when unit changes
+  React.useEffect(() => {
+    setLocalBlocks([...mockScheduleBlocks.filter(b => b.doctorId === doctor.id && b.unitId === selectedUnit)]);
+  }, [selectedUnit]);
 
   const daysOfWeek = [
     { id: '0', label: 'Dom' },
@@ -93,16 +131,17 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
       toast.error('Preencha os campos obrigatórios do bloqueio.');
       return;
     }
-    
+
     const newBlock = {
       id: Math.random().toString(36).substr(2, 9),
       doctorId: doctor.id,
+      unitId: selectedUnit,
       date: blockDate,
       startTime: blockStartTime,
       endTime: blockEndTime,
       reason: blockReason || 'Bloqueado'
     };
-    
+
     setLocalBlocks(prev => [...prev, newBlock]);
     setBlockDate('');
     setBlockStartTime('');
@@ -126,7 +165,7 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
     toast.success(
       <div className="flex items-center justify-between gap-2">
         <span>Bloqueio removido.</span>
-        <button 
+        <button
           onClick={() => {
             setLocalBlocks(prev => [...prev, block]);
             toast.info('Bloqueio restaurado.');
@@ -142,12 +181,14 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
 
   const handleSave = () => {
     // 1. Save Config (Escala & Encaixes)
-    const configIndex = mockScheduleConfigs.findIndex(c => c.doctorId === doctor.id);
+    const configIndex = mockScheduleConfigs.findIndex(c => c.doctorId === doctor.id && c.unitId === selectedUnit);
     const newConfig = {
       doctorId: doctor.id,
+      unitId: selectedUnit,
       maxOverbooksPerDay: parseInt(maxOverbooks),
       slotDuration: parseInt(slotDuration),
-      schedule: schedule
+      schedule: schedule,
+      multiProcedureStrategy: multiStrategy
     };
 
     if (configIndex >= 0) {
@@ -157,9 +198,9 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
     }
 
     // 2. Save Blocks
-    // Remove all existing blocks for this doctor from mockData first
+    // Remove all existing blocks for this doctor AND this unit from mockData first
     for (let i = mockScheduleBlocks.length - 1; i >= 0; i--) {
-      if (mockScheduleBlocks[i].doctorId === doctor.id) {
+      if (mockScheduleBlocks[i].doctorId === doctor.id && mockScheduleBlocks[i].unitId === selectedUnit) {
         mockScheduleBlocks.splice(i, 1);
       }
     }
@@ -185,14 +226,14 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
           <div>
             <h2 className="text-xl font-bold text-slate-900">Configuração de Agenda</h2>
             <p className="text-sm text-slate-500 mt-1">Dr(a). {doctor.name} • CRM {doctor.crm}</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
           >
@@ -206,8 +247,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
             onClick={() => setActiveTab('escala')}
             className={cn(
               "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'escala' 
-                ? "border-indigo-600 text-indigo-600" 
+              activeTab === 'escala'
+                ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
             )}
           >
@@ -217,19 +258,30 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
             onClick={() => setActiveTab('bloqueio')}
             className={cn(
               "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'bloqueio' 
-                ? "border-indigo-600 text-indigo-600" 
+              activeTab === 'bloqueio'
+                ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
             )}
           >
             Bloqueio de Agenda
           </button>
           <button
+            onClick={() => setActiveTab('multi')}
+            className={cn(
+              "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
+              activeTab === 'multi'
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            Múltiplos Agendamentos
+          </button>
+          <button
             onClick={() => setActiveTab('encaixe')}
             className={cn(
               "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'encaixe' 
-                ? "border-indigo-600 text-indigo-600" 
+              activeTab === 'encaixe'
+                ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
             )}
           >
@@ -237,11 +289,109 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
           </button>
         </div>
 
+        {/* Unit Selection Header */}
+        <div className="px-6 py-4 bg-indigo-50/30 border-b border-slate-100 flex items-center gap-4">
+          <div className="flex items-center gap-2 text-indigo-600">
+            <Building2 size={18} />
+            <span className="text-sm font-bold uppercase tracking-wider">Unidade:</span>
+          </div>
+          <CustomSelect
+            options={mockUnits.map(u => ({ id: u.id, name: u.name }))}
+            value={selectedUnit}
+            onChange={setSelectedUnit}
+            className="flex-1 max-w-xs"
+          />
+          <p className="text-[10px] text-slate-400 font-medium">Configure a escala individual por unidade.</p>
+        </div>
+
         {/* Content */}
         <div className={cn(
           "p-6 overflow-y-auto flex-1",
           activeTab === 'encaixe' && "min-h-[350px]"
         )}>
+          {activeTab === 'encaixe' && (
+            <div className="space-y-6">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
+                <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                <p className="text-sm">
+                  Defina o limite de encaixes permitidos por dia para este médico. 
+                  Os encaixes podem ser agendados fora dos horários regulares da escala.
+                </p>
+              </div>
+
+              <div className="max-w-xs space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Limite de Encaixes por Dia</label>
+                <CustomSelect 
+                  options={[
+                    { id: '0', name: 'Não permitir encaixes' },
+                    { id: '1', name: '1 encaixe' },
+                    { id: '2', name: '2 encaixes' },
+                    { id: '3', name: '3 encaixes' },
+                    { id: '5', name: '5 encaixes' },
+                    { id: '10', name: '10 encaixes' },
+                  ]}
+                  value={maxOverbooks}
+                  onChange={setMaxOverbooks}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'multi' && (
+            <div className="space-y-6">
+              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6">
+                <div className="flex items-center gap-3 text-indigo-600 mb-6">
+                  <div className="p-2 bg-white rounded-xl shadow-sm">
+                    <LayoutGrid size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">Estratégia de Agendamento Múltiplo</h3>
+                    <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">Defina como o sistema deve comportar múltiplos procedimentos</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {[
+                    { id: 'next_minute', label: 'Próximo Minuto', desc: 'Os procedimentos adicionais serão agendados sequencialmente (ex: 08:00, 08:01, 08:02). Ideal para faturamento agrupado.' },
+                    { id: 'next_slot', label: 'Próximo Horário Livre', desc: 'Os procedimentos ocuparão os próximos slots livres da agenda (ex: 08:00, 08:20, 08:40). Respeita o fluxo de atendimento.' }
+                  ].map((strat) => (
+                    <button
+                      key={strat.id}
+                      onClick={() => setMultiStrategy(strat.id as any)}
+                      className={cn(
+                        "flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all",
+                        multiStrategy === strat.id
+                          ? "bg-white border-indigo-600 shadow-lg shadow-indigo-100/50"
+                          : "bg-transparent border-slate-100 hover:border-indigo-200 grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                      )}
+                    >
+                      <div className={cn(
+                        "mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                        multiStrategy === strat.id ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
+                      )}>
+                        {multiStrategy === strat.id && <Check size={12} className="text-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm mb-1">{strat.label}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed">{strat.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex gap-3 text-slate-500">
+                  <AlertCircle size={18} className="shrink-0" />
+                  <p className="text-[11px] leading-relaxed">
+                    Esta configuração afeta apenas a criação de agendamentos no módulo <strong>Novo Agendamento</strong>.
+                    Agendamentos diretos pela grade da agenda ignoram esta regra.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'escala' && (
             <div className="space-y-6">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
@@ -293,8 +443,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                       {currentDaySchedule.active && <Check size={14} className="text-white" />}
                     </div>
                     <span className="text-sm font-medium text-slate-700">Atender neste dia</span>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="hidden"
                       checked={currentDaySchedule.active}
                       onChange={(e) => updateSelectedDay('active', e.target.checked)}
@@ -310,8 +460,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Início</label>
                           <div className="relative">
-                            <input 
-                              type="time" 
+                            <input
+                              type="time"
                               value={currentDaySchedule.startTime}
                               onChange={(e) => updateSelectedDay('startTime', e.target.value)}
                               className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -322,8 +472,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fim</label>
                           <div className="relative">
-                            <input 
-                              type="time" 
+                            <input
+                              type="time"
                               value={currentDaySchedule.endTime}
                               onChange={(e) => updateSelectedDay('endTime', e.target.value)}
                               className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -340,8 +490,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Início</label>
                           <div className="relative">
-                            <input 
-                              type="time" 
+                            <input
+                              type="time"
                               value={currentDaySchedule.lunchStart}
                               onChange={(e) => updateSelectedDay('lunchStart', e.target.value)}
                               className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -352,8 +502,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fim</label>
                           <div className="relative">
-                            <input 
-                              type="time" 
+                            <input
+                              type="time"
                               value={currentDaySchedule.lunchEnd}
                               onChange={(e) => updateSelectedDay('lunchEnd', e.target.value)}
                               className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -374,7 +524,7 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
               <div className="pt-4 border-t border-slate-200">
                 <div className="max-w-xs space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Duração Padrão da Consulta</label>
-                  <CustomSelect 
+                  <CustomSelect
                     options={[
                       { id: '10', name: '10 minutos' },
                       { id: '15', name: '15 minutos' },
@@ -395,7 +545,7 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
                 <AlertCircle className="shrink-0 mt-0.5" size={18} />
                 <p className="text-sm">
-                  O bloqueio de agenda impede novos agendamentos no período selecionado. 
+                  O bloqueio de agenda impede novos agendamentos no período selecionado.
                   Agendamentos já existentes não serão cancelados automaticamente.
                 </p>
               </div>
@@ -404,8 +554,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 <div className="space-y-1.5 md:col-span-3">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data do Bloqueio</label>
                   <div className="relative">
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={blockDate}
                       onChange={(e) => setBlockDate(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -416,8 +566,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário Inicial</label>
                   <div className="relative">
-                    <input 
-                      type="time" 
+                    <input
+                      type="time"
                       value={blockStartTime}
                       onChange={(e) => setBlockStartTime(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -428,8 +578,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário Final</label>
                   <div className="relative">
-                    <input 
-                      type="time" 
+                    <input
+                      type="time"
                       value={blockEndTime}
                       onChange={(e) => setBlockEndTime(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -439,8 +589,8 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Motivo do Bloqueio</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Ex: Férias, Congresso, Reunião..."
                     value={blockReason}
                     onChange={(e) => setBlockReason(e.target.value)}
@@ -448,7 +598,7 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                   />
                 </div>
                 <div className="flex items-end">
-                  <button 
+                  <button
                     onClick={handleAddBlock}
                     className="w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold border border-indigo-200 hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
                   >
@@ -464,18 +614,18 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                   <Calendar size={16} className="text-indigo-600" />
                   Bloqueios Ativos
                 </h4>
-                
+
                 {localBlocks.length > 0 ? (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                    {localBlocks.sort((a,b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map((block) => (
+                    {localBlocks.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map((block) => (
                       <div key={block.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl group hover:border-indigo-200 transition-colors">
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-slate-700">
-                             {new Date(block.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {block.startTime} às {block.endTime}
+                            {new Date(block.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {block.startTime} às {block.endTime}
                           </span>
                           <span className="text-[10px] text-slate-500">{block.reason}</span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleConfirmDeleteBlock(block.id)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                         >
@@ -493,45 +643,17 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
             </div>
           )}
 
-          {activeTab === 'encaixe' && (
-            <div className="space-y-6">
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex gap-3 text-indigo-800">
-                <Plus className="shrink-0 mt-0.5" size={18} />
-                <p className="text-sm">
-                  Defina o limite de encaixes permitidos por dia para este médico. 
-                  Os encaixes podem ser agendados fora dos horários regulares da escala.
-                </p>
-              </div>
-
-              <div className="max-w-xs space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Limite de Encaixes por Dia</label>
-                <CustomSelect 
-                  options={[
-                    { id: '0', name: 'Não permitir encaixes' },
-                    { id: '1', name: '1 encaixe' },
-                    { id: '2', name: '2 encaixes' },
-                    { id: '3', name: '3 encaixes' },
-                    { id: '4', name: '4 encaixes' },
-                    { id: '5', name: '5 encaixes' },
-                    { id: '10', name: '10 encaixes' },
-                  ]}
-                  value={maxOverbooks}
-                  onChange={setMaxOverbooks}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-          <button 
+          <button
             onClick={onClose}
             className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
           >
             Cancelar
           </button>
-          <button 
+          <button
             onClick={handleSave}
             className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
           >
@@ -549,13 +671,13 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 Tem certeza que deseja remover este bloqueio? O horário voltará a ficar disponível na agenda após salvar.
               </p>
               <div className="flex justify-end gap-3">
-                <button 
+                <button
                   onClick={() => setBlockToDelete(null)}
                   className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   Manter
                 </button>
-                <button 
+                <button
                   onClick={deleteBlock}
                   className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                 >

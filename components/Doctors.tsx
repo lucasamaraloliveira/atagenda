@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, UserRound, Stethoscope, RotateCcw, LayoutGrid, List, ChevronUp, ChevronDown, Settings } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, UserRound, Stethoscope, RotateCcw, LayoutGrid, List, ChevronUp, ChevronDown, Settings, Upload, Info, FileDown, X, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { mockDoctors, mockAppointments, mockScheduleConfigs, mockScheduleBlocks } from '@/lib/mockData';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 import { Doctor } from '@/lib/types';
 import DoctorScheduleModal from './DoctorScheduleModal';
 import DoctorFormModal from './DoctorFormModal';
+import ImportDoctorsModal from './ImportDoctorsModal';
 import { toast } from 'react-toastify';
 
 export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) {
@@ -16,6 +17,9 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
   const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Doctor; direction: 'asc' | 'desc' } | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const handleSort = (key: keyof Doctor) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -25,17 +29,29 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
     setSortConfig({ key, direction });
   };
   
-  const filteredDoctors = mockDoctors.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.crm.includes(searchQuery) ||
-    d.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => {
+  const filteredDoctors = mockDoctors.filter(d => {
+    const search = normalizeString(searchQuery);
+    return normalizeString(d.name).includes(search) ||
+           d.crm.includes(searchQuery) ||
+           normalizeString(d.specialty).includes(search);
+  }).sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
     if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
     if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
+  const paginatedDoctors = filteredDoctors.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to first page when searching
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleSaveDoctor = (doctorData: Doctor) => {
     const index = mockDoctors.findIndex(d => d.id === doctorData.id);
@@ -47,6 +63,11 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
       toast.success('Novo médico cadastrado com sucesso!');
     }
     setSelectedDoctorForForm(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleImportDoctors = (importedDoctors: Doctor[]) => {
+    mockDoctors.push(...importedDoctors);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -133,18 +154,27 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
             <List size={18} />
           </button>
         </div>
-        <button 
-          onClick={() => setSelectedDoctorForForm('new')}
-          className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-[0.98]"
-        >
-          <Plus size={18} />
-          Novo Médico
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowImportModal(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-indigo-600 border border-indigo-100 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all shadow-sm active:scale-[0.98]"
+          >
+            <Upload size={18} />
+            Importar Lista
+          </button>
+          <button 
+            onClick={() => setSelectedDoctorForForm('new')}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-[0.98]"
+          >
+            <Plus size={18} />
+            Novo Médico
+          </button>
+        </div>
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDoctors.map((doctor) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {paginatedDoctors.map((doctor) => (
             <div key={doctor.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
               {/* Background design element */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-bl-[3rem] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
@@ -191,17 +221,19 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
                 </div>
               </div>
 
-              <button 
-                onClick={() => setSelectedDoctorForSchedule(doctor)}
-                className="w-full mt-8 py-3 text-xs font-bold text-slate-600 border border-slate-100 rounded-2xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all relative z-10"
-              >
-                Configurar Escala de Horários
-              </button>
+              {doctor.type !== 'solicitante' && (
+                <button 
+                  onClick={() => setSelectedDoctorForSchedule(doctor)}
+                  className="w-full mt-8 py-3 text-xs font-bold text-slate-600 border border-slate-100 rounded-2xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all relative z-10"
+                >
+                  Configurar Escala de Horários
+                </button>
+              )}
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto mb-8 pb-4">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -243,7 +275,7 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredDoctors.map((doctor) => (
+              {paginatedDoctors.map((doctor) => (
                 <tr key={doctor.id} className="hover:bg-indigo-50/30 transition-colors group">
                   <td className="px-8 py-4">
                     <div className="flex items-center gap-3">
@@ -273,13 +305,15 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
                   </td>
                   <td className="px-8 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                      <button 
-                        onClick={() => setSelectedDoctorForSchedule(doctor)}
-                        className="p-2.5 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
-                        title="Escala de Horários"
-                      >
-                        <Settings size={16} />
-                      </button>
+                      {doctor.type !== 'solicitante' && (
+                        <button 
+                          onClick={() => setSelectedDoctorForSchedule(doctor)}
+                          className="p-2.5 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
+                          title="Escala de Horários"
+                        >
+                          <Settings size={16} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => setSelectedDoctorForForm(doctor)}
                         className="p-2.5 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-xl transition-all hover:shadow-md border border-transparent hover:border-indigo-100"
@@ -302,6 +336,50 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
           </table>
         </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-slate-100">
+          <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
+            Mostrando <strong>{paginatedDoctors.length}</strong> de <strong>{filteredDoctors.length}</strong> médicos.
+          </p>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button 
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={cn(
+                    "w-10 h-10 rounded-xl text-xs font-bold transition-all",
+                    currentPage === page 
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                      : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
+                  )}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
       
       {filteredDoctors.length === 0 && (
         <div className="bg-white p-20 text-center rounded-[2rem] border border-slate-100 shadow-inner">
@@ -316,6 +394,14 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
         <DoctorScheduleModal 
           doctor={selectedDoctorForSchedule} 
           onClose={() => setSelectedDoctorForSchedule(null)} 
+        />
+      )}
+
+      {showImportModal && (
+        <ImportDoctorsModal 
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportDoctors}
+          existingDoctors={mockDoctors}
         />
       )}
 

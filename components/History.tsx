@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, Download, Calendar, User, Stethoscope } from 'lucide-react';
 import { mockAppointments, mockPatients, mockDoctors } from '@/lib/mockData';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 
 export default function History({ searchQuery = '' }: { searchQuery?: string }) {
 
@@ -11,12 +11,12 @@ export default function History({ searchQuery = '' }: { searchQuery?: string }) 
   const getDoctorName = (id: string) => mockDoctors.find(d => d.id === id)?.name || 'Médico';
 
   const filteredAppointments = mockAppointments.filter(app => {
-    const patientName = getPatientName(app.patientId).toLowerCase();
-    const doctorName = getDoctorName(app.doctorId).toLowerCase();
-    const search = searchQuery.toLowerCase();
+    const search = normalizeString(searchQuery);
+    const patientName = normalizeString(getPatientName(app.patientId));
+    const doctorName = normalizeString(getDoctorName(app.doctorId));
     return patientName.includes(search) || 
            doctorName.includes(search) || 
-           app.procedure.toLowerCase().includes(search);
+           normalizeString(app.procedure).includes(search);
   });
 
   return (

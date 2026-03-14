@@ -34,6 +34,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
   onOpenProfile: () => void;
+  onLogout: () => void;
 }
 
 export default function Sidebar({ 
@@ -43,7 +44,8 @@ export default function Sidebar({
   setIsOpen,
   isCollapsed,
   setIsCollapsed,
-  onOpenProfile
+  onOpenProfile,
+  onLogout
 }: SidebarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuItems = [
@@ -169,7 +171,10 @@ export default function Sidebar({
                     Meu Perfil
                   </button>
                   <div className="h-px bg-slate-100 my-2" />
-                  <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                  <button 
+                    onClick={onLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  >
                     <LogOut size={18} />
                     Sair do Sistema
                   </button>

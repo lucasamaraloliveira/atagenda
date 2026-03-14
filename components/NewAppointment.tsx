@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, Plus, Save, X, User, Phone, Stethoscope, ClipboardList, Clock, ChevronDown, UserPlus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Plus, Save, X, User, Phone, Stethoscope, ClipboardList, Clock, ChevronDown, UserPlus, LayoutGrid, Calendar, AlertCircle, Check, Trash2, RotateCcw } from 'lucide-react';
 import { mockPatients, mockDoctors, mockAppointments, mockScheduleConfigs, mockProcedures } from '@/lib/mockData';
 import CustomSelect from './CustomSelect';
 import { toast } from 'react-toastify';
@@ -9,7 +9,7 @@ import { isTimeOverbook } from './Agenda';
 import { parse } from 'date-fns';
 
 interface NewAppointmentProps {
-  initialData?: { date?: string, time?: string, doctorId?: string } | null;
+  initialData?: { date?: string, time?: string, doctorId?: string, unitId?: string } | null;
   onCancel?: () => void;
 }
 
@@ -24,8 +24,10 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     procedure: '',
     date: initialData?.date || '',
     time: initialData?.time || '',
+    unitId: initialData?.unitId || '1',
     birthDate: '',
-    cpf: ''
+    cpf: '',
+    selectedProcedures: [] as any[]
   });
 
   const [isVerifyingPatient, setIsVerifyingPatient] = useState(false);
@@ -41,7 +43,8 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
         ...prev,
         date: initialData.date || prev.date,
         time: initialData.time || prev.time,
-        executingDoctor: initialData.doctorId || prev.executingDoctor
+        executingDoctor: initialData.doctorId || prev.executingDoctor,
+        unitId: initialData.unitId || prev.unitId
       }));
     }
   }, [initialData]);
@@ -60,10 +63,10 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Find or create patient
     let patient = mockPatients.find(p => p.name === formData.patientName);
-    
+
     // If not found by name, check by CPF
     if (!patient && formData.cpf) {
       patient = mockPatients.find(p => p.cpf === formData.cpf);
@@ -96,53 +99,97 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
         email: ''
       });
     }
+    // List of procedures to schedule
+    const proceduresToSchedule = formData.selectedProcedures.length > 0
+      ? formData.selectedProcedures
+      : (formData.procedure ? [mockProcedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || { name: formData.procedure }] : []);
 
-    // Find or create procedure
-    let procedure = mockProcedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure));
-    if (!procedure) {
-      procedure = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: formData.procedure,
-        category: 'Geral', // Default
-        modality: formData.modality || 'Não Definida',
-        price: '0.00'
-      };
-      mockProcedures.push(procedure);
+    if (proceduresToSchedule.length === 0) {
+      toast.error('Selecione ao menos um procedimento.');
+      return;
     }
 
-    // Check for overbook limit
+    // Get scheduling strategy
+    const config = mockScheduleConfigs.find(c => c.doctorId === formData.executingDoctor && c.unitId === formData.unitId);
+    const strategy = config?.multiProcedureStrategy || 'next_minute';
+    const slotDuration = config?.slotDuration || 20;
+    const limit = config?.maxOverbooksPerDay || 0;
+
     const appDate = parse(formData.date, 'yyyy-MM-dd', new Date());
-    const isOverbook = isTimeOverbook(formData.executingDoctor, appDate, formData.time);
-    
-    if (isOverbook) {
-      const config = mockScheduleConfigs.find(c => c.doctorId === formData.executingDoctor);
-      const limit = config?.maxOverbooksPerDay || 0;
-      
-      const dailyOverbooks = mockAppointments.filter(app => 
-        app.doctorId === formData.executingDoctor && 
-        app.date === formData.date &&
-        isTimeOverbook(app.doctorId, parse(app.date, 'yyyy-MM-dd', new Date()), app.time)
-      ).length;
+    const isInitialTimeOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, formData.time);
 
-      if (dailyOverbooks >= limit) {
-        setShowOverbookModal(limit);
-        return;
+    let currentTimeStr = formData.time;
+    const appointmentsToCreate: any[] = [];
+
+    proceduresToSchedule.forEach((proc, index) => {
+      let appointmentTime = currentTimeStr;
+      let finalIsOverbook = false;
+
+      if (index > 0) {
+        if (strategy === 'next_minute') {
+          // Increment 1 minute
+          const [h, m] = appointmentTime.split(':').map(Number);
+          const nextDate = new Date();
+          nextDate.setHours(h, m + 1);
+          appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
+          
+          // Logic: If initial belonged to grid, increments of 1 minute are NOT considered encaixes (user request)
+          // If initial was already an overbook/encaixe, all subsequent are also encaixes
+          finalIsOverbook = isInitialTimeOverbook;
+        } else {
+          // Increment by slot duration
+          const [h, m] = appointmentTime.split(':').map(Number);
+          const nextDate = new Date();
+          nextDate.setHours(h, m + slotDuration);
+          appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
+          
+          // Re-verify if this specific slot is an overbook
+          finalIsOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, appointmentTime);
+        }
+        currentTimeStr = appointmentTime;
+      } else {
+        finalIsOverbook = isInitialTimeOverbook;
       }
+
+      appointmentsToCreate.push({
+        id: Math.random().toString(36).substr(2, 9),
+        patientId,
+        doctorId: formData.executingDoctor,
+        unitId: formData.unitId,
+        date: formData.date,
+        time: appointmentTime,
+        procedure: proc.name,
+        insurance: formData.insurance || 'Particular',
+        status: 'agendado' as const,
+        isOverbook: finalIsOverbook,
+        statusHistory: [
+          {
+            id: Math.random().toString(36).substr(2, 9),
+            status: 'agendado',
+            timestamp: new Date().toISOString(),
+            user: 'Recepcionista: Maria Silva',
+            note: 'Agendamento Criado'
+          }
+        ]
+      });
+    });
+
+    // Verify daily limit for encaixes
+    const newOverbooksCount = appointmentsToCreate.filter(a => a.isOverbook).length;
+    const existingDailyOverbooks = mockAppointments.filter(app => 
+      app.doctorId === formData.executingDoctor && 
+      app.unitId === formData.unitId &&
+      app.date === formData.date && 
+      app.isOverbook
+    ).length;
+
+    if (existingDailyOverbooks + newOverbooksCount > limit) {
+      setShowOverbookModal(limit);
+      return;
     }
 
-    // Create appointment
-    const newAppointment = {
-      id: Math.random().toString(36).substr(2, 9),
-      patientId,
-      doctorId: formData.executingDoctor,
-      date: formData.date,
-      time: formData.time,
-      procedure: formData.procedure || 'Consulta',
-      insurance: formData.insurance || 'Particular',
-      status: 'agendado' as const
-    };
-
-    mockAppointments.push(newAppointment);
+    // Success: Push all appointments
+    mockAppointments.push(...appointmentsToCreate);
     
     toast.success('Agendamento criado com sucesso!');
 
@@ -184,7 +231,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
       else if (numbers.length <= 4) value = `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
       else value = `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
     }
-    setFormData({...formData, patientName: value});
+    setFormData({ ...formData, patientName: value });
     setShowPatientDropdown(true);
   };
 
@@ -192,17 +239,17 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     if (!formData.patientName) return false;
     const query = sanitizeStr(formData.patientName);
     const originalQuery = formData.patientName.toLowerCase();
-    
+
     // Name match (normalized)
     const nameMatch = sanitizeStr(p.name).includes(query);
-    
+
     // Numeric/Date match - only if query contains numbers or slashes
     const hasNumbers = /[\d]/.test(originalQuery);
     const numbersOnly = originalQuery.replace(/\D/g, '');
-    
+
     const dobMatch = (hasNumbers && p.birthDate) ? formatDate(p.birthDate).includes(originalQuery) : false;
     const cpfMatch = (numbersOnly.length > 2) ? p.cpf.replace(/\D/g, '').includes(numbersOnly) : false;
-    
+
     return nameMatch || dobMatch || cpfMatch;
   });
 
@@ -235,7 +282,9 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     setShowProcedureDropdown(false);
   };
 
-  const doctorOptions = mockDoctors.map(d => ({ id: d.id, name: d.name }));
+  const doctorOptions = mockDoctors
+    .filter(d => d.type !== 'solicitante')
+    .map(d => ({ id: d.id, name: d.name }));
   const insuranceOptions = [
     { id: 'bradesco', name: 'Bradesco' },
     { id: 'unimed', name: 'Unimed' },
@@ -270,8 +319,8 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               <div className="space-y-1.5 relative">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Paciente</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Nome ou data de nascimento (DD/MM/AAAA)"
                     className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                     value={formData.patientName}
@@ -281,7 +330,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                   />
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
-                
+
                 {showPatientDropdown && formData.patientName && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {isVerifyingPatient ? (
@@ -292,7 +341,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                       </div>
                     ) : filteredPatients.length > 0 ? (
                       filteredPatients.map(patient => (
-                        <div 
+                        <div
                           key={patient.id}
                           className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors group"
                           onClick={() => handlePatientSelect(patient)}
@@ -327,11 +376,11 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data de Nascimento</label>
                 <div className="relative">
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                     value={formData.birthDate}
-                    onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                   />
                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
@@ -339,13 +388,13 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">CPF</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="000.000.000-00"
                     maxLength={14}
                     className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                     value={formData.cpf}
-                    onChange={(e) => setFormData({...formData, cpf: formatCPF(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
                   />
                   <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
@@ -353,13 +402,13 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Telefone para Contato</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="(00) 00000-0000"
                     maxLength={15}
                     className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: formatPhone(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                   />
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 </div>
@@ -376,20 +425,20 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Médico Solicitante</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Nome do médico ou CRM"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={formData.referringDoctor}
-                  onChange={(e) => setFormData({...formData, referringDoctor: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, referringDoctor: e.target.value })}
                 />
               </div>
-              <CustomSelect 
+              <CustomSelect
                 label="Convênio"
                 placeholder="Selecione o convênio"
                 options={insuranceOptions}
                 value={formData.insurance}
-                onChange={(val) => setFormData({...formData, insurance: val})}
+                onChange={(val) => setFormData({ ...formData, insurance: val })}
               />
             </div>
           </section>
@@ -401,45 +450,101 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               <h3 className="text-sm font-bold uppercase tracking-wider">Procedimento</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <CustomSelect 
+              <CustomSelect
                 label="Médico Executante"
                 placeholder="Selecione o médico"
                 options={doctorOptions}
                 value={formData.executingDoctor}
-                onChange={(val) => setFormData({...formData, executingDoctor: val})}
+                onChange={(val) => setFormData({ ...formData, executingDoctor: val })}
               />
-              <CustomSelect 
+              <CustomSelect
                 label="Modalidade"
                 placeholder="Selecione"
                 options={modalityOptions}
                 value={formData.modality}
-                onChange={(val) => setFormData({...formData, modality: val, procedure: ''})}
+                onChange={(val) => setFormData({ ...formData, modality: val, procedure: '' })}
               />
               <div className="relative">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Procedimento</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Ex: US Abdome Total"
                     className="w-full px-4 h-[41px] bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                     value={formData.procedure}
                     onChange={(e) => {
-                      setFormData({...formData, procedure: e.target.value});
+                      setFormData({ ...formData, procedure: e.target.value });
                       setShowProcedureDropdown(true);
                     }}
                     onFocus={() => setShowProcedureDropdown(true)}
                     onBlur={() => setTimeout(() => setShowProcedureDropdown(false), 200)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formData.procedure) {
+                        const proc = mockProcedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || {
+                          id: Math.random().toString(36).substr(2, 9),
+                          name: formData.procedure,
+                          modality: formData.modality || '---'
+                        };
+                        if (!formData.selectedProcedures.some(p => p.name === proc.name)) {
+                          setFormData({
+                            ...formData,
+                            selectedProcedures: [...formData.selectedProcedures, proc],
+                            procedure: ''
+                          });
+                        }
+                      }
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
+
+                {/* Selected Procedures List */}
+                {formData.selectedProcedures.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {formData.selectedProcedures.map((proc, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-indigo-50/50 rounded-xl border border-indigo-100 group animate-in slide-in-from-left-2 duration-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                          <span className="text-xs font-bold text-slate-700">{proc.name}</span>
+                          <span className="text-[9px] text-indigo-500 uppercase font-black bg-indigo-100 px-1.5 py-0.5 rounded">{proc.modality}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({
+                            ...formData,
+                            selectedProcedures: formData.selectedProcedures.filter((_, i) => i !== idx)
+                          })}
+                          className="p-1 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {showProcedureDropdown && (formData.procedure || formData.modality) && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {filteredProcedures.length > 0 ? (
                       filteredProcedures.map(proc => (
-                        <div 
+                        <div
                           key={proc.id}
                           className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
-                          onClick={() => handleProcedureSelect(proc)}
+                          onClick={() => {
+                            if (!formData.selectedProcedures.some(p => p.id === proc.id)) {
+                              setFormData({
+                                ...formData,
+                                selectedProcedures: [...formData.selectedProcedures, proc],
+                                procedure: ''
+                              });
+                            }
+                            setShowProcedureDropdown(false);
+                          }}
                         >
                           <div className="font-medium text-slate-900 text-sm">{proc.name}</div>
                           <div className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">{proc.modality}</div>
@@ -465,28 +570,28 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data</label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário</label>
-                <input 
-                  type="time" 
+                <input
+                  type="time"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                   value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 />
               </div>
             </div>
           </section>
 
           <div className="pt-6 flex items-center justify-end gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onCancel}
               className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
             >
@@ -509,7 +614,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
               O limite de {showOverbookModal} encaixe(s) por dia já foi atingido para este médico.
             </p>
             <div className="flex justify-end">
-              <button 
+              <button
                 onClick={() => setShowOverbookModal(null)}
                 className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
               >

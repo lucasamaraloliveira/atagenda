@@ -24,14 +24,14 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string } | null>(null);
+  const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string, unitId?: string } | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
   
   // Login State
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
 
-  const handleNewAppointment = (date?: string, time?: string, doctorId?: string) => {
-    setAppointmentData(date && time ? { date, time, doctorId } : null);
+  const handleNewAppointment = (date?: string, time?: string, doctorId?: string, unitId?: string) => {
+    setAppointmentData(date && time ? { date, time, doctorId, unitId } : null);
     setCurrentView('novo-agendamento');
   };
 
@@ -124,6 +124,12 @@ export default function Home() {
     );
   }
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoginForm({ username: '', password: '' });
+    toast.info('Sessão encerrada.');
+  };
+
   const renderView = () => {
     switch (currentView) {
       case 'agenda': return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} />;
@@ -131,7 +137,7 @@ export default function Home() {
       case 'medicos': return <Doctors searchQuery={searchQuery} />;
       case 'historico': return <History searchQuery={searchQuery} />;
       case 'novo-agendamento': return <NewAppointment initialData={appointmentData} onCancel={() => setCurrentView('agenda')} />;
-      case 'configuracoes': return <SystemSettings searchQuery={searchQuery} />;
+      case 'configuracoes': return <SystemSettings searchQuery={searchQuery} setView={setCurrentView} />;
       case 'relatorios': return <Reports />;
       default: return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} />;
     }
@@ -160,6 +166,7 @@ export default function Home() {
         isCollapsed={sidebarCollapsed}
         setIsCollapsed={setSidebarCollapsed}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        onLogout={handleLogout}
       />
       
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
