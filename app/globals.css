@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-indigo-50: #e5f5fc;
   --color-indigo-100: #ccebf9;
@@ -21,21 +23,32 @@
 
 /* Chrome, Edge, and Safari */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
+  margin: 16px 0; /* Prevents track from hitting rounded corners top/bottom */
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: #cbd5e1; /* slate-300 */
   border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: padding-box; /* Pushes thumb inward away from edge */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #4f46e5; /* indigo-600 */
+  background-color: #94a3b8; /* slate-400 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #334155; /* slate-700 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #475569; /* slate-600 */
 }
 
 /* Utility to hide scrollbar */

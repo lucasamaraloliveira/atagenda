@@ -148,38 +148,38 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="px-5 py-3 sm:px-6 sm:py-4 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 dark:shadow-none">
               <Upload size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Importar Médicos</h2>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Módulo de Importação Massiva</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Importar Médicos</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Módulo de Importação Massiva</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-8 overflow-y-auto max-h-[70vh] no-scrollbar">
+        <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto max-h-[70vh] no-scrollbar">
           {/* Instructions Box */}
-          <div className="mb-8 p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100 relative overflow-hidden group">
+          <div className="mb-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-              <FileText size={80} className="text-indigo-600" />
+              <FileText size={80} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             
             <div className="flex items-start gap-4 relative z-10">
               <div className="mt-1">
-                <Info size={20} className="text-indigo-600" />
+                <Info size={20} className="text-indigo-600 dark:text-indigo-400" />
               </div>
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm">Instruções do Arquivo</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">Instruções do Arquivo</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1">
                     Para garantir que a importação ocorra sem erros, utilize o nosso modelo padrão. O arquivo deve ser um <strong>CSV separado por ponto e vírgula (;)</strong>.
                   </p>
                 </div>
@@ -187,8 +187,8 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
                 <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                   {templateColumns.map(col => (
                     <div key={col.key} className="flex items-center gap-2 text-[10px]">
-                      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", col.required ? "bg-red-400" : "bg-slate-300")} />
-                      <span className="font-bold text-slate-500 uppercase tracking-tighter">{col.label}</span>
+                      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", col.required ? "bg-red-400" : "bg-slate-300 dark:bg-slate-600")} />
+                      <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{col.label}</span>
                       {col.required && <span className="text-red-500 text-[8px] font-black">*</span>}
                     </div>
                   ))}
@@ -196,7 +196,7 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
 
                 <button 
                   onClick={downloadTemplate}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-[0.98]"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 dark:shadow-none active:scale-[0.98]"
                 >
                   <Download size={14} />
                   Baixar Planilha Modelo (.CSV)
@@ -208,9 +208,11 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
           {/* Upload Area */}
           <div 
             className={cn(
-              "border-2 border-dashed rounded-[2.5rem] p-10 transition-all flex flex-col items-center justify-center text-center group cursor-pointer",
-              isDragging ? "border-indigo-600 bg-indigo-50" : "border-slate-200 hover:border-indigo-400 bg-slate-50/50",
-              file && "border-emerald-400 bg-emerald-50/30"
+              "border-2 border-dashed rounded-2xl p-6 sm:p-8 transition-all flex flex-col items-center justify-center text-center group cursor-pointer",
+              isDragging 
+                ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20" 
+                : "border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50/50 dark:bg-slate-800/50",
+              file && "border-emerald-400 dark:border-emerald-600 bg-emerald-50/30 dark:bg-emerald-900/10"
             )}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -237,56 +239,56 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
 
             {!file ? (
               <>
-                <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-slate-400 mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-none flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4 group-hover:scale-110 transition-transform">
                   <Upload size={32} />
                 </div>
-                <h4 className="font-bold text-slate-900 leading-tight">Arraste seu arquivo aqui</h4>
-                <p className="text-xs text-slate-500 mt-2">Ou clique para selecionar de sua pasta</p>
-                <p className="text-[10px] text-slate-400 mt-4 uppercase tracking-widest font-bold">Suporta apenas arquivos .CSV</p>
+                <h4 className="font-bold text-slate-900 dark:text-white leading-tight">Arraste seu arquivo aqui</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Ou clique para selecionar de sua pasta</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4 uppercase tracking-widest font-bold">Suporta apenas arquivos .CSV</p>
               </>
             ) : (
               <>
-                <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-emerald-500 mb-4 animate-in zoom-in">
+                <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-none flex items-center justify-center text-emerald-500 dark:text-emerald-400 mb-4 animate-in zoom-in">
                   <CheckCircle2 size={32} />
                 </div>
-                <h4 className="font-bold text-slate-900 leading-tight">Arquivo Selecionado</h4>
-                <p className="text-xs text-emerald-600 font-bold mt-2 uppercase tracking-tight">{file.name}</p>
-                <p className="text-[10px] text-slate-400 mt-4 underline hover:text-indigo-600">Clique para trocar o arquivo</p>
+                <h4 className="font-bold text-slate-900 dark:text-white leading-tight">Arquivo Selecionado</h4>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2 uppercase tracking-tight">{file.name}</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-4 underline hover:text-indigo-600 dark:hover:text-indigo-400">Clique para trocar o arquivo</p>
               </>
             )}
           </div>
 
           {/* Error List */}
           {errors.length > 0 && (
-            <div className="mt-8 p-6 bg-red-50 rounded-[2rem] border border-red-100 animate-in slide-in-from-top-4 duration-300">
-              <div className="flex items-center gap-2 text-red-600 mb-4">
+            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-4">
                 <AlertCircle size={18} />
                 <h4 className="font-bold text-sm uppercase tracking-wider">Erros Identificados na Validação</h4>
               </div>
               <ul className="space-y-2">
                 {errors.map((error, i) => (
-                  <li key={i} className="text-xs text-red-700 flex items-start gap-2">
-                    <div className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                  <li key={i} className="text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+                    <div className="w-1 h-1 rounded-full bg-red-400 dark:bg-red-600 mt-1.5 shrink-0" />
                     {error}
                   </li>
                 ))}
               </ul>
-              <p className="text-[10px] text-red-400 mt-4 italic font-medium">Ajuste os campos indicados acima na sua planilha e tente novamente.</p>
+              <p className="text-[10px] text-red-400 dark:text-red-500 mt-4 italic font-medium">Ajuste os campos indicados acima na sua planilha e tente novamente.</p>
             </div>
           )}
         </div>
 
-        <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex justify-end gap-3">
+        <div className="p-6 sm:p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-end gap-3">
           <button 
             onClick={onClose}
-            className="px-6 py-3 text-sm font-bold text-slate-500 hover:bg-white rounded-xl transition-all"
+            className="px-6 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all"
           >
             Cancelar
           </button>
           <button 
             disabled={!file || isProcessing}
             onClick={processFile}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-all shadow-xl shadow-indigo-100 flex items-center gap-2"
+            className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-all dark:shadow-none flex items-center gap-2"
           >
             {isProcessing ? (
               <>

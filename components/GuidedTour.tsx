@@ -194,12 +194,12 @@ export default function GuidedTour({ isOpen, onClose, onSetView }: GuidedTourPro
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-          className="absolute pointer-events-auto w-[calc(100vw-32px)] sm:w-[400px] bg-white rounded-[2.5rem] shadow-2xl border border-white overflow-hidden p-8 flex flex-col z-[210] transition-all duration-500 shadow-indigo-500/10"
+          className="absolute pointer-events-auto w-[calc(100vw-32px)] sm:w-[400px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-white overflow-hidden p-6 sm:p-8 flex flex-col z-[210] transition-all duration-500 shadow-indigo-500/10 dark:shadow-none"
           style={getCardPosition()}
         >
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center dark:shadow-none">
                 <Sparkles size={20} />
               </div>
               <div>
@@ -243,7 +243,7 @@ export default function GuidedTour({ isOpen, onClose, onSetView }: GuidedTourPro
               )}
               <button 
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
+                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all dark:shadow-none active:scale-95"
               >
                 {currentStep === tourSteps.length - 1 ? 'Finalizar' : 'Próximo'}
                 {currentStep < tourSteps.length - 1 && <ChevronRight size={18} />}

@@ -302,13 +302,13 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-lg font-bold text-slate-900">Formulário de Agendamento</h2>
-          <p className="text-sm text-slate-500">Preencha os dados abaixo para realizar um novo agendamento.</p>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Formulário de Agendamento</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os dados abaixo para realizar um novo agendamento.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8">
           {/* Patient Section */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-indigo-600 mb-2">
@@ -317,56 +317,56 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5 relative">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Paciente</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Paciente</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Nome ou data de nascimento (DD/MM/AAAA)"
-                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                     value={formData.patientName}
                     onChange={handlePatientNameChange}
                     onFocus={() => setShowPatientDropdown(true)}
                     onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
                   />
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                 </div>
 
                 {showPatientDropdown && formData.patientName && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                     {isVerifyingPatient ? (
-                      <div className="p-8 text-center animate-in fade-in duration-200">
+                      <div className="p-6 sm:p-8 text-center animate-in fade-in duration-200">
                         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                        <p className="text-sm text-slate-600 font-bold">Consultando base de dados...</p>
-                        <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Verificando disponibilidade</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 font-bold">Consultando base de dados...</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Verificando disponibilidade</p>
                       </div>
                     ) : filteredPatients.length > 0 ? (
                       filteredPatients.map(patient => (
                         <div
                           key={patient.id}
-                          className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors group"
+                          className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors group"
                           onClick={() => handlePatientSelect(patient)}
                         >
-                          <div className="font-medium text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">{patient.name}</div>
-                          <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">DN: {formatDate(patient.birthDate)}</span>
-                            {patient.cpf && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">CPF: {patient.cpf}</span>}
+                          <div className="font-medium text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{patient.name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">DN: {formatDate(patient.birthDate)}</span>
+                            {patient.cpf && <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">CPF: {patient.cpf}</span>}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center animate-in fade-in slide-in-from-top-4 duration-300">
+                      <div className="p-6 sm:p-8 text-center animate-in fade-in slide-in-from-top-4 duration-300">
                         <div className="relative w-16 h-16 mx-auto mb-4">
                           <div className="absolute inset-0 bg-indigo-600 rounded-2xl rotate-6 opacity-10 animate-pulse" />
-                          <div className="absolute inset-0 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-sm relative z-10">
-                            <UserPlus size={28} className="text-indigo-600" />
+                          <div className="absolute inset-0 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30 shadow-sm relative z-10">
+                            <UserPlus size={28} className="text-indigo-600 dark:text-indigo-400" />
                           </div>
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center z-20">
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center z-20">
                             <Plus size={10} className="text-white" />
                           </div>
                         </div>
-                        <h4 className="text-sm font-bold text-slate-900 leading-tight">Novo Paciente Identificado</h4>
-                        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed max-w-[220px] mx-auto px-2">
-                          Não localizamos este nome em nossa base. <span className="font-bold text-indigo-600/80">Fique tranquilo:</span> ao salvar, criaremos o cadastro automaticamente para você.
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Novo Paciente Identificado</h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed max-w-[220px] mx-auto px-2">
+                          Não localizamos este nome em nossa base. <span className="font-bold text-indigo-600 dark:text-indigo-400">Fique tranquilo:</span> ao salvar, criaremos o cadastro automaticamente para você.
                         </p>
                       </div>
                     )}
@@ -374,43 +374,43 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data de Nascimento</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data de Nascimento</label>
                 <div className="relative">
                   <input
                     type="date"
-                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 color-scheme-dark"
                     value={formData.birthDate}
                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                   />
-                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">CPF</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">CPF</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="000.000.000-00"
                     maxLength={14}
-                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                     value={formData.cpf}
                     onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
                   />
-                  <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Telefone para Contato</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Telefone para Contato</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="(00) 00000-0000"
                     maxLength={15}
-                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                   />
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                 </div>
               </div>
             </div>
@@ -424,11 +424,11 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Médico Solicitante</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Médico Solicitante</label>
                 <input
                   type="text"
                   placeholder="Nome do médico ou CRM"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                   value={formData.referringDoctor}
                   onChange={(e) => setFormData({ ...formData, referringDoctor: e.target.value })}
                 />
@@ -465,12 +465,12 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                 onChange={(val) => setFormData({ ...formData, modality: val, procedure: '' })}
               />
               <div className="relative">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Procedimento</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-1.5 block">Procedimento</label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Ex: US Abdome Total"
-                    className="w-full px-4 h-[41px] bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                    className="w-full pl-4 pr-12 h-[41px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                     value={formData.procedure}
                     onChange={(e) => {
                       setFormData({ ...formData, procedure: e.target.value });
@@ -497,7 +497,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                         }
                       }
                     }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
                   >
                     <Plus size={16} />
                   </button>
@@ -507,11 +507,11 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                 {formData.selectedProcedures.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {formData.selectedProcedures.map((proc, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 bg-indigo-50/50 rounded-xl border border-indigo-100 group animate-in slide-in-from-left-2 duration-200">
+                      <div key={idx} className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 group animate-in slide-in-from-left-2 duration-200">
                         <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                          <span className="text-xs font-bold text-slate-700">{proc.name}</span>
-                          <span className="text-[9px] text-indigo-500 uppercase font-black bg-indigo-100 px-1.5 py-0.5 rounded">{proc.modality}</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500" />
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{proc.name}</span>
+                          <span className="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded">{proc.modality}</span>
                         </div>
                         <button
                           type="button"
@@ -519,7 +519,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                             ...formData,
                             selectedProcedures: formData.selectedProcedures.filter((_, i) => i !== idx)
                           })}
-                          className="p-1 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <X size={14} />
                         </button>
@@ -529,12 +529,12 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                 )}
 
                 {showProcedureDropdown && (formData.procedure || formData.modality) && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                     {filteredProcedures.length > 0 ? (
                       filteredProcedures.map(proc => (
                         <div
                           key={proc.id}
-                          className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                          className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
                           onClick={() => {
                             if (!formData.selectedProcedures.some(p => p.id === proc.id)) {
                               setFormData({
@@ -546,12 +546,12 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                             setShowProcedureDropdown(false);
                           }}
                         >
-                          <div className="font-medium text-slate-900 text-sm">{proc.name}</div>
-                          <div className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">{proc.modality}</div>
+                          <div className="font-medium text-slate-900 dark:text-white text-sm">{proc.name}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold mt-0.5">{proc.modality}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="px-4 py-3 text-sm text-slate-500 italic">
+                      <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 italic">
                         Novo procedimento será cadastrado.
                       </div>
                     )}
@@ -569,19 +569,19 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data</label>
                 <input
                   type="date"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 color-scheme-dark"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Horário</label>
                 <input
                   type="time"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 color-scheme-dark"
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 />
@@ -593,11 +593,11 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
             >
               Cancelar
             </button>
-            <button type="submit" className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200">
+            <button type="submit" className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 dark:shadow-none">
               <Save size={18} />
               Salvar Agendamento
             </button>
@@ -607,16 +607,19 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
 
       {/* Overbook limit modal */}
       {showOverbookModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Limite de Encaixes Atingido</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              O limite de {showOverbookModal} encaixe(s) por dia já foi atingido para este médico.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-600 dark:text-red-400 mb-6 mx-auto">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Limite de Encaixes Atingido</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 text-center leading-relaxed">
+              O limite de <strong>{showOverbookModal} encaixe(s)</strong> por dia já foi atingido para este médico.
             </p>
-            <div className="flex justify-end">
+            <div className="flex justify-center">
               <button
                 onClick={() => setShowOverbookModal(null)}
-                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                className="w-full py-4 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all dark:shadow-none active:scale-[0.98]"
               >
                 Entendi
               </button>

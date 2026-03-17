@@ -540,9 +540,9 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   return (
-    <div key={refreshKey} className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div key={refreshKey} className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
       {/* Filters & Navigation */}
-      <div className="p-3 md:p-4 border-b border-slate-200 flex flex-col gap-3">
+      <div className="p-3 md:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <div id="doctor-select">
@@ -563,12 +563,12 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
               />
             </div>
 
-            <div id="view-toggle" className="flex items-center bg-slate-100 rounded-lg p-1 shrink-0">
+            <div id="view-toggle" className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 shrink-0">
               <button 
                 onClick={() => setViewType('dia')}
                 className={cn(
-                  "px-3 py-1 text-[10px] md:text-xs font-semibold rounded-md transition-all",
-                  viewType === 'dia' ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"
+                   "px-3 py-1 text-[10px] md:text-xs font-semibold rounded-md transition-all",
+                   viewType === 'dia' ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"
                 )}
               >
                 Dia
@@ -576,8 +576,8 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
               <button 
                 onClick={() => setViewType('semana')}
                 className={cn(
-                  "px-3 py-1 text-[10px] md:text-xs font-semibold rounded-md transition-all",
-                  viewType === 'semana' ? "bg-white shadow-sm text-indigo-600" : "text-slate-500"
+                   "px-3 py-1 text-[10px] md:text-xs font-semibold rounded-md transition-all",
+                   viewType === 'semana' ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"
                 )}
               >
                 Semana
@@ -589,19 +589,19 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
             <div className="flex items-center gap-1">
               <button 
                 onClick={() => setCurrentDate(addDays(currentDate, viewType === 'dia' ? -1 : -7))}
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 transition-colors"
               >
                 <ChevronLeft size={18} />
               </button>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                <CalendarIcon size={14} className="text-indigo-600" />
-                <span className="text-[11px] md:text-sm font-bold capitalize whitespace-nowrap">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-lg transition-colors">
+                <CalendarIcon size={14} className="text-indigo-600 dark:text-indigo-400" />
+                <span className="text-[11px] md:text-sm font-bold capitalize whitespace-nowrap text-slate-900 dark:text-white">
                   {format(currentDate, viewType === 'dia' ? "dd 'de' MMM" : "MMMM yyyy", { locale: ptBR })}
                 </span>
               </div>
               <button 
                 onClick={() => setCurrentDate(addDays(currentDate, viewType === 'dia' ? 1 : 7))}
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400"
               >
                 <ChevronRight size={18} />
               </button>
@@ -611,7 +611,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                   onClick={() => setShowDailyGlobalModal(true)}
                   onMouseEnter={() => setHoverDaily(true)}
                   onMouseLeave={() => setHoverDaily(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg text-indigo-600 bg-indigo-50 border border-indigo-100 transition-all active:scale-95"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900/50 transition-all active:scale-95"
                 >
                   <ListChecks size={18} />
                 </button>
@@ -635,7 +635,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                   onClick={() => setShowReportModal(true)}
                   onMouseEnter={() => setHoverReport(true)}
                   onMouseLeave={() => setHoverReport(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-all active:scale-95"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 transition-all active:scale-95"
                 >
                   <FileBarChart size={18} />
                 </button>
@@ -666,14 +666,14 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
             : "grid-cols-[60px_repeat(7,1fr)] md:grid-cols-[100px_repeat(7,1fr)]"
         )}>
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-slate-50 border-b border-r border-slate-200 h-10"></div>
+          <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-800 h-10"></div>
           {viewType === 'dia' ? (
-            <div className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 h-10 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-slate-500">
+            <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-10 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {format(currentDate, "EEEE, dd/MM", { locale: ptBR })}
             </div>
           ) : (
             weekDays.map((day, i) => (
-              <div key={i} className="sticky top-0 z-10 bg-slate-50 border-b border-r border-slate-200 h-10 flex flex-col items-center justify-center font-bold uppercase tracking-wider text-slate-500">
+              <div key={i} className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-800 h-10 flex flex-col items-center justify-center font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <span className="text-[10px] md:text-xs">{format(day, "EEE", { locale: ptBR }).replace('.', '')}</span>
                 <span className="text-[9px] md:text-[10px] font-normal">{format(day, "dd/MM")}</span>
               </div>
@@ -683,7 +683,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
           {/* Body */}
           {times.map((time, i) => (
             <React.Fragment key={i}>
-              <div className="border-b border-r border-slate-100 h-12 flex items-center justify-center text-[10px] font-mono text-slate-400 bg-slate-50/50">
+              <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 flex items-center justify-center text-[10px] font-mono text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-900/50">
                 {time}
               </div>
               {viewType === 'dia' ? (
@@ -734,15 +734,15 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       {/* Confirmation Modal */}
       {blockToRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Remover Bloqueio</h3>
-            <p className="text-sm text-slate-600 mb-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-xl border border-white dark:border-slate-800">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Remover Bloqueio</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               Tem certeza que deseja remover este bloqueio? O horário ficará disponível para agendamentos.
             </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setBlockToRemove(null)}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 Cancelar
               </button>
@@ -760,9 +760,9 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       {/* Overbook limit modal */}
       {overbookModalLimit !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900 mb-2 whitespace-normal break-words">Limite de Encaixes Atingido</h3>
-            <p className="text-sm text-slate-600 mb-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-xl border border-white dark:border-slate-800">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 whitespace-normal break-words">Limite de Encaixes Atingido</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               O limite de {overbookModalLimit} encaixe(s) por dia já foi atingido para este médico.
             </p>
             <div className="flex justify-end">
@@ -790,34 +790,34 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 dark:shadow-none">
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Relatório de Agendamentos</h2>
-                  <p className="text-xs text-slate-500 font-medium">Selecione o período para visualização e impressão</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Relatório de Agendamentos</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Selecione o período para visualização e impressão</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowReportModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 {(['dia', 'semana', 'personalizado'] as const).map((p) => (
                   <button 
                     key={p}
                     onClick={() => setReportPeriod(p)}
                     className={cn(
                       "flex-1 py-2 text-xs font-bold rounded-lg transition-all capitalize",
-                      reportPeriod === p ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                      reportPeriod === p ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     )}
                   >
                     {p}
@@ -828,19 +828,19 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
               {reportPeriod === 'personalizado' && (
                 <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data Início</label>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data Início</label>
                     <input 
                       type="date" 
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-slate-100 color-scheme-dark"
                       value={reportDateRange.startDate}
                       onChange={(e) => setReportDateRange({ ...reportDateRange, startDate: e.target.value })}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data Fim</label>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data Fim</label>
                     <input 
                       type="date" 
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-slate-100 color-scheme-dark"
                       value={reportDateRange.endDate}
                       onChange={(e) => setReportDateRange({ ...reportDateRange, endDate: e.target.value })}
                     />
@@ -848,10 +848,10 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                 </div>
               )}
 
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-slate-900">Prévia da Lista</h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Prévia da Lista</h3>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     {mockDoctors.find(d => d.id === selectedDoctor)?.name}
                   </span>
                 </div>
@@ -872,16 +872,16 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                     })
                     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
                     .map(app => (
-                      <div key={app.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                      <div key={app.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{app.time}</span>
-                          <span className="text-xs font-bold text-slate-700">{mockPatients.find(p => p.id === app.patientId)?.name}</span>
+                          <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md">{app.time}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{mockPatients.find(p => p.id === app.patientId)?.name}</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">{app.procedure}</span>
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">{app.procedure}</span>
                       </div>
                     ))}
                   {mockAppointments.filter(app => app.doctorId === selectedDoctor && (reportPeriod === 'dia' ? app.date === format(currentDate, 'yyyy-MM-dd') : true)).length === 0 && (
-                    <p className="text-center text-xs text-slate-400 py-4 italic">Nenhum agendamento encontrado para este período.</p>
+                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4 italic">Nenhum agendamento encontrado para este período.</p>
                   )}
                 </div>
               </div>
@@ -889,13 +889,13 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
               <div className="grid grid-cols-2 gap-4">
                 <button 
                   onClick={handlePrint}
-                  className="flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                  className="flex items-center justify-center gap-2 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none"
                 >
                   <Printer size={18} /> Imprimir Lista
                 </button>
                 <button 
                   onClick={handleExportPDF}
-                  className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all"
+                  className="flex items-center justify-center gap-2 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                 >
                   <Download size={18} /> Exportar PDF
                 </button>
@@ -954,8 +954,8 @@ function TimeSlot({
 
   if (isInactiveDay && !appointment) {
     return (
-      <div className="border-b border-r border-slate-100 h-12 p-1 relative bg-slate-50 flex items-center justify-center">
-        <span className="text-[9px] md:text-[10px] text-slate-300 font-medium text-center leading-tight">Não atende</span>
+      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-slate-50 dark:bg-slate-900/80 flex items-center justify-center">
+        <span className="text-[9px] md:text-[10px] text-slate-300 dark:text-slate-600 font-medium text-center leading-tight">Não atende</span>
       </div>
     );
   }
@@ -964,7 +964,7 @@ function TimeSlot({
     return (
       <div 
         onClick={() => onBlockClick?.(block)}
-        className="border-b border-r border-slate-100 h-12 p-1 relative bg-red-50/80 flex flex-col items-center justify-center text-red-500 cursor-pointer hover:bg-red-100/80 transition-colors"
+        className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-red-50/80 dark:bg-red-900/20 flex flex-col items-center justify-center text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/80 dark:hover:bg-red-900/30 transition-colors"
         title="Clique para remover o bloqueio"
       >
         <Lock size={14} className="mb-0.5 opacity-60" />
@@ -977,8 +977,8 @@ function TimeSlot({
 
   if (isLunchBreak && !appointment) {
     return (
-      <div className="border-b border-r border-slate-100 h-12 p-1 relative bg-slate-100/50 flex items-center justify-center">
-        <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-slate-400 text-center leading-tight">
+      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-slate-100/50 dark:bg-slate-800/30 flex items-center justify-center">
+        <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-600 text-center leading-tight">
           <span className="md:hidden">Pausa</span>
           <span className="hidden md:inline">Almoço / Pausa</span>
         </span>
@@ -1003,8 +1003,8 @@ function TimeSlot({
       onMouseEnter={() => !appointment && showAddButton && setHoverAdd(true)}
       onMouseLeave={() => !appointment && showAddButton && setHoverAdd(false)}
       className={cn(
-        "border-b border-r border-slate-100 h-12 p-0.5 relative group transition-colors",
-        isOverbookSlot ? "bg-amber-50/30 hover:bg-amber-50/80" : "hover:bg-slate-50/50",
+        "border-b border-r border-slate-100 dark:border-slate-800 h-12 p-0.5 relative group transition-colors",
+        isOverbookSlot ? "bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/80 dark:hover:bg-amber-900/20" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/50",
         !appointment && showAddButton && "cursor-pointer"
       )}
     >
@@ -1017,16 +1017,16 @@ function TimeSlot({
           className={cn(
             "h-full w-full rounded-md p-1.5 text-[10px] flex flex-col justify-between shadow-sm border-l-4 cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all",
             isOverbookSlot 
-              ? "bg-[#FFF9C4] border-yellow-400 text-yellow-800 font-medium" 
+              ? "bg-[#FFF9C4] dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600 text-yellow-800 dark:text-yellow-200 font-medium" 
               : appointment.status === 'agendado' 
-                  ? "bg-indigo-50 border-indigo-500 text-indigo-700 font-bold" 
+                  ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold" 
                   : appointment.status === 'confirmado'
-                    ? "bg-sky-50 border-sky-500 text-sky-700 font-bold"
+                    ? "bg-sky-50 dark:bg-sky-900/30 border-sky-500 text-sky-700 dark:text-sky-300 font-bold"
                     : appointment.status === 'em-atendimento'
-                      ? "bg-violet-50 border-violet-500 text-violet-700 font-bold"
+                      ? "bg-violet-50 dark:bg-violet-900/30 border-violet-500 text-violet-700 dark:text-violet-300 font-bold"
                       : appointment.status === 'realizado'
-                        ? "bg-emerald-50 border-emerald-500 text-emerald-700 font-bold"
-                        : "bg-slate-50 border-slate-300 text-slate-400 font-medium italic"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 font-medium italic"
           )}
         >
           <div className="flex justify-between items-start gap-1">
@@ -1045,7 +1045,7 @@ function TimeSlot({
           <div 
             className={cn(
               "w-8 h-8 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95",
-              isOverbookSlot ? "text-amber-500 bg-amber-50 rounded-full" : "text-indigo-400 bg-indigo-50 rounded-full"
+              isOverbookSlot ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30 rounded-full" : "text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-full"
             )}
           >
             <PlusCircle size={18} />
@@ -1067,7 +1067,7 @@ function TimeSlot({
         </div>
       ) : (
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-          <span className="text-[9px] md:text-[10px] text-slate-300 font-medium text-center leading-tight">
+          <span className="text-[9px] md:text-[10px] text-slate-300 dark:text-slate-600 font-medium text-center leading-tight">
             <span className="md:hidden">Indisp.</span>
             <span className="hidden md:inline">Não disponível</span>
           </span>
@@ -1121,15 +1121,15 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-3 overflow-hidden">
-             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 dark:shadow-none shrink-0">
                 <ListChecks size={20} />
              </div>
              <div className="min-w-0">
-                <h2 className="text-xl font-bold text-slate-900 truncate">Agendamentos do Dia</h2>
-                <p className="text-xs text-slate-500 font-medium truncate">{format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Agendamentos do Dia</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
              </div>
           </div>
           
@@ -1139,15 +1139,15 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
                value={selectedUnit}
                onChange={(val) => setSelectedUnit(val)}
              />
-             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
                 <X size={20} />
              </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar scroll-smooth">
            {totalItems === 0 ? (
-             <div className="flex flex-col items-center justify-center py-20 text-slate-400 italic">
+             <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500 italic">
                 <Clock size={48} className="mb-4 opacity-20" />
                 <p>Nenhum agendamento encontrado para esta unidade nesta data.</p>
              </div>
@@ -1155,7 +1155,7 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
              <div className="overflow-x-auto">
                <table className="w-full text-left border-separate border-spacing-y-2">
                  <thead>
-                   <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4">
+                   <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-4">
                      <th className="pb-4 pl-4">Hora</th>
                      <th className="pb-4">Médico</th>
                      <th className="pb-4">Paciente</th>
@@ -1171,40 +1171,40 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
                         <tr 
                           key={app.id} 
                           onClick={() => onAppointmentClick(app)}
-                          className="bg-slate-50/50 hover:bg-slate-50 transition-colors group cursor-pointer"
+                          className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
                         >
                           <td className="py-4 pl-4 rounded-l-2xl">
-                             <span className="text-xs font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">{app.time}</span>
+                             <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-800">{app.time}</span>
                           </td>
                           <td className="py-4">
                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400">
+                                <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500">
                                    <Users size={14} />
                                 </div>
-                                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">{doctor?.name}</span>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">{doctor?.name}</span>
                              </div>
                           </td>
                           <td className="py-4">
-                             <span className="text-xs font-medium text-slate-700 whitespace-nowrap">{patient?.name}</span>
+                             <span className="text-xs font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{patient?.name}</span>
                           </td>
                           <td className="py-4">
-                             <span className="text-xs text-slate-500 uppercase font-bold text-[10px] truncate block max-w-[200px]">{app.procedure}</span>
+                             <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold text-[10px] truncate block max-w-[200px]">{app.procedure}</span>
                           </td>
                           <td className="py-4 pr-4 rounded-r-2xl">
                              <div className="flex flex-col items-end gap-1">
                                <span className={cn(
-                                 "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm",
-                                 app.isOverbook && app.status === 'agendado' ? "bg-amber-100 text-amber-700 font-black border border-amber-200" :
-                                 app.status === 'agendado' ? "bg-indigo-100 text-indigo-700" :
-                                 app.status === 'confirmado' ? "bg-sky-100 text-sky-700" :
-                                 app.status === 'em-atendimento' ? "bg-violet-100 text-violet-700" :
-                                 app.status === 'realizado' ? "bg-emerald-100 text-emerald-700" :
-                                 "bg-slate-100 text-slate-600"
+                                 "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm border transition-colors",
+                                 app.isOverbook && app.status === 'agendado' ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-black border-amber-200 dark:border-amber-800" :
+                                 app.status === 'agendado' ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" :
+                                 app.status === 'confirmado' ? "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800" :
+                                 app.status === 'em-atendimento' ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800" :
+                                 app.status === 'realizado' ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" :
+                                 "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                                )}>
                                  {app.status}
                                </span>
                                {app.isOverbook && (
-                                 <span className="text-[8px] font-bold text-amber-600 uppercase tracking-tighter bg-white px-1 border border-amber-100 rounded">
+                                 <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tighter bg-white dark:bg-slate-800 px-1 border border-amber-100 dark:border-amber-800 rounded">
                                    Encaixe
                                  </span>
                                )}
@@ -1219,16 +1219,16 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
            )}
         </div>
         
-        <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="p-6 sm:p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-6">
            <div className="flex flex-col md:flex-row items-center gap-6">
-              <p className="text-xs text-slate-400 font-medium whitespace-nowrap">Total de <strong>{totalItems}</strong> agendamentos.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">Total de <strong className="text-slate-600 dark:text-slate-300">{totalItems}</strong> agendamentos.</p>
               
               {totalPages > 1 && (
                 <div className="flex items-center gap-2">
                    <button 
                      disabled={currentPage === 1}
                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                     className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                     className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
                    >
                      <ChevronLeft size={16} />
                    </button>
@@ -1241,8 +1241,8 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
                           className={cn(
                             "w-8 h-8 rounded-lg text-xs font-bold transition-all",
                             currentPage === page 
-                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
-                              : "text-slate-400 hover:bg-white hover:text-slate-600 border border-transparent hover:border-slate-100"
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none" 
+                              : "text-slate-400 dark:text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                           )}
                         >
                           {page}
@@ -1253,7 +1253,7 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
                    <button 
                      disabled={currentPage === totalPages}
                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                     className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                     className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
                    >
                      <ChevronRight size={16} />
                    </button>
@@ -1263,7 +1263,7 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
 
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Exibir:</span>
+                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Exibir:</span>
                  <CustomSelect 
                     options={perPageOptions}
                     value={itemsPerPage.toString()}
@@ -1274,7 +1274,7 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
               </div>
               <button 
                 onClick={onClose}
-                className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.98]"
+                className="px-6 sm:px-8 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none active:scale-[0.98]"
               >
                 Fechar
               </button>

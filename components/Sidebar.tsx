@@ -69,21 +69,21 @@ export default function Sidebar({
       )}
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl lg:shadow-none flex flex-col",
+        "fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl lg:shadow-none flex flex-col transition-colors",
         isOpen ? "translate-x-0" : "-translate-x-full",
         isCollapsed ? "w-20" : "w-64"
       )}>
         {/* Header */}
         <div className={cn(
-          "p-4 md:p-6 border-b border-slate-100 flex items-center shrink-0 transition-all duration-300",
+          "p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300",
           isCollapsed ? "justify-center" : "justify-between"
         )}>
           <div className="flex items-center gap-2 shrink-0 overflow-hidden">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-indigo-100">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-indigo-100 dark:shadow-none">
               AT
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-lg md:text-xl tracking-tight text-slate-900 animate-in fade-in slide-in-from-left-2 duration-300">
+              <span className="font-bold text-lg md:text-xl tracking-tight text-slate-900 dark:text-slate-100 animate-in fade-in slide-in-from-left-2 duration-300">
                 ATAgenda
               </span>
             )}
@@ -91,18 +91,18 @@ export default function Sidebar({
           
           <button 
             onClick={() => isCollapsed ? setIsCollapsed(false) : setIsCollapsed(true)}
-            className="hidden lg:flex p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
+            className="hidden lg:flex p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           >
             {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
 
-          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-500">
             <X size={20} />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav id="sidebar-nav" className="flex-1 px-2 py-6 space-y-2 overflow-y-auto no-scrollbar">
+        <nav id="sidebar-nav" className="flex-1 px-2 py-4 2xl:py-6 space-y-1 sm:space-y-2 overflow-y-auto no-scrollbar">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -114,13 +114,13 @@ export default function Sidebar({
               className={cn(
                 "w-full flex transition-all group relative duration-200",
                 isCollapsed 
-                  ? "flex-col items-center justify-center py-3 rounded-xl gap-1" 
-                  : "flex-row items-center gap-3 px-3 py-3 rounded-xl",
+                  ? "flex-col items-center justify-center py-2.5 2xl:py-3 rounded-xl gap-1" 
+                  : "flex-row items-center gap-3 px-3 py-2.5 2xl:py-3 rounded-xl",
                 currentView === item.id 
-                  ? "bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-50/50" 
+                  ? "bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 shadow-sm shadow-indigo-50/50 dark:shadow-none" 
                   : item.primary 
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 mb-6 shadow-md shadow-indigo-100 active:scale-[0.98]"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 mb-4 2xl:mb-6 shadow-md shadow-indigo-100 dark:shadow-none active:scale-[0.98]"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100"
               )}
             >
               <div className={cn(
@@ -143,7 +143,7 @@ export default function Sidebar({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-white/50 backdrop-blur-sm relative">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm relative transition-colors">
           {/* User Tray Menu */}
           <AnimatePresence>
             {isUserMenuOpen && (
@@ -152,11 +152,11 @@ export default function Sidebar({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className={cn(
-                  "absolute bottom-full left-4 right-4 mb-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-[60]",
+                  "absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden z-[60]",
                   isCollapsed && "left-2 right-2 w-48 left-full -ml-2 bottom-4"
                 )}
               >
-                <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                <div className="p-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sua Conta</p>
                 </div>
                 <div className="p-2">
@@ -165,15 +165,15 @@ export default function Sidebar({
                       onOpenProfile();
                       setIsUserMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all"
                   >
                     <User size={18} />
                     Meu Perfil
                   </button>
-                  <div className="h-px bg-slate-100 my-2" />
+                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
                   <button 
                     onClick={onLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                   >
                     <LogOut size={18} />
                     Sair do Sistema
@@ -190,15 +190,15 @@ export default function Sidebar({
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className={cn(
                   "flex items-center gap-3 px-2 py-2 rounded-2xl transition-all text-left group",
-                  isUserMenuOpen ? "bg-slate-50 ring-1 ring-slate-100" : "hover:bg-slate-50"
+                  isUserMenuOpen ? "bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-100 dark:ring-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
                 )}
               >
-                <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold shrink-0 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold shrink-0 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
                   <img src="https://ui-avatars.com/api/?name=Lucas+Silva&background=EEF2FF&color=4F46E5" alt="Avatar" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-bold text-slate-900 truncate text-sm leading-tight">Lucas Silva</p>
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">Admin</p>
+                  <p className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm leading-tight">Lucas Silva</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider truncate">Admin</p>
                 </div>
                 <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-300", isUserMenuOpen && "rotate-180")} />
               </button>
@@ -209,7 +209,7 @@ export default function Sidebar({
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className={cn(
                   "w-10 h-10 rounded-xl border flex items-center justify-center text-indigo-600 transition-all shadow-sm group overflow-hidden",
-                  isUserMenuOpen ? "bg-indigo-600 border-indigo-600 text-white" : "bg-indigo-50 border-indigo-100 hover:bg-indigo-100"
+                  isUserMenuOpen ? "bg-indigo-600 border-indigo-600 dark:border-indigo-500 text-white" : "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-100 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
                 )}
               >
                 <img src="https://ui-avatars.com/api/?name=Lucas+Silva&background=EEF2FF&color=4F46E5" alt="Avatar" className="w-full h-full object-cover" />

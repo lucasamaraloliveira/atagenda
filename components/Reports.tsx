@@ -138,7 +138,7 @@ export default function Reports() {
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsPeriodDropdownOpen(false)}
                   />
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     {periods.map((period) => (
                       <button
                         key={period}
@@ -165,7 +165,7 @@ export default function Reports() {
             <button 
               onClick={exportToPDF}
               disabled={isExporting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98] disabled:opacity-50"
             >
               <Download size={18} /> 
               {isExporting ? 'Exportando...' : 'Exportar PDF'}
@@ -201,7 +201,7 @@ export default function Reports() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+          <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
             <DollarSign size={80} className="text-indigo-600" />
           </div>
           <div className="flex items-center gap-4 mb-4">
@@ -222,7 +222,7 @@ export default function Reports() {
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+          <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
             <Activity size={80} className="text-emerald-600" />
           </div>
           <div className="flex items-center gap-4 mb-4">
@@ -243,7 +243,7 @@ export default function Reports() {
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+          <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
             <FileText size={80} className="text-amber-600" />
           </div>
           <div className="flex items-center gap-4 mb-4">
@@ -263,10 +263,10 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:p-8">
         {/* Main Chart Card */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+          <div className="p-6 sm:p-8 border-b border-slate-50 flex justify-between items-center">
             <div>
               <h3 className="font-bold text-slate-900">Distribuição por Modalidade</h3>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Participação no faturamento simulado</p>
@@ -274,7 +274,7 @@ export default function Reports() {
             <BarChart3 className="text-indigo-200" size={24} />
           </div>
           
-          <div className="p-8 space-y-6 flex-1">
+          <div className="p-6 sm:p-8 space-y-6 flex-1">
             {sortedModalities.map((mod) => {
               const percentage = (modalityValues[mod] / totalValue) * 100;
               return (
@@ -302,7 +302,7 @@ export default function Reports() {
 
         {/* Top Procedures Card */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-8 border-b border-slate-50">
+          <div className="p-6 sm:p-8 border-b border-slate-50">
             <h3 className="font-bold text-slate-900">Top 5 Procedimentos (Valor)</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Procedimentos com maior valor sugerido</p>
           </div>

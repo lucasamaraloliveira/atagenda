@@ -168,12 +168,12 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
         return <Campanhas searchQuery={searchQuery} />;
       default:
         return (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
+          <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-300 dark:text-slate-600 mb-4">
               {React.createElement(tabs.find(t => t.id === activeTab)?.icon, { size: 32 })}
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Em breve</h3>
-            <p className="text-sm text-slate-500 max-w-xs text-center">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Em breve</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs text-center">
               Esta funcionalidade de {tabs.find(t => t.id === activeTab)?.label} está em desenvolvimento e estará disponível em breve.
             </p>
           </div>
@@ -184,7 +184,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 bg-white/50 p-2 rounded-2xl border border-slate-200/60 backdrop-blur-sm">
+      <div className="flex flex-wrap gap-2 bg-white/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200/60 dark:border-slate-800 backdrop-blur-sm">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -192,8 +192,8 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
               activeTab === tab.id 
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
-                : "text-slate-500 hover:bg-white hover:text-slate-900"
+                ? "bg-indigo-600 text-white dark:shadow-none" 
+                : "text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
             )}
           >
             <tab.icon size={18} />
@@ -284,15 +284,15 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {filteredProfiles.map((profile) => (
-        <div key={profile.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+        <div key={profile.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
           <div className="flex justify-between items-start mb-6">
             <div className="flex gap-4 items-center">
               <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-black/5", profile.color)}>
                 {profile.name.charAt(0)}
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 text-lg">{profile.name}</h4>
-                <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mt-0.5">Perfil de Acesso</p>
+                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-lg">{profile.name}</h4>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest mt-0.5">Perfil de Acesso</p>
               </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -301,14 +301,14 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
                   setProfileToEdit(profile);
                   setProfileFormOpen(true);
                 }}
-                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-600 transition-colors"
                 title="Editar Nome/Cor"
               >
                 <Edit2 size={16} />
               </button>
               <button 
                 onClick={() => setItemToDelete({ id: profile.id, name: profile.name, type: 'perfil' })}
-                className="p-2 hover:bg-red-50 rounded-xl text-red-400 transition-colors"
+                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl text-red-400 dark:text-red-500 transition-colors"
               >
                 <Trash2 size={16} />
               </button>
@@ -316,16 +316,16 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           </div>
           
           <div className="space-y-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Permissões Habilitadas</p>
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Permissões Habilitadas</p>
             <div className="flex flex-wrap gap-2">
               {profile.permissions.map((perm, i) => (
-                <span key={i} className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-100 flex items-center gap-1.5">
+                <span key={i} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold border border-slate-100 dark:border-slate-700 flex items-center gap-1.5">
                   <Check size={12} className="text-emerald-500" /> {perm}
                 </span>
               ))}
               <button 
                 onClick={() => setSelectedProfile(profile)}
-                className="px-3 py-1.5 bg-white text-indigo-600 border border-indigo-100 rounded-lg text-[10px] font-bold hover:bg-indigo-50 transition-colors"
+                className="px-3 py-1.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-lg text-[10px] font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors"
               >
                 + Editar Permissões
               </button>
@@ -334,7 +334,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
         </div>
       ))}
       {filteredProfiles.length === 0 && (
-        <div className="md:col-span-2 p-12 text-center bg-white rounded-3xl border border-slate-100 italic text-slate-400 text-sm">
+        <div className="md:col-span-2 p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 italic text-slate-400 dark:text-slate-500 text-sm">
           Nenhum perfil encontrado para "{searchQuery}"
         </div>
       )}
@@ -343,12 +343,12 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           setProfileToEdit(null);
           setProfileFormOpen(true);
         }}
-        className="group relative flex flex-col items-center justify-center p-8 rounded-[2rem] border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all bg-white hover:bg-indigo-50/30 min-h-[160px]"
+        className="group relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition-all bg-white dark:bg-slate-900 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 min-h-[160px]"
       >
-        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+        <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-600 mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-all">
           <Plus size={24} />
         </div>
-        <p className="text-sm font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">Novo Perfil de Acesso</p>
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Novo Perfil de Acesso</p>
       </button>
 
       {selectedProfile && (
@@ -455,24 +455,24 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-5xl max-h-[96vh] sm:max-h-[92vh] overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-4">
-            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg", profile.color)}>
+            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg dark:shadow-none font-sans", profile.color)}>
               {profile.name.charAt(0)}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Editar Permissões: {profile.name}</h2>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">Defina o que este perfil pode acessar</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editar Permissões: {profile.name}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Defina o que este perfil pode acessar</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 pt-6 space-y-8">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 pt-6 space-y-8">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const allSelected = cat.perms.every(p => selectedPerms.includes(p.label));
@@ -481,12 +481,12 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
               <div key={cat.id} className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                       <Icon size={16} />
                     </div>
-                    <h3 className="font-bold text-slate-800 uppercase tracking-widest text-[11px]">{cat.label}</h3>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-[11px]">{cat.label}</h3>
                   </div>
-                  <button 
+                    <button 
                     onClick={() => {
                       if (allSelected) {
                         setSelectedPerms(selectedPerms.filter(p => !cat.perms.map(cp => cp.label).includes(p)));
@@ -498,37 +498,39 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
                         setSelectedPerms(newPerms);
                       }
                     }}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline"
+                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
-                    {allSelected ? 'Desmarcar Todos' : 'Marcar Todos'}
+                    {allSelected ? 'Desmarcar todos' : 'Marcar todos'}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {cat.perms.map((perm) => (
-                    <label 
+                    <button
                       key={perm.id}
+                      onClick={() => togglePerm(perm.label)}
                       className={cn(
-                        "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
+                        "flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
                         selectedPerms.includes(perm.label)
-                          ? "bg-indigo-50/50 border-indigo-200 text-indigo-700" 
-                          : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+                          ? "bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-900/50 ring-1 ring-indigo-200 dark:ring-indigo-900/50 shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
                       )}
                     >
-                      <div className={cn(
-                        "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                        selectedPerms.includes(perm.label) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                      <span className={cn(
+                        "text-xs font-semibold",
+                        selectedPerms.includes(perm.label) ? "text-indigo-700 dark:text-indigo-300" : "text-slate-600 dark:text-slate-400"
                       )}>
-                        {selectedPerms.includes(perm.label) && <Check size={12} className="text-white" />}
+                        {perm.label}
+                      </span>
+                      <div className={cn(
+                        "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                        selectedPerms.includes(perm.label)
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                      )}>
+                        {selectedPerms.includes(perm.label) && <Check size={12} />}
                       </div>
-                      <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={selectedPerms.includes(perm.label)}
-                        onChange={() => togglePerm(perm.label)}
-                      />
-                      <span className="text-xs font-bold">{perm.label}</span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -536,13 +538,13 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
           })}
         </div>
 
-        <div className="p-8 border-t border-slate-50 bg-slate-50/10 flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all">
+        <div className="p-6 sm:p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/10 flex justify-end gap-3">
+          <button onClick={onClose} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
             Cancelar
           </button>
           <button 
             onClick={() => onSave(profile.id, selectedPerms)}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98]"
+            className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
           >
             Salvar Alterações
           </button>
@@ -617,13 +619,13 @@ function Insurances({
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-        <h3 className="font-bold text-slate-900">Convênios Ativos</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
+        <h3 className="font-bold text-slate-900 dark:text-white">Convênios Ativos</h3>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setShowImportModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-all shadow-sm active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-[0.98]"
           >
             <Upload size={14} />
             Importar Lista
@@ -633,7 +635,7 @@ function Insurances({
               setEditingInsurance(null);
               setModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
           >
             <Plus size={16} /> Novo Convênio
           </button>
@@ -642,9 +644,9 @@ function Insurances({
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
+            <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
               <th 
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
@@ -655,7 +657,7 @@ function Insurances({
                 </div>
               </th>
               <th 
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-2">
@@ -666,7 +668,7 @@ function Insurances({
                 </div>
               </th>
               <th 
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('patients')}
               >
                 <div className="flex items-center gap-2">
@@ -676,22 +678,22 @@ function Insurances({
                   )}
                 </div>
               </th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 text-right">Ações</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {paginatedInsurances.map((ins) => (
-              <tr key={ins.id} className="hover:bg-slate-50/80 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-700 text-sm">{ins.name}</td>
+              <tr key={ins.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200 text-sm">{ins.name}</td>
                 <td className="px-6 py-4">
                   <span className={cn(
                     "px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase",
-                    ins.status === 'Ativo' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
+                    ins.status === 'Ativo' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700"
                   )}>
                     {ins.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-xs text-slate-500 font-medium">{ins.patients} pacientes vinculados</td>
+                <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{ins.patients} pacientes vinculados</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button 
@@ -699,13 +701,13 @@ function Insurances({
                         setEditingInsurance(ins);
                         setModalOpen(true);
                       }}
-                      className="p-2 hover:bg-white rounded-lg text-slate-400 transition-all border border-transparent hover:border-slate-100"
+                      className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 dark:text-slate-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
                     >
                       <Edit2 size={14} />
                     </button>
                     <button 
                       onClick={() => setItemToDelete({ id: ins.id, name: ins.name, type: 'convênio' })}
-                      className="p-2 hover:bg-white rounded-lg text-red-400 transition-all border border-transparent hover:border-slate-100"
+                      className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-red-400 dark:text-red-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -723,9 +725,9 @@ function Insurances({
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 bg-slate-50/10">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Mostrando <span className="text-slate-600">{paginatedInsurances.length}</span> de <span className="text-slate-600">{filteredInsurances.length}</span> convênios
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/10">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+              Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedInsurances.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredInsurances.length}</span> convênios
             </p>
             
             <div className="flex items-center gap-2">
@@ -752,7 +754,7 @@ function Insurances({
                         className={cn(
                           "w-10 h-10 rounded-xl text-xs font-bold transition-all",
                           currentPage === page 
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                            ? "bg-indigo-600 text-white dark:shadow-none" 
                             : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
                         )}
                       >
@@ -871,13 +873,13 @@ function Procedures({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-          <h3 className="font-bold text-slate-900">Procedimentos</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
+          <h3 className="font-bold text-slate-900 dark:text-white">Procedimentos</h3>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowImportModal(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-all shadow-sm active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-[0.98]"
             >
               <Upload size={14} />
               Importar Lista
@@ -887,7 +889,7 @@ function Procedures({
                 setEditingProcedure(null);
                 setModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
             >
               <Plus size={16} /> Novo Procedimento
             </button>
@@ -896,9 +898,9 @@ function Procedures({
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
+              <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                 <th 
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
@@ -909,7 +911,7 @@ function Procedures({
                   </div>
                 </th>
                 <th 
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('modality')}
                 >
                   <div className="flex items-center gap-2">
@@ -920,7 +922,7 @@ function Procedures({
                   </div>
                 </th>
                 <th 
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('price')}
                 >
                   <div className="flex items-center gap-2">
@@ -930,31 +932,31 @@ function Procedures({
                     )}
                   </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 text-right">Ações</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {paginatedProcedures.map((proc) => (
-                <tr key={proc.id} className="hover:bg-slate-50/80 transition-colors group">
+                <tr key={proc.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-700 text-sm">{proc.name}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{proc.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={cn(
                       "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all",
-                      proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm shadow-emerald-50" :
-                      proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100 shadow-sm shadow-indigo-50" :
-                      proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100 shadow-sm shadow-amber-50" :
-                      proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100 shadow-sm shadow-sky-50" :
-                      "bg-slate-50 text-slate-600 border-slate-100"
+                      proc.modality === 'CONSULTA' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800 shadow-sm shadow-emerald-50 dark:shadow-none" :
+                      proc.modality === 'US' ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-sm shadow-indigo-50 dark:shadow-none" :
+                      proc.modality === 'CT' ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800 shadow-sm shadow-amber-50 dark:shadow-none" :
+                      proc.modality === 'CR' ? "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800 shadow-sm shadow-sky-50 dark:shadow-none" :
+                      "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700"
                     )}>
                       {proc.modality}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-slate-700">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
                       R$ {parseFloat(proc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </td>
@@ -965,13 +967,13 @@ function Procedures({
                           setEditingProcedure(proc);
                           setModalOpen(true);
                         }}
-                        className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-slate-100"
+                        className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button 
                         onClick={() => setItemToDelete({ id: proc.id, name: proc.name, type: 'procedimento' })}
-                        className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-red-500 transition-all border border-transparent hover:border-slate-100"
+                        className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -989,9 +991,9 @@ function Procedures({
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 bg-slate-50/10">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                Mostrando <span className="text-slate-600">{paginatedProcedures.length}</span> de <span className="text-slate-600">{filteredProcedures.length}</span> procedimentos
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/10">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+                Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedProcedures.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredProcedures.length}</span> procedimentos
               </p>
               
               <div className="flex items-center gap-2">
@@ -1018,7 +1020,7 @@ function Procedures({
                           className={cn(
                             "w-10 h-10 rounded-xl text-xs font-bold transition-all",
                             currentPage === page 
-                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                              ? "bg-indigo-600 text-white dark:shadow-none" 
                               : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
                           )}
                         >
@@ -1074,30 +1076,30 @@ function InsuranceModal({ insurance, onClose, onSave }: { insurance: any, onClos
   const [status, setStatus] = useState(insurance?.status || 'Ativo');
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h2 className="text-xl font-bold text-slate-900">{insurance ? 'Editar Convênio' : 'Novo Convênio'}</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{insurance ? 'Editar Convênio' : 'Novo Convênio'}</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onSave({ name, status }); }} className="p-8 space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); onSave({ name, status }); }} className="p-6 sm:p-8 space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Convênio</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Convênio</label>
             <input 
               type="text" 
               required
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Unimed"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Status</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Status</label>
             <select 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -1106,8 +1108,8 @@ function InsuranceModal({ insurance, onClose, onSave }: { insurance: any, onClos
             </select>
           </div>
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm">Cancelar</button>
-            <button type="submit" className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 px-8">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm">Cancelar</button>
+            <button type="submit" className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm dark:shadow-none flex items-center justify-center gap-2 px-6 sm:px-8">
               <Save size={18} /> Salvar
             </button>
           </div>
@@ -1179,14 +1181,14 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300 max-h-[90vh]">
-        <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300 max-h-[96vh] sm:max-h-[92vh]">
+        <div className="p-10 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">{procedure ? 'Editar Procedimento' : 'Novo Procedimento'}</h2>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Configure os detalhes e modalidade técnica</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">{procedure ? 'Editar Procedimento' : 'Novo Procedimento'}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Configure os detalhes e modalidade técnica</p>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
@@ -1194,11 +1196,11 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2 space-y-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Descrição do Procedimento</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Descrição do Procedimento</label>
                 <input 
                   type="text" 
                   required
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white outline-none transition-all placeholder:text-slate-300"
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Ultrassom de Abdome Total"
@@ -1206,16 +1208,16 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor Sugerido (R$)</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor Sugerido (R$)</label>
                 <div className="relative group">
                   <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                    <span className="text-slate-400 font-black text-base group-focus-within:text-indigo-600 transition-colors">R$</span>
-                    <div className="w-px h-5 bg-slate-200 group-focus-within:bg-indigo-300 transition-colors" />
+                    <span className="text-slate-400 dark:text-slate-500 font-black text-base group-focus-within:text-indigo-600 transition-colors">R$</span>
+                    <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 group-focus-within:bg-indigo-300 transition-colors" />
                   </div>
                   <input 
                     type="text" 
                     required
-                    className="w-full pl-24 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white outline-none transition-all"
+                    className="w-full pl-24 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all dark:text-white"
                     value={price ? parseFloat(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
                     onChange={handlePriceChange}
                     placeholder="0,00"
@@ -1224,25 +1226,25 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Modelo de Preparo</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo de Preparo</label>
                 <textarea 
                   rows={4}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white outline-none transition-all placeholder:text-slate-300 resize-none"
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100 resize-none"
                   value={preparation}
                   onChange={(e) => setPreparation(e.target.value)}
                   placeholder="Instruções de preparo para o paciente..."
                 />
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-50">
-                <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
+              <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+                <label className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", integraRis ? "bg-indigo-50 text-indigo-600" : "bg-slate-50 text-slate-300")}>
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", integraRis ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-600")}>
                       <Activity size={18} />
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-slate-700">Integra RIS</span>
-                      <p className="text-[9px] text-slate-400 font-medium">Habilitar exportação automática para o RIS/PACS.</p>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Integra RIS</span>
+                      <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">Habilitar exportação automática para o RIS/PACS.</p>
                     </div>
                   </div>
                   <div 
@@ -1263,11 +1265,11 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
 
             <div className="lg:col-span-3 space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Modalidade Técnica</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modalidade Técnica</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {standardModalities.map((m) => {
                     const colorMap: Record<string, string> = {
-                      indigo: modality === m.code ? "bg-indigo-50 border-indigo-500 shadow-indigo-100 text-indigo-600" : "text-slate-400 border-slate-100",
+                      indigo: modality === m.code ? "bg-indigo-50 border-indigo-500 shadow-indigo-100 dark:shadow-none text-indigo-600" : "text-slate-400 border-slate-100",
                       sky: modality === m.code ? "bg-sky-50 border-sky-500 shadow-sky-100 text-sky-600" : "text-slate-400 border-slate-100",
                       amber: modality === m.code ? "bg-amber-50 border-amber-500 shadow-amber-100 text-amber-600" : "text-slate-400 border-slate-100",
                       rose: modality === m.code ? "bg-rose-50 border-rose-500 shadow-rose-100 text-rose-600" : "text-slate-400 border-slate-100",
@@ -1333,11 +1335,11 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
 
                 {showCustomInput && (
                   <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Especificar Nova Modalidade</label>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Especificar Nova Modalidade</label>
                     <input 
                       type="text"
                       placeholder="DIX, PET, etc..."
-                      className="w-full px-4 py-3 mt-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-slate-900 focus:bg-white outline-none transition-all uppercase"
+                      className="w-full px-4 py-3 mt-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black focus:ring-2 focus:ring-slate-900 dark:focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all uppercase dark:text-white"
                       value={customModality}
                       onChange={(e) => setCustomModality(e.target.value)}
                       required={modality === 'OUTRO'}
@@ -1348,8 +1350,8 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
             </div>
           </div>
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm">Cancelar</button>
-            <button type="submit" className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 px-8">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm">Cancelar</button>
+            <button type="submit" className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm dark:shadow-none flex items-center justify-center gap-2 px-6 sm:px-8">
               <Save size={18} /> Salvar
             </button>
           </div>
@@ -1361,18 +1363,18 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
 
 function DeleteConfirmationModal({ itemName, itemType, onClose, onConfirm }: { itemName: string, itemType: string, onClose: () => void, onConfirm: () => void }) {
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300 p-8 text-center">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-sm overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300 p-6 sm:p-8 text-center">
+        <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <AlertTriangle size={32} />
         </div>
-        <h3 className="text-xl font-bold text-slate-900 mb-2">Excluir {itemType}?</h3>
-        <p className="text-sm text-slate-500 mb-8 px-4">
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Excluir {itemType}?</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 px-4">
           Tem certeza que deseja excluir <strong>{itemName}</strong>? Esta ação não poderá ser desfeita.
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={onClose} className="py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">Não, Manter</button>
-          <button onClick={onConfirm} className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-100">Sim, Excluir</button>
+          <button onClick={onClose} className="py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Não, Manter</button>
+          <button onClick={onConfirm} className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-100 dark:shadow-none hover:bg-red-600 transition-all">Sim, Excluir</button>
         </div>
       </div>
     </div>
@@ -1395,11 +1397,11 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
   ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h2 className="text-xl font-bold text-slate-900">{profile ? 'Editar Perfil' : 'Novo Perfil de Acesso'}</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{profile ? 'Editar Perfil' : 'Novo Perfil de Acesso'}</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
@@ -1409,15 +1411,15 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
             if (!name.trim()) return;
             onSave({ name, color }); 
           }} 
-          className="p-8 space-y-6"
+          className="p-6 sm:p-8 space-y-6"
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Perfil</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Perfil</label>
               <input 
                 type="text" 
                 required
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Financeiro, TI, etc..."
@@ -1426,8 +1428,8 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Cor de Identificação</label>
-              <div className="grid grid-cols-4 gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Cor de Identificação</label>
+              <div className="grid grid-cols-4 gap-3 p-2 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                 {colors.map((c) => (
                   <button
                     key={c.class}
@@ -1436,7 +1438,7 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
                     className={cn(
                       "w-10 h-10 rounded-xl transition-all flex items-center justify-center relative",
                       c.class,
-                      color === c.class ? "ring-4 ring-offset-2 ring-indigo-500 scale-90" : "hover:scale-105"
+                      color === c.class ? "ring-4 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900 scale-90" : "hover:scale-105"
                     )}
                     title={c.name}
                   >
@@ -1446,27 +1448,27 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
               </div>
             </div>
 
-            <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 mt-2">
+            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 mt-2">
               <div className="flex items-center gap-3">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm", color)}>
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm font-sans", color)}>
                   {name ? name.charAt(0).toUpperCase() : '?'}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-900">{name || 'Nome do Perfil'}</p>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Visualização Prévia</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{name || 'Nome do Perfil'}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest">Visualização Prévia</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
               Cancelar
             </button>
             <button 
               type="submit" 
               disabled={!name.trim()}
-              className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 px-8 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm dark:shadow-none flex items-center justify-center gap-2 px-6 sm:px-8 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <Save size={18} /> {profile ? 'Salvar Alterações' : 'Criar Perfil'}
             </button>
@@ -1635,15 +1637,15 @@ function SystemParameters({
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome da Unidade</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                   value={settings.geral.unitName}
                   onChange={(e) => updateSetting('geral', 'unitName', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Idioma do Sistema</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Idioma do Sistema</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                   value={settings.geral.language}
                   onChange={(e) => updateSetting('geral', 'language', e.target.value)}
                 >
@@ -1653,9 +1655,9 @@ function SystemParameters({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tempo para Logoff Automático</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tempo para Logoff Automático</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                   value={settings.geral.autoLogout}
                   onChange={(e) => updateSetting('geral', 'autoLogout', e.target.value)}
                 >
@@ -1671,25 +1673,25 @@ function SystemParameters({
       case 'unidades':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="flex justify-between items-center bg-slate-50 p-6 rounded-[2rem] border border-slate-100 mb-6">
-              <div>
-                <h4 className="text-sm font-bold text-slate-800">Gerenciamento de Unidades</h4>
-                <p className="text-xs text-slate-500">Cadastre e configure os locais de atendimento da clínica.</p>
-              </div>
-              <button 
-                onClick={() => setIsAddingUnit(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all"
-              >
-                <Plus size={16} /> Adicionar Unidade
-              </button>
+          <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 mb-6">
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Gerenciamento de Unidades</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Cadastre e configure os locais de atendimento da clínica.</p>
             </div>
+            <button 
+              onClick={() => setIsAddingUnit(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all dark:shadow-none"
+            >
+              <Plus size={16} /> Adicionar Unidade
+            </button>
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {settings.unidades.map((unit: any, index: number) => (
-                <div key={unit.id} className="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-all group flex flex-col justify-between">
+                <div key={unit.id} className="p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900 transition-all group flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 overflow-hidden border border-slate-100">
+                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 overflow-hidden border border-slate-100 dark:border-slate-800">
                         {unit.logo ? (
                           <img src={unit.logo} alt={unit.name} className="w-full h-full object-cover" />
                         ) : (
@@ -1697,20 +1699,20 @@ function SystemParameters({
                         )}
                       </div>
                       <div>
-                        <h5 className="text-sm font-bold text-slate-800">{unit.name}</h5>
-                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-0.5">ID: {unit.id}</p>
+                        <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">{unit.name}</h5>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest mt-0.5">ID: {unit.id}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => setUnitToEdit(unit)}
-                        className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        className="p-2 text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => handleTryDeleteUnit(unit)}
-                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1718,19 +1720,19 @@ function SystemParameters({
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                      <MapPin size={12} className="text-slate-400 shrink-0" />
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      <MapPin size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
                       <span className="truncate">{unit.address || 'Endereço não informado'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                      <PhoneIcon size={12} className="text-slate-400 shrink-0" />
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      <PhoneIcon size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
                       <span>{unit.phone || 'Telefone não informado'}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
                        <div className="flex items-center gap-2">
-                         <div className={cn("w-2 h-2 rounded-full", unit.isActive ? "bg-emerald-500" : "bg-slate-300")} />
-                         <span className={cn("text-[10px] font-bold uppercase tracking-widest", unit.isActive ? "text-emerald-600" : "text-slate-400")}>
+                         <div className={cn("w-2 h-2 rounded-full", unit.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")} />
+                         <span className={cn("text-[10px] font-bold uppercase tracking-widest", unit.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600")}>
                            {unit.isActive ? 'Unidade Ativa' : 'Unidade Inativa'}
                          </span>
                        </div>
@@ -1745,16 +1747,20 @@ function SystemParameters({
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
-              <h4 className="text-sm font-bold text-slate-800 mb-4">Campos Obrigatórios no Agendamento</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios no Agendamento</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {['Paciente', 'Procedimento', 'Médico', 'Convênio', 'Telefone', 'Motivo'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.agenda.requiredFields.includes(field) ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+                    settings.agenda.requiredFields.includes(field) 
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                      : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.agenda.requiredFields.includes(field) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                      settings.agenda.requiredFields.includes(field) 
+                        ? "bg-indigo-600 border-indigo-600" 
+                        : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.agenda.requiredFields.includes(field) && <Check size={12} className="text-white" />}
                     </div>
@@ -1765,11 +1771,11 @@ function SystemParameters({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Duração Padrão (Slot)</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Duração Padrão (Slot)</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.agenda.slotDuration}
                   onChange={(e) => updateSetting('agenda', 'slotDuration', e.target.value)}
                 >
@@ -1781,36 +1787,36 @@ function SystemParameters({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Início do Expediente</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início do Expediente</label>
                 <input 
                   type="time" 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                   value={settings.agenda.startTime}
                   onChange={(e) => updateSetting('agenda', 'startTime', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fim do Expediente</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim do Expediente</label>
                 <input 
                   type="time" 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                   value={settings.agenda.endTime}
                   onChange={(e) => updateSetting('agenda', 'endTime', e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50">
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Permitir Conflito de Horário</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Habilita o agendamento de múltiplos pacientes no mesmo slot.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Permitir Conflito de Horário</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Habilita o agendamento de múltiplos pacientes no mesmo slot.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('agenda', 'allowOverlapping', !settings.agenda.allowOverlapping)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.agenda.allowOverlapping ? "bg-indigo-600" : "bg-slate-200"
+                    settings.agenda.allowOverlapping ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1819,16 +1825,16 @@ function SystemParameters({
                   )} />
                 </div>
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Bloqueio de Agendamento Retroativo</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Impede a criação de agendamentos em datas ou horários passados.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Bloqueio de Agendamento Retroativo</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Impede a criação de agendamentos em datas ou horários passados.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('agenda', 'retroactiveBooking', !settings.agenda.retroactiveBooking)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.agenda.retroactiveBooking ? "bg-indigo-600" : "bg-slate-200"
+                    settings.agenda.retroactiveBooking ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1844,16 +1850,20 @@ function SystemParameters({
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
-              <h4 className="text-sm font-bold text-slate-800 mb-4">Campos Obrigatórios no Cadastro</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios na Ficha do Paciente</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {['Nome Completo', 'CPF', 'RG', 'Data de Nascimento', 'Telefone', 'Email', 'Endereço', 'Nome da Mãe'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.pacientes.requiredFields.includes(field) ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+                    settings.pacientes.requiredFields.includes(field) 
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                      : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.pacientes.requiredFields.includes(field) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                      settings.pacientes.requiredFields.includes(field) 
+                        ? "bg-indigo-600 border-indigo-600" 
+                        : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.pacientes.requiredFields.includes(field) && <Check size={12} className="text-white" />}
                     </div>
@@ -1864,17 +1874,17 @@ function SystemParameters({
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50">
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+                   <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Auto-gerar prontuário sequencial</p>
-                  <p className="text-[10px] text-slate-400 font-medium">O sistema gera um número de controle automático para novos pacientes.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Número de Registro Automático</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Gera sequencialmente o número de prontuário para novos pacientes.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('pacientes', 'autoPatientId', !settings.pacientes.autoPatientId)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.pacientes.autoPatientId ? "bg-indigo-600" : "bg-slate-200"
+                    settings.pacientes.autoPatientId ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1883,16 +1893,16 @@ function SystemParameters({
                   )} />
                 </div>
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Validação rigorosa de CPF</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Impede o salvamento do cadastro se o número de CPF for inválido.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Validação rigorosa de CPF</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Impede o salvamento do cadastro se o número de CPF for inválido.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('pacientes', 'cpfValidation', !settings.pacientes.cpfValidation)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.pacientes.cpfValidation ? "bg-indigo-600" : "bg-slate-200"
+                    settings.pacientes.cpfValidation ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1901,16 +1911,16 @@ function SystemParameters({
                   )} />
                 </div>
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Alerta de Inadimplência na Seleção</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Exibe um aviso ao recepcionista quando o paciente possui débitos em aberto.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Alerta de Inadimplência na Seleção</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Exibe um aviso ao recepcionista quando o paciente possui débitos em aberto.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('pacientes', 'showDebtAlert', !settings.pacientes.showDebtAlert)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.pacientes.showDebtAlert ? "bg-indigo-600" : "bg-slate-200"
+                    settings.pacientes.showDebtAlert ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1926,16 +1936,20 @@ function SystemParameters({
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
-              <h4 className="text-sm font-bold text-slate-800 mb-4">Campos Obrigatórios (Médicos/Técnicos)</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios (Médicos/Técnicos)</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {['Nome', 'CRM', 'CPF', 'Especialidade', 'Telefone', 'Email'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.profissionais.requiredFields.includes(field) ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-slate-100 text-slate-500 hover:bg-slate-50"
+                    settings.profissionais.requiredFields.includes(field) 
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                      : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.profissionais.requiredFields.includes(field) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                      settings.profissionais.requiredFields.includes(field) 
+                        ? "bg-indigo-600 border-indigo-600" 
+                        : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.profissionais.requiredFields.includes(field) && <Check size={12} className="text-white" />}
                     </div>
@@ -1946,17 +1960,17 @@ function SystemParameters({
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50">
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Exibir CRM/Registro na Agenda</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Mostra o número do registro profissional abaixo do nome na visualização diária.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Exibir CRM/Registro na Agenda</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Mostra o número do registro profissional abaixo do nome na visualização diária.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('profissionais', 'showCrmOnCalendar', !settings.profissionais.showCrmOnCalendar)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.profissionais.showCrmOnCalendar ? "bg-indigo-600" : "bg-slate-200"
+                    settings.profissionais.showCrmOnCalendar ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1965,16 +1979,16 @@ function SystemParameters({
                   )} />
                 </div>
               </label>
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Escala Multi-Sala Simultânea</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Permite que um mesmo profissional seja alocado em salas diferentes no mesmo horário.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Escala Multi-Sala Simultânea</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Permite que um mesmo profissional seja alocado em salas diferentes no mesmo horário.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('profissionais', 'multiRoomScale', !settings.profissionais.multiRoomScale)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.profissionais.multiRoomScale ? "bg-indigo-600" : "bg-slate-200"
+                    settings.profissionais.multiRoomScale ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -1991,9 +2005,9 @@ function SystemParameters({
           <div className="space-y-8 animate-in fade-in duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Moeda Padrão</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Moeda Padrão</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.financeiro.currency}
                   onChange={(e) => updateSetting('financeiro', 'currency', e.target.value)}
                 >
@@ -2003,9 +2017,9 @@ function SystemParameters({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Forma de Pagamento Padrão</label>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Forma de Pagamento Padrão</label>
                 <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.financeiro.defaultPaymentMethod}
                   onChange={(e) => updateSetting('financeiro', 'defaultPaymentMethod', e.target.value)}
                 >
@@ -2018,17 +2032,17 @@ function SystemParameters({
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50">
-              <label className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors">
+            <div className="flex flex-col gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Alerta de Cobertura (Glosa)</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Avisar se o procedimento selecionado não possui cobertura pelo convênio do paciente.</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Alerta de Cobertura (Glosa)</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Avisar se o procedimento selecionado não possui cobertura pelo convênio do paciente.</p>
                 </div>
                 <div 
                   onClick={() => updateSetting('financeiro', 'billingAlert', !settings.financeiro.billingAlert)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    settings.financeiro.billingAlert ? "bg-indigo-600" : "bg-slate-200"
+                    settings.financeiro.billingAlert ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                   )}
                 >
                   <div className={cn(
@@ -2043,31 +2057,31 @@ function SystemParameters({
       case 'integracao':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="flex items-center gap-3 bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 mb-6">
-              <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <div className="flex items-center gap-3 bg-indigo-50/50 dark:bg-indigo-900/10 p-6 rounded-[2rem] border border-indigo-100 dark:border-indigo-900/30 mb-6">
+              <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center dark:shadow-none">
                 <Globe size={24} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-800">Conectividade Externa</h4>
-                <p className="text-xs text-slate-500">Configure a comunicação entre a ATAgenda e sistemas de diagnóstico ou laudos.</p>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Conectividade Externa</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Configure a comunicação entre a ATAgenda e sistemas de diagnóstico ou laudos.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:p-8">
               <div className="space-y-6">
                 <div>
-                  <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-4">Módulo de Imagem (RIS/PACS)</h5>
+                  <h5 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-4">Módulo de Imagem (RIS/PACS)</h5>
                   <div className="space-y-4">
-                    <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
+                    <label className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                       <div className="flex items-center gap-3">
-                        <Activity className="text-indigo-600" size={18} />
-                        <span className="text-xs font-bold text-slate-700">Ativar Integração RIS</span>
+                        <Activity className="text-indigo-600 dark:text-indigo-400" size={18} />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Ativar Integração RIS</span>
                       </div>
                       <div 
                         onClick={() => updateSetting('integracao', 'risEnabled', !settings.integracao.risEnabled)}
                         className={cn(
                           "w-12 h-6 rounded-full transition-colors relative",
-                          settings.integracao.risEnabled ? "bg-indigo-600" : "bg-slate-200"
+                          settings.integracao.risEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                         )}
                       >
                         <div className={cn(
@@ -2078,13 +2092,13 @@ function SystemParameters({
                     </label>
 
                     <div className="space-y-2 opacity-90">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Servidor PACS (URL)</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Servidor PACS (URL)</label>
                       <div className="relative">
-                        <Database className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Database className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
                         <input 
                           type="text" 
                           placeholder="https://pacs.servidor.com:8080"
-                          className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                          className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                           value={settings.integracao.pacsUrl}
                           onChange={(e) => updateSetting('integracao', 'pacsUrl', e.target.value)}
                         />
@@ -2092,11 +2106,11 @@ function SystemParameters({
                     </div>
 
                     <div className="space-y-2 opacity-90">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">DICOM AE Title</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">DICOM AE Title</label>
                       <input 
                         type="text" 
                         placeholder="ATAGENDA_AE"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                         value={settings.integracao.dicomServer}
                         onChange={(e) => updateSetting('integracao', 'dicomServer', e.target.value)}
                       />
@@ -2107,32 +2121,32 @@ function SystemParameters({
 
               <div className="space-y-6">
                 <div>
-                  <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-4">Portal de Laudos</h5>
+                  <h5 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-4">Portal de Laudos</h5>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">API Key do Centro de Laudos</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">API Key do Centro de Laudos</label>
                       <div className="relative">
-                        <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
                         <input 
                           type="password" 
                           placeholder="••••••••••••••••"
-                          className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                          className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                           value={settings.integracao.reportCenterApiKey}
                           onChange={(e) => updateSetting('integracao', 'reportCenterApiKey', e.target.value)}
                         />
                       </div>
                     </div>
 
-                    <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
+                    <label className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                       <div className="flex items-center gap-3">
-                        <Database className="text-emerald-600" size={18} />
-                        <span className="text-xs font-bold text-slate-700">Protocolo HL7 Ativo</span>
+                        <Database className="text-emerald-600 dark:text-emerald-400" size={18} />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Protocolo HL7 Ativo</span>
                       </div>
                       <div 
                         onClick={() => updateSetting('integracao', 'hl7Enabled', !settings.integracao.hl7Enabled)}
                         className={cn(
                           "w-12 h-6 rounded-full transition-colors relative",
-                          settings.integracao.hl7Enabled ? "bg-emerald-600" : "bg-slate-200"
+                          settings.integracao.hl7Enabled ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-700"
                         )}
                       >
                         <div className={cn(
@@ -2142,9 +2156,9 @@ function SystemParameters({
                       </div>
                     </label>
 
-                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
-                      <Info className="text-amber-500 shrink-0" size={18} />
-                      <p className="text-[10px] text-amber-700 leading-relaxed font-medium">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
+                      <Info className="text-amber-500 dark:text-amber-400 shrink-0" size={18} />
+                      <p className="text-[10px] text-amber-700 dark:text-amber-200 leading-relaxed font-medium">
                         Algumas integrações requerem configurações específicas de firewall e VPN no servidor de aplicação. Contate o suporte técnico se tiver dúvidas.
                       </p>
                     </div>
@@ -2160,10 +2174,10 @@ function SystemParameters({
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
       {/* Side Menu */}
-      <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 space-y-2">
-        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-4">Módulos do Sistema</h3>
+      <div className="w-full md:w-64 bg-slate-50/50 dark:bg-slate-800/50 border-r border-slate-100 dark:border-slate-800 p-6 space-y-2">
+        <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-4">Módulos do Sistema</h3>
         {modules.map((mod) => (
           <button
             key={mod.id}
@@ -2171,79 +2185,79 @@ function SystemParameters({
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
               activeModule === mod.id 
-                ? "bg-white text-indigo-600 shadow-sm border border-slate-100" 
-                : "text-slate-500 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700" 
+                : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50"
             )}
           >
-            <mod.icon size={18} className={activeModule === mod.id ? "text-indigo-600" : "text-slate-400"} />
+            <mod.icon size={18} className={activeModule === mod.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
             {mod.label}
           </button>
         ))}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full bg-white">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-slate-900">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">Parâmetros de {modules.find(m => m.id === activeModule)?.label}</h3>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">Configurações globais do sistema</p>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Parâmetros de {modules.find(m => m.id === activeModule)?.label}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações globais do sistema</p>
           </div>
           <button 
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
           >
             <Save size={18} /> Salvar Tudo
           </button>
         </div>
 
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           {renderModuleContent()}
         </div>
       </div>
 
       {/* Delete Unit Confirmation Modal */}
       {unitToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-red-50/30">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-red-50/30 dark:bg-red-900/20">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-100">
+                <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-100 dark:shadow-none">
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Excluir Unidade</h2>
-                  <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">{unitToDelete.name}</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Excluir Unidade</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">{unitToDelete.name}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setUnitToDelete(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-6 sm:p-8 space-y-6">
               {unitLinks.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
-                    <Info className="text-amber-600 shrink-0" size={18} />
-                    <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl flex gap-3">
+                    <Info className="text-amber-600 dark:text-amber-400 shrink-0" size={18} />
+                    <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed font-medium">
                       Esta unidade possui vínculos ativos no sistema. Para excluí-la, você deve primeiro remover os itens abaixo ou reatribuí-los a outra unidade.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vínculos Encontrados</h4>
+                    <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Vínculos Encontrados</h4>
                     {unitLinks.map((link, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-indigo-200 transition-all">
+                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl group hover:border-indigo-200 dark:hover:border-indigo-500 transition-all">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600">
+                          <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
                             <link.icon size={16} />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-700">{link.type}</p>
-                            <p className="text-[10px] text-slate-400 font-medium">{link.label}</p>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{link.type}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{link.label}</p>
                           </div>
                         </div>
                         <button 
@@ -2251,7 +2265,7 @@ function SystemParameters({
                             setUnitToDelete(null);
                             if (setView) setView(link.view);
                           }}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-indigo-600 rounded-lg text-[10px] font-bold hover:border-indigo-600 transition-all shadow-sm"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-bold hover:border-indigo-600 dark:hover:border-indigo-500 transition-all shadow-sm"
                         >
                           Ir para Módulo <ExternalLink size={12} />
                         </button>
@@ -2265,10 +2279,10 @@ function SystemParameters({
                 </div>
               ) : (
                 <div className="text-center space-y-4 py-4">
-                  <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-600 mb-2">
+                  <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto text-red-600 dark:text-red-400 mb-2">
                     <Trash2 size={40} />
                   </div>
-                  <p className="text-sm text-slate-600 font-medium">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
                     Tem certeza que deseja excluir esta unidade? <br/>
                     Esta ação poderá ser desfeita imediatamente após a confirmação.
                   </p>
@@ -2278,7 +2292,7 @@ function SystemParameters({
               <div className="grid grid-cols-2 gap-4">
                 <button 
                   onClick={() => setUnitToDelete(null)}
-                  className="py-3.5 bg-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all"
+                  className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                 >
                   Cancelar
                 </button>
@@ -2286,8 +2300,8 @@ function SystemParameters({
                   onClick={confirmDeleteUnit}
                   disabled={unitLinks.length > 0}
                   className={cn(
-                    "py-3.5 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-red-100",
-                    unitLinks.length > 0 ? "bg-slate-300 cursor-not-allowed shadow-none" : "bg-red-600 hover:bg-red-700 active:scale-[0.98]"
+                    "py-3.5 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-red-100 dark:shadow-none",
+                    unitLinks.length > 0 ? "bg-slate-300 dark:bg-slate-800 cursor-not-allowed shadow-none" : "bg-red-600 hover:bg-red-700 active:scale-[0.98]"
                   )}
                 >
                   Confirmar Exclusão
@@ -2350,103 +2364,103 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-200">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center dark:shadow-none">
               {unit ? <Edit2 size={20} /> : <Plus size={20} />}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{unit ? 'Editar Unidade' : 'Nova Unidade'}</h2>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">Configurações da clínica</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{unit ? 'Editar Unidade' : 'Nova Unidade'}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações da clínica</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-8 space-y-5">
+        <div className="p-6 sm:p-8 space-y-5">
           {/* Logo Upload */}
           <div className="flex flex-col items-center gap-4 mb-4">
             <div className="relative group">
-              <div className="w-24 h-24 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-300">
+              <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-300">
                 {formData.logo ? (
                   <img src={formData.logo} alt="Logo Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon className="text-slate-300" size={32} />
+                  <ImageIcon className="text-slate-300 dark:text-slate-600" size={32} />
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg hover:bg-indigo-700 transition-all border-2 border-white">
+              <label className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg hover:bg-indigo-700 transition-all border-2 border-white dark:border-slate-900">
                 <Upload size={14} />
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
               </label>
             </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logo da Unidade</p>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Logo da Unidade</p>
             <div className="flex items-start gap-2 max-w-[200px] text-center">
               <Info className="text-amber-500 shrink-0 mt-0.5" size={12} />
-              <p className="text-[9px] text-slate-400 leading-relaxed italic">
-                Dimensões ideais: <strong className="text-slate-500">300x300px</strong> (1:1) ou <strong className="text-slate-500">600x160px</strong> (proporção horizontal) para evitar distorções na impressão do PDF.
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-relaxed italic">
+                Dimensões ideais: <strong className="text-slate-500 dark:text-slate-400">300x300px</strong> (1:1) ou <strong className="text-slate-500 dark:text-slate-400">600x160px</strong> (proporção horizontal) para evitar distorções na impressão do PDF.
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome da Unidade</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome da Unidade</label>
             <div className="relative">
               <input 
                 type="text" 
                 placeholder="Ex: Unidade Centro"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
-              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Endereço</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Endereço</label>
             <div className="relative">
               <input 
                 type="text" 
                 placeholder="Rua, Número, Bairro, Cidade"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.address}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
               />
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Telefone</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Telefone</label>
             <div className="relative">
               <input 
                 type="text" 
                 placeholder="(00) 0000-0000"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
-              <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
              <div>
-               <p className="text-xs font-bold text-slate-800">Unidade Ativa</p>
-               <p className="text-[10px] text-slate-400 font-medium">Define se a unidade estará disponível na agenda.</p>
+               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Unidade Ativa</p>
+               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Define se a unidade estará disponível na agenda.</p>
              </div>
              <div 
                onClick={() => setFormData({...formData, isActive: !formData.isActive})}
                className={cn(
                  "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
-                 formData.isActive ? "bg-emerald-500" : "bg-slate-200"
+                 formData.isActive ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
                )}
              >
                <div className={cn(
@@ -2459,14 +2473,14 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button 
               onClick={onClose}
-              className="py-3.5 bg-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all"
+              className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
               Cancelar
             </button>
             <button 
               onClick={() => onSave(formData)}
               disabled={!formData.name}
-              className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 disabled:opacity-50"
+              className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50"
             >
               {unit ? 'Salvar Alterações' : 'Cadastrar Unidade'}
             </button>
@@ -2485,32 +2499,32 @@ function MalaDireta({ searchQuery }: { searchQuery: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
           <div>
-            <h4 className="text-sm font-bold text-slate-800">Lista de Contatos para Mala Direta</h4>
-            <p className="text-[10px] text-slate-400 font-medium">Selecione um paciente para iniciar uma comunicação direta.</p>
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Lista de Contatos para Mala Direta</h4>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Selecione um paciente para iniciar uma comunicação direta.</p>
           </div>
-          <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold">
+          <span className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full text-[10px] font-bold border border-indigo-100 dark:border-indigo-800/50">
             {filteredPatients.length} Pacientes Encontrados
           </span>
         </div>
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-slate-50 dark:divide-slate-800">
           {filteredPatients.map((patient: any) => (
-            <div key={patient.id} className="p-4 hover:bg-slate-50/50 transition-all flex items-center justify-between group">
+            <div key={patient.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all flex items-center justify-between group">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-sm">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-sm">
                   {patient.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">{patient.name}</p>
-                  <p className="text-[10px] text-slate-400">{patient.email} • {patient.phone}</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{patient.name}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">{patient.email} • {patient.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                 <a 
                   href={`mailto:${patient.email}`} 
-                  className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                  className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                   title="Enviar Email"
                 >
                   <Mail size={16} />
@@ -2519,7 +2533,7 @@ function MalaDireta({ searchQuery }: { searchQuery: string }) {
                   href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                  className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                   title="Enviar WhatsApp"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -2725,20 +2739,20 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
 
   if (isSending) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-indigo-50/50 animate-in fade-in duration-500">
-        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
+      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-indigo-50/50 dark:shadow-none animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-6 animate-bounce">
           <Megaphone size={40} />
         </div>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">Enviando Campanha...</h3>
-        <p className="text-sm text-slate-500 mb-8 max-w-xs text-center">Processando disparo de mensagens para o público selecionado via WhatsApp e E-mail.</p>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Enviando Campanha...</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-xs text-center">Processando disparo de mensagens para o público selecionado via WhatsApp e E-mail.</p>
         
-        <div className="w-full max-w-md bg-slate-100 h-3 rounded-full overflow-hidden">
+        <div className="w-full max-w-md bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
           <div 
             className="h-full bg-indigo-600 transition-all duration-300 ease-out"
             style={{ width: `${sendProgress}%` }}
           />
         </div>
-        <p className="mt-4 text-sm font-bold text-indigo-600">{sendProgress}% Concluído</p>
+        <p className="mt-4 text-sm font-bold text-indigo-600 dark:text-indigo-400">{sendProgress}% Concluído</p>
       </div>
     );
   }
@@ -2746,42 +2760,42 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
   if (activeConfig || isCreating) {
     return (
       <>
-      <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm animate-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm animate-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h4 className="text-xl font-bold text-slate-900">{isCreating ? 'Nova Campanha' : `Configurar: ${activeConfig.title}`}</h4>
-            <p className="text-sm text-slate-500">Defina os parâmetros e a mensagem para esta campanha.</p>
+            <h4 className="text-xl font-bold text-slate-900 dark:text-white">{isCreating ? 'Nova Campanha' : `Configurar: ${activeConfig.title}`}</h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Defina os parâmetros e a mensagem para esta campanha.</p>
           </div>
           <button 
             onClick={() => { setActiveConfig(null); setIsCreating(false); }}
-            className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-600 transition-colors"
+            className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:p-8">
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Título da Campanha</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Título da Campanha</label>
               <input 
                 type="text" 
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Ex: Promoção de Verão"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium dark:text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Público-Alvo</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Público-Alvo</label>
               <div className="relative">
                 <button 
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
                 >
-                  <span className="text-slate-700">{customAudiences.find(a => a.id === selectedAudienceId)?.name}</span>
+                  <span className="text-slate-700 dark:text-slate-200">{customAudiences.find(a => a.id === selectedAudienceId)?.name}</span>
                   <ChevronDown className={cn("text-slate-400 transition-transform duration-300", isDropdownOpen ? "rotate-180" : "")} size={18} />
                 </button>
 
@@ -2791,10 +2805,10 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
                       className="fixed inset-0 z-10" 
                       onClick={() => setIsDropdownOpen(false)}
                     />
-                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top">
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {customAudiences.map((audience) => (
-                          <div key={audience.id} className="relative flex items-center group/item hover:bg-slate-50 rounded-xl">
+                          <div key={audience.id} className="relative flex items-center group/item hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl">
                             <button
                               type="button"
                               onClick={() => {
@@ -2804,28 +2818,28 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
                               }}
                               className="flex-1 text-left px-3 py-2.5 text-sm transition-all flex items-center justify-between group rounded-xl"
                             >
-                              <span className={cn(selectedAudienceId === audience.id ? "text-indigo-700 font-bold" : "text-slate-600")}>
+                              <span className={cn(selectedAudienceId === audience.id ? "text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-600 dark:text-slate-400")}>
                                 {audience.name}
                               </span>
-                              {selectedAudienceId === audience.id && <Check size={14} className="text-indigo-600 mr-2" />}
+                              {selectedAudienceId === audience.id && <Check size={14} className="text-indigo-600 dark:text-indigo-400 mr-2" />}
                             </button>
                             {audience.id !== '1' && (
                               <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 pr-2 transition-opacity">
-                                <button type="button" onClick={(e) => { e.stopPropagation(); setEditingAudience(audience); setIsCreatingAudience(true); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white text-slate-400 hover:text-indigo-600 border border-transparent hover:border-slate-200 rounded-lg shadow-sm transition-all"><Edit2 size={14}/></button>
-                                <button type="button" onClick={(e) => { e.stopPropagation(); setAudienceToDelete(audience); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white text-slate-400 hover:text-red-500 border border-transparent hover:border-slate-200 rounded-lg shadow-sm transition-all"><Trash2 size={14}/></button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setEditingAudience(audience); setIsCreatingAudience(true); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Edit2 size={14}/></button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setAudienceToDelete(audience); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Trash2 size={14}/></button>
                               </div>
                             )}
                           </div>
                         ))}
                       </div>
-                      <div className="mt-2 pt-2 border-t border-slate-50">
+                      <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-700">
                         <button
                           type="button"
                           onClick={() => {
                             setIsCreatingAudience(true);
                             setIsDropdownOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-all flex items-center gap-2"
+                          className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all flex items-center gap-2"
                         >
                           <Plus size={14} />
                           Criar Novo Público-Alvo
@@ -2838,15 +2852,15 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Canal de Envio</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Canal de Envio</label>
               <div className="flex gap-4">
-                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-emerald-100 bg-emerald-50/50 rounded-2xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
                   <input type="checkbox" defaultChecked className="accent-emerald-500" />
-                  <span className="text-xs font-bold text-emerald-700">WhatsApp</span>
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">WhatsApp</span>
                 </label>
-                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-indigo-100 bg-indigo-50/50 rounded-2xl cursor-pointer hover:bg-indigo-50 transition-colors">
+                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
                   <input type="checkbox" defaultChecked className="accent-indigo-500" />
-                  <span className="text-xs font-bold text-indigo-700">E-mail</span>
+                  <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">E-mail</span>
                 </label>
               </div>
             </div>
@@ -2854,21 +2868,21 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Template da Mensagem</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Template da Mensagem</label>
               <textarea 
                 rows={6}
-                placeholder="Escreva sua mensagem aqui... Use {nome} para personalizar."
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium resize-none"
+                placeholder="Escreva sua mensagem aqui... Use {nome} for personalizar."
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium resize-none dark:text-white"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               />
-              <p className="text-[10px] text-slate-400 italic">Variáveis disponíveis: {'{nome}'}, {'{data}'}, {'{unidade}'}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">Variáveis disponíveis: {'{nome}'}, {'{data}'}, {'{unidade}'}</p>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 p-4 rounded-2xl">
               <div className="flex gap-3">
-                <AlertTriangle className="text-amber-500 shrink-0" size={18} />
-                <p className="text-[11px] text-amber-700 leading-relaxed">
+                <AlertTriangle className="text-amber-500 dark:text-amber-400 shrink-0" size={18} />
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
                   <strong>Atenção:</strong> Mensagens automáticas via WhatsApp requerem que o sistema esteja pareado. Certifique-se de que sua conta está ativa.
                 </p>
               </div>
@@ -2876,17 +2890,17 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-slate-50">
+        <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
           <button 
             onClick={() => { setActiveConfig(null); setIsCreating(false); }}
-            className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all font-sans"
+            className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-sans"
           >
             Cancelar
           </button>
           <button 
             onClick={() => handleSaveCampaign(formData)}
             disabled={!formData.title}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-100 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all dark:shadow-none font-sans disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Salvar e Ativar
           </button>
@@ -2918,12 +2932,12 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h4 className="text-sm font-bold text-slate-800">Suas Campanhas</h4>
-          <p className="text-[10px] text-slate-400 font-medium">Gerencie suas automações e comunicações em massa.</p>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Suas Campanhas</h4>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Gerencie suas automações e comunicações em massa.</p>
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
+          className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all dark:shadow-none active:scale-95"
         >
           <Plus size={16} />
           Nova Campanha
@@ -2935,25 +2949,25 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
           c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.desc.toLowerCase().includes(searchQuery.toLowerCase())
         ).map((item: any) => (
-          <div key={item.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all cursor-pointer group relative overflow-hidden">
+          <div key={item.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl dark:hover:shadow-indigo-500/10 dark:shadow-none hover:translate-y-[-4px] transition-all cursor-pointer group relative overflow-hidden">
             <div className={cn("absolute top-6 right-6 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest",
-              item.status === 'Ativo' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600")}>
+              item.status === 'Ativo' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400")}>
               {item.status}
             </div>
             
             <div className={cn("w-14 h-14 rounded-[1.25rem] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform", 
-              item.color === 'indigo' ? "bg-indigo-50/50 text-indigo-600" : 
-              item.color === 'amber' ? "bg-amber-50/50 text-amber-600" : "bg-emerald-50/50 text-emerald-600")}>
+              item.color === 'indigo' ? "bg-indigo-50/50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : 
+              item.color === 'amber' ? "bg-amber-50/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" : "bg-emerald-50/50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400")}>
               {React.createElement(item.icon, { size: 28 })}
             </div>
             
-            <h4 className="font-bold text-slate-800 mb-2 text-base">{item.title}</h4>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6 h-8 line-clamp-2">{item.desc}</p>
+            <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-2 text-base">{item.title}</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6 h-8 line-clamp-2">{item.desc}</p>
             
-            <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+            <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Impacto</span>
-                <span className="text-sm font-bold text-slate-900">{item.patientsReached} Pacientes</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Impacto</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-slate-200">{item.patientsReached} Pacientes</span>
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -2967,7 +2981,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); setActiveConfig(item); }}
-                  className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[11px] font-bold hover:bg-slate-100 transition-all flex items-center gap-2 border border-slate-200"
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[11px] font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center gap-2 border border-slate-200 dark:border-slate-700"
                 >
                   <SettingsIcon size={14} />
                   Configurar
@@ -2978,14 +2992,14 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
         ))}
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-50/50 via-white to-slate-50/50 rounded-[3rem] p-10 border border-slate-100 shadow-sm">
+      <div className="bg-gradient-to-br from-indigo-50/50 via-white to-slate-50/50 dark:from-indigo-900/10 dark:via-slate-900 dark:to-slate-800/10 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center dark:shadow-none">
             <Megaphone size={20} />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-800">Métricas de Engajamento</h4>
-            <p className="text-xs text-slate-400">Resultados consolidados das campanhas nos últimos 30 dias.</p>
+            <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">Métricas de Engajamento</h4>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Resultados consolidados das campanhas nos últimos 30 dias.</p>
           </div>
         </div>
         
@@ -2996,13 +3010,13 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
             { label: 'Cliques no Link', value: '18%', trend: '-2%', color: 'amber' },
             { label: 'Novos Agendamentos', value: '156', trend: '+24%', color: 'indigo' },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative group overflow-hidden">
+            <div key={idx} className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm relative group overflow-hidden">
               <div className={cn("absolute bottom-0 left-0 w-full h-1 transition-all", 
                 stat.color === 'indigo' ? "bg-indigo-600" : 
                 stat.color === 'emerald' ? "bg-emerald-600" : "bg-amber-600")} />
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{stat.label}</p>
               <div className="flex items-end gap-2">
-                <p className="text-2xl font-bold text-slate-900 leading-none">{stat.value}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-none">{stat.value}</p>
                 <p className={cn("text-[10px] font-bold", stat.trend.startsWith('+') ? "text-emerald-500" : "text-amber-500")}>
                   {stat.trend}
                 </p>
@@ -3034,47 +3048,47 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
   ];
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white animate-in zoom-in-95 duration-200">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center dark:shadow-none">
               <UserPlus size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{audienceToEdit ? 'Editar Público-Alvo' : 'Novo Público-Alvo'}</h2>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">Defina as regras de filtragem</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{audienceToEdit ? 'Editar Público-Alvo' : 'Novo Público-Alvo'}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Defina as regras de filtragem</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-full transition-all border border-transparent hover:border-slate-100"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-8 space-y-5">
+        <div className="p-6 sm:p-8 space-y-5">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome do Público</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Público</label>
             <input 
               type="text" 
               placeholder="Ex: Inativos 1 ano"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo de Filtro</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tipo de Filtro</label>
             <div className="relative">
               <button 
                 type="button"
                 onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
               >
-                <span className="text-slate-700">{filterTypes.find(t => t.value === formData.type)?.label}</span>
+                <span className="text-slate-700 dark:text-slate-200">{filterTypes.find(t => t.value === formData.type)?.label}</span>
                 <ChevronDown className={cn("text-slate-400 transition-transform duration-300", isTypeDropdownOpen ? "rotate-180" : "")} size={18} />
               </button>
 
@@ -3084,7 +3098,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                     className="fixed inset-0 z-20" 
                     onClick={() => setIsTypeDropdownOpen(false)}
                   />
-                  <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
                     {filterTypes.map((type) => (
                       <button
                         key={type.value}
@@ -3096,12 +3110,12 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                         className={cn(
                           "w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between group",
                           formData.type === type.value 
-                            ? "bg-indigo-50 text-indigo-700 font-bold" 
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold" 
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200"
                         )}
                       >
                         {type.label}
-                        {formData.type === type.value && <Check size={14} className="text-indigo-600" />}
+                        {formData.type === type.value && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
                       </button>
                     ))}
                   </div>
@@ -3112,11 +3126,11 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
 
           {formData.type === 'inactive' && (
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Meses de Inatividade</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Meses de Inatividade</label>
               <input 
                 type="number" 
                 min="1"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.months}
                 onChange={(e) => setFormData({...formData, months: parseInt(e.target.value)})}
               />
@@ -3125,14 +3139,14 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
 
           {formData.type === 'insurance' && (
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Selecionar Convênio</label>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Selecionar Convênio</label>
               <div className="relative">
                 <button 
                   type="button"
                   onClick={() => setIsInsuranceDropdownOpen(!isInsuranceDropdownOpen)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
                 >
-                  <span className="text-slate-700">{formData.insuranceName || 'Selecione...'}</span>
+                  <span className="text-slate-700 dark:text-slate-200">{formData.insuranceName || 'Selecione...'}</span>
                   <ChevronDown className={cn("text-slate-400 transition-transform duration-300", isInsuranceDropdownOpen ? "rotate-180" : "")} size={18} />
                 </button>
 
@@ -3142,7 +3156,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                       className="fixed inset-0 z-20" 
                       onClick={() => setIsInsuranceDropdownOpen(false)}
                     />
-                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
                       <div className="max-h-60 overflow-y-auto p-1">
                         {mockInsurances.map((ins) => (
                           <button
@@ -3155,12 +3169,12 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                             className={cn(
                               "w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between group mt-1 first:mt-0",
                               formData.insuranceName === ins.name 
-                                ? "bg-indigo-50 text-indigo-700 font-bold" 
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold" 
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200"
                             )}
                           >
                             {ins.name}
-                            {formData.insuranceName === ins.name && <Check size={14} className="text-indigo-600" />}
+                            {formData.insuranceName === ins.name && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
                           </button>
                         ))}
                       </div>
@@ -3174,14 +3188,14 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button 
               onClick={onClose}
-              className="py-3.5 bg-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all font-sans"
+              className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-sans"
             >
               Cancelar
             </button>
             <button 
               onClick={() => onSave(formData)}
               disabled={!formData.name}
-              className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 font-sans"
+              className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50 font-sans"
             >
               {audienceToEdit ? 'Salvar Alterações' : 'Criar Público'}
             </button>

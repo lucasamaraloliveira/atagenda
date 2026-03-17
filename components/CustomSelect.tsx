@@ -39,7 +39,7 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
   return (
     <div className={cn("relative w-full", className)} ref={containerRef}>
       {label && (
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">
+        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-1.5 block">
           {label}
         </label>
       )}
@@ -48,16 +48,16 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all outline-none",
-          isOpen ? "ring-2 ring-indigo-500 bg-white border-transparent" : "hover:border-slate-300"
+          "w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm transition-all outline-none dark:text-slate-100",
+          isOpen ? "ring-2 ring-indigo-500 bg-white dark:bg-slate-900 border-transparent" : "hover:border-slate-300 dark:hover:border-slate-700"
         )}
       >
-        <span className={cn("truncate", !selectedOption && "text-slate-400")}>
+        <span className={cn("truncate", !selectedOption && "text-slate-400 dark:text-slate-500")}>
           {selectedOption ? selectedOption.name : placeholder}
         </span>
         <ChevronDown 
           size={16} 
-          className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-indigo-500")} 
+          className={cn("text-slate-400 dark:text-slate-500 transition-transform duration-200", isOpen && "rotate-180 text-indigo-500 dark:text-indigo-400")} 
         />
       </button>
 
@@ -69,13 +69,13 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
             exit={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={cn(
-              "absolute z-50 w-full bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden py-1.5",
+              "absolute z-50 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none overflow-hidden py-1.5",
               direction === 'up' ? "bottom-full mb-2" : "top-full mt-2"
             )}
           >
             <div className="max-h-60 overflow-y-auto custom-scrollbar">
               {options.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-slate-400 text-center italic">
+                <div className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500 text-center italic">
                   Nenhuma opção disponível
                 </div>
               ) : (
@@ -90,8 +90,8 @@ export default function CustomSelect({ options, value, onChange, placeholder = "
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left",
                       value === option.id 
-                        ? "bg-indigo-50 text-indigo-700 font-semibold" 
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 font-semibold" 
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
                     )}
                   >
                     <span className="truncate">{option.name}</span>

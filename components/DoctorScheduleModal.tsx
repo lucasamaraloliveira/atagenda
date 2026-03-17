@@ -44,6 +44,9 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
   const [selectedDay, setSelectedDay] = useState<string>('1');
   const [slotDuration, setSlotDuration] = useState('15');
 
+  // Encaixe State
+  const [maxOverbooks, setMaxOverbooks] = useState(existingConfig?.maxOverbooksPerDay?.toString() || '2');
+
   // Update schedule when config changes (on unit change)
   React.useEffect(() => {
     if (existingConfig) {
@@ -98,9 +101,6 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
     });
     setSchedule(newSchedule);
   };
-
-  // Encaixe State
-  const [maxOverbooks, setMaxOverbooks] = useState(existingConfig?.maxOverbooksPerDay?.toString() || '2');
 
   // Bloqueio State
   const [blockDate, setBlockDate] = useState('');
@@ -224,76 +224,51 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
   const currentDaySchedule = schedule[selectedDay];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[92vh] border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
 
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-between px-5 py-3 sm:px-6 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Configuração de Agenda</h2>
-            <p className="text-sm text-slate-500 mt-1">Dr(a). {doctor.name} • CRM {doctor.crm}</p>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Configuração de Agenda</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dr(a). {doctor.name} • CRM {doctor.crm}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-200 px-6 pt-2 bg-slate-50/50">
-          <button
-            onClick={() => setActiveTab('escala')}
-            className={cn(
-              "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'escala'
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            )}
-          >
-            Criar Escala
-          </button>
-          <button
-            onClick={() => setActiveTab('bloqueio')}
-            className={cn(
-              "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'bloqueio'
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            )}
-          >
-            Bloqueio de Agenda
-          </button>
-          <button
-            onClick={() => setActiveTab('multi')}
-            className={cn(
-              "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'multi'
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            )}
-          >
-            Múltiplos Agendamentos
-          </button>
-          <button
-            onClick={() => setActiveTab('encaixe')}
-            className={cn(
-              "px-4 py-3 text-sm font-semibold border-b-2 transition-colors",
-              activeTab === 'encaixe'
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            )}
-          >
-            Encaixes
-          </button>
+        <div className="flex border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 bg-slate-50/50 dark:bg-slate-900/50 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'escala', label: 'Escala' },
+            { id: 'bloqueio', label: 'Bloqueio' },
+            { id: 'multi', label: 'Múltiplos' },
+            { id: 'encaixe', label: 'Encaixes' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as Tab)}
+              className={cn(
+                "px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest border-b-2 transition-all whitespace-nowrap",
+                activeTab === tab.id
+                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+                  : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Unit Selection Header */}
-        <div className="px-6 py-4 bg-indigo-50/30 border-b border-slate-100 flex items-center gap-4">
-          <div className="flex items-center gap-2 text-indigo-600">
-            <Building2 size={18} />
-            <span className="text-sm font-bold uppercase tracking-wider">Unidade:</span>
+        <div className="px-4 sm:px-6 py-2.5 bg-indigo-50/30 dark:bg-indigo-900/10 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+            <Building2 size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Unidade:</span>
           </div>
           <CustomSelect
             options={mockUnits.map(u => ({ id: u.id, name: u.name }))}
@@ -301,26 +276,25 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
             onChange={setSelectedUnit}
             className="flex-1 max-w-xs"
           />
-          <p className="text-[10px] text-slate-400 font-medium">Configure a escala individual por unidade.</p>
         </div>
 
         {/* Content */}
         <div className={cn(
-          "p-6 overflow-y-auto flex-1",
-          activeTab === 'encaixe' && "min-h-[350px]"
+          "px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto flex-1",
+          activeTab === 'encaixe' && "min-h-[250px]"
         )}>
           {activeTab === 'encaixe' && (
-            <div className="space-y-6">
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
-                <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                <p className="text-sm">
+            <div className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 flex gap-3 text-amber-800 dark:text-amber-200">
+                <AlertCircle className="shrink-0 text-amber-500" size={20} />
+                <p className="text-sm leading-relaxed font-medium">
                   Defina o limite de encaixes permitidos por dia para este médico. 
                   Os encaixes podem ser agendados fora dos horários regulares da escala.
                 </p>
               </div>
 
-              <div className="max-w-xs space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Limite de Encaixes por Dia</label>
+              <div className="max-w-xs space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Limite de Encaixes por Dia</label>
                 <CustomSelect 
                   options={[
                     { id: '0', name: 'Não permitir encaixes' },
@@ -338,22 +312,22 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
           )}
 
           {activeTab === 'multi' && (
-            <div className="space-y-6">
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6">
-                <div className="flex items-center gap-3 text-indigo-600 mb-6">
-                  <div className="p-2 bg-white rounded-xl shadow-sm">
-                    <LayoutGrid size={24} />
+            <div className="space-y-4">
+              <div className="bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-4 sm:p-5">
+                <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400 mb-4">
+                  <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-indigo-50 dark:border-indigo-900/50">
+                    <LayoutGrid size={22} />
                   </div>
                   <div>
-                    <h3 className="font-bold">Estratégia de Agendamento Múltiplo</h3>
-                    <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest">Defina como o sistema deve comportar múltiplos procedimentos</p>
+                    <h3 className="font-bold text-lg dark:text-white">Estratégia de Agendamento Múltiplo</h3>
+                    <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-widest mt-0.5">Defina como o sistema deve comportar múltiplos procedimentos</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   {[
-                    { id: 'next_minute', label: 'Próximo Minuto', desc: 'Os procedimentos adicionais serão agendados sequencialmente (ex: 08:00, 08:01, 08:02). Ideal para faturamento agrupado.' },
-                    { id: 'next_slot', label: 'Próximo Horário Livre', desc: 'Os procedimentos ocuparão os próximos slots livres da agenda (ex: 08:00, 08:20, 08:40). Respeita o fluxo de atendimento.' }
+                    { id: 'next_minute', label: 'Próximo Minuto', desc: 'Procedimentos agendados sequencialmente (ex: 08:00, 08:01). Ideal para faturamento agrupado.' },
+                    { id: 'next_slot', label: 'Próximo Horário Livre', desc: 'Procedimentos nos próximos slots livres (ex: 08:00, 08:20). Respeita o fluxo de atendimento.' }
                   ].map((strat) => (
                     <button
                       key={strat.id}
@@ -361,29 +335,31 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                       className={cn(
                         "flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all",
                         multiStrategy === strat.id
-                          ? "bg-white border-indigo-600 shadow-lg shadow-indigo-100/50"
-                          : "bg-transparent border-slate-100 hover:border-indigo-200 grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                          ? "bg-white dark:bg-slate-800 border-indigo-600 dark:border-indigo-500 shadow-md dark:shadow-none"
+                          : "bg-transparent border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900 opacity-60 hover:opacity-100"
                       )}
                     >
                       <div className={cn(
-                        "mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                        multiStrategy === strat.id ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
+                        "mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                        multiStrategy === strat.id 
+                          ? "border-indigo-600 dark:border-indigo-500 bg-indigo-600 dark:bg-indigo-500" 
+                          : "border-slate-300 dark:border-slate-700"
                       )}>
-                        {multiStrategy === strat.id && <Check size={12} className="text-white" />}
+                        {multiStrategy === strat.id && <Check size={14} className="text-white" />}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm mb-1">{strat.label}</p>
-                        <p className="text-xs text-slate-500 leading-relaxed">{strat.desc}</p>
+                        <p className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1">{strat.label}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">{strat.desc}</p>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="flex gap-3 text-slate-500">
-                  <AlertCircle size={18} className="shrink-0" />
-                  <p className="text-[11px] leading-relaxed">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="flex gap-3 text-slate-500 dark:text-slate-400">
+                  <AlertCircle size={20} className="shrink-0 text-slate-400 dark:text-slate-500" />
+                  <p className="text-[11px] leading-relaxed font-medium">
                     Esta configuração afeta apenas a criação de agendamentos no módulo <strong>Novo Agendamento</strong>.
                     Agendamentos diretos pela grade da agenda ignoram esta regra.
                   </p>
@@ -393,9 +369,9 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
           )}
 
           {activeTab === 'escala' && (
-            <div className="space-y-6">
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Configuração Rápida</h3>
+            <div className="space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1">Configuração Rápida</h3>
                 <CustomSelect
                   options={[
                     { id: 'weekdays', name: 'Dias da semana (Segunda a Sexta)' },
@@ -410,18 +386,18 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-3">Selecione o Dia da Semana</label>
+                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-2">Dia da Semana</label>
                 <div className="flex flex-wrap gap-2">
                   {daysOfWeek.map(day => (
                     <button
                       key={day.id}
                       onClick={() => setSelectedDay(day.id)}
                       className={cn(
-                        "w-12 h-12 rounded-xl text-sm font-bold flex items-center justify-center transition-all border-2",
+                        "w-11 h-11 sm:w-12 sm:h-12 rounded-xl text-xs font-bold flex items-center justify-center transition-all border-2",
                         selectedDay === day.id
-                          ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                          : "border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200",
-                        schedule[day.id].active && selectedDay !== day.id && "bg-indigo-100/50 text-indigo-600"
+                          ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-lg shadow-indigo-100 dark:shadow-none"
+                          : "border-transparent bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+                        schedule[day.id].active && selectedDay !== day.id && "bg-indigo-100/50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-100/50 dark:border-indigo-900/50"
                       )}
                     >
                       {day.label}
@@ -430,19 +406,24 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-6">
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-800">
-                    Horários para {daysOfWeek.find(d => d.id === selectedDay)?.label}
-                  </h3>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Horários para {daysOfWeek.find(d => d.id === selectedDay)?.label}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Defina o expediente e pausas de almoço</p>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer group">
                     <div className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center border transition-colors",
-                      currentDaySchedule.active ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                      "w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all",
+                      currentDaySchedule.active 
+                        ? "bg-indigo-600 border-indigo-600 dark:border-indigo-500 text-white shadow-lg shadow-indigo-100 dark:shadow-none" 
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:group-hover:border-slate-600"
                     )}>
-                      {currentDaySchedule.active && <Check size={14} className="text-white" />}
+                      {currentDaySchedule.active && <Check size={14} strokeWidth={3} />}
                     </div>
-                    <span className="text-sm font-medium text-slate-700">Atender neste dia</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Atender neste dia</span>
                     <input
                       type="checkbox"
                       className="hidden"
@@ -453,77 +434,72 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
                 </div>
 
                 {currentDaySchedule.active ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Expediente</h4>
-                      <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="text-indigo-500" size={14} />
+                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Expediente</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Início</label>
-                          <div className="relative">
-                            <input
-                              type="time"
-                              value={currentDaySchedule.startTime}
-                              onChange={(e) => updateSelectedDay('startTime', e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          </div>
+                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                          <input
+                            type="time"
+                            value={currentDaySchedule.startTime}
+                            onChange={(e) => updateSelectedDay('startTime', e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
+                          />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fim</label>
-                          <div className="relative">
-                            <input
-                              type="time"
-                              value={currentDaySchedule.endTime}
-                              onChange={(e) => updateSelectedDay('endTime', e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          </div>
+                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                          <input
+                            type="time"
+                            value={currentDaySchedule.endTime}
+                            onChange={(e) => updateSelectedDay('endTime', e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
+                          />
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Almoço / Pausa</h4>
-                      <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <RotateCcw className="text-amber-500" size={14} />
+                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Almoço / Pausa</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Início</label>
-                          <div className="relative">
-                            <input
-                              type="time"
-                              value={currentDaySchedule.lunchStart}
-                              onChange={(e) => updateSelectedDay('lunchStart', e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          </div>
+                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início</label>
+                          <input
+                            type="time"
+                            value={currentDaySchedule.lunchStart}
+                            onChange={(e) => updateSelectedDay('lunchStart', e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
+                          />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fim</label>
-                          <div className="relative">
-                            <input
-                              type="time"
-                              value={currentDaySchedule.lunchEnd}
-                              onChange={(e) => updateSelectedDay('lunchEnd', e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                          </div>
+                          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim</label>
+                          <input
+                            type="time"
+                            value={currentDaySchedule.lunchEnd}
+                            onChange={(e) => updateSelectedDay('lunchEnd', e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
+                          />
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-slate-500 text-sm">
-                    O médico não atende neste dia da semana.
+                  <div className="py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <AlertCircle className="mx-auto mb-2 text-slate-300 dark:text-slate-700" size={28} />
+                    <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Agenda não habilitada para este dia</p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-slate-200">
-                <div className="max-w-xs space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Duração Padrão da Consulta</label>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="max-w-xs space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Duração Padrão da Consulta</label>
                   <CustomSelect
                     options={[
                       { id: '10', name: '10 minutos' },
@@ -541,102 +517,109 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
           )}
 
           {activeTab === 'bloqueio' && (
-            <div className="space-y-6">
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800">
-                <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                <p className="text-sm">
+            <div className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 flex gap-3 text-amber-800 dark:text-amber-200">
+                <AlertCircle className="shrink-0 text-amber-500" size={20} />
+                <p className="text-sm leading-relaxed font-medium">
                   O bloqueio de agenda impede novos agendamentos no período selecionado.
                   Agendamentos já existentes não serão cancelados automaticamente.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-1.5 md:col-span-3">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data do Bloqueio</label>
-                  <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Data do Bloqueio</label>
+                  <div className="relative group">
                     <input
                       type="date"
                       value={blockDate}
                       onChange={(e) => setBlockDate(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                     />
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário Inicial</label>
-                  <div className="relative">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Horário Inicial</label>
+                  <div className="relative group">
                     <input
                       type="time"
                       value={blockStartTime}
                       onChange={(e) => setBlockStartTime(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                     />
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Horário Final</label>
-                  <div className="relative">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Horário Final</label>
+                  <div className="relative group">
                     <input
                       type="time"
                       value={blockEndTime}
                       onChange={(e) => setBlockEndTime(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                     />
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                   </div>
                 </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Motivo do Bloqueio</label>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Motivo do Bloqueio</label>
                   <input
                     type="text"
                     placeholder="Ex: Férias, Congresso, Reunião..."
                     value={blockReason}
                     onChange={(e) => setBlockReason(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:placeholder-slate-500"
                   />
                 </div>
-                <div className="flex items-end">
+                <div className="md:col-span-2">
                   <button
                     onClick={handleAddBlock}
-                    className="w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold border border-indigo-200 hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all dark:shadow-none flex items-center justify-center gap-2 active:scale-[0.98]"
                   >
-                    <Plus size={18} />
-                    Adicionar Bloqueio
+                    <Plus size={20} />
+                    Adicionar Bloqueio à Lista
                   </button>
                 </div>
               </div>
 
               {/* Blocks List */}
-              <div className="pt-4 border-t border-slate-100">
-                <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Calendar size={16} className="text-indigo-600" />
-                  Bloqueios Ativos
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 flex items-center gap-2">
+                  <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
+                  Bloqueios Agendados
                 </h4>
 
                 {localBlocks.length > 0 ? (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                     {localBlocks.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)).map((block) => (
-                      <div key={block.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl group hover:border-indigo-200 transition-colors">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-700">
-                            {new Date(block.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {block.startTime} às {block.endTime}
-                          </span>
-                          <span className="text-[10px] text-slate-500">{block.reason}</span>
+                      <div key={block.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl group hover:border-indigo-100 dark:hover:border-indigo-900 transition-all shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center border border-slate-100 dark:border-slate-700">
+                             <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{new Date(block.date + 'T00:00:00').getDate()}</span>
+                             <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">{new Date(block.date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                              {block.startTime} às {block.endTime}
+                            </span>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">{block.reason}</p>
+                          </div>
                         </div>
                         <button
                           onClick={() => handleConfirmDeleteBlock(block.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          className="p-3 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                    <p className="text-xs text-slate-500 italic">Nenhum bloqueio cadastrado para este médico.</p>
+                  <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                    <Calendar className="mx-auto mb-2 text-slate-200 dark:text-slate-700" size={32} />
+                    <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nenhum bloqueio cadastrado</p>
                   </div>
                 )}
               </div>
@@ -646,42 +629,45 @@ export default function DoctorScheduleModal({ doctor, onClose }: DoctorScheduleM
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-3 transition-colors">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
+            className="px-5 sm:px-6 py-2.5 text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all dark:shadow-none active:scale-[0.98]"
           >
-            <Save size={18} />
-            Salvar Configurações
+            <Save size={20} />
+            Salvar Todas as Configurações
           </button>
         </div>
 
         {/* Delete Confirmation Modal */}
         {blockToDelete && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-              <h3 className="text-lg font-bold text-slate-900 mb-2 whitespace-normal break-words">Excluir Bloqueio</h3>
-              <p className="text-sm text-slate-600 mb-6">
-                Tem certeza que deseja remover este bloqueio? O horário voltará a ficar disponível na agenda após salvar.
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200 text-center">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Excluir Bloqueio</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed font-medium">
+                Tem certeza que deseja remover este bloqueio? O horário voltará a ficar disponível na agenda após salvar as alterações.
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setBlockToDelete(null)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
                   Manter
                 </button>
                 <button
                   onClick={deleteBlock}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-100 dark:shadow-none hover:bg-red-600 transition-colors"
                 >
-                  Excluir
+                  Sim, Excluir
                 </button>
               </div>
             </div>
