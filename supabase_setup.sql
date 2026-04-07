@@ -13,6 +13,18 @@ create table if not exists public.units (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Table: Profiles (Extends auth.users)
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text not null,
+  email text unique not null,
+  profile text default 'Administrador',
+  avatar text,
+  allowed_units text default 'all',
+  active boolean default true,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Table: Patients
 create table if not exists public.patients (
   id uuid primary key default uuid_generate_v4(),
@@ -111,7 +123,7 @@ create table if not exists public.system_settings (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable Row Level Security (RLS) - Basic (enable all for now, as user didn't specify auth)
+-- Enable Row Level Security (RLS)
 alter table public.units enable row level security;
 alter table public.patients enable row level security;
 alter table public.doctors enable row level security;
@@ -121,14 +133,35 @@ alter table public.schedule_configs enable row level security;
 alter table public.appointments enable row level security;
 alter table public.schedule_blocks enable row level security;
 alter table public.system_settings enable row level security;
+alter table public.profiles enable row level security;
 
--- Policies (Allow all for development - Caution: Production would need real policies)
+-- Drop and Recreate Policies for Idempotency
+drop policy if exists "Enable full access for all users" on public.units;
 create policy "Enable full access for all users" on public.units for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.patients;
 create policy "Enable full access for all users" on public.patients for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.doctors;
 create policy "Enable full access for all users" on public.doctors for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.procedures;
 create policy "Enable full access for all users" on public.procedures for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.insurances;
 create policy "Enable full access for all users" on public.insurances for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.schedule_configs;
 create policy "Enable full access for all users" on public.schedule_configs for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.appointments;
 create policy "Enable full access for all users" on public.appointments for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.profiles;
+create policy "Enable full access for all users" on public.profiles for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.schedule_blocks;
 create policy "Enable full access for all users" on public.schedule_blocks for all using (true);
+
+drop policy if exists "Enable full access for all users" on public.system_settings;
 create policy "Enable full access for all users" on public.system_settings for all using (true);

@@ -14,7 +14,9 @@ import UserProfileModal from '@/components/UserProfileModal';
 import GuidedTour from '@/components/GuidedTour';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { View } from '@/lib/types';
-import { mockSystemSettings, mockUsers } from '@/lib/mockData';
+import { mockSystemSettings } from '@/lib/mockData';
+import { supabase } from '@/lib/supabase';
+import { supabaseService } from '@/lib/supabaseService';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, User, LogIn, AlertTriangle } from 'lucide-react';
@@ -35,77 +37,90 @@ export default function Home() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [isEmailInUse, setIsEmailInUse] = useState(false);
-  
-  // Debug log for users
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('📝 Usuários Registrados:', mockUsers.map(u => u.email));
-    }
-  }, []);
 
   const handleNewAppointment = (date?: string, time?: string, doctorId?: string, unitId?: string) => {
     setAppointmentData(date && time ? { date, time, doctorId, unitId } : null);
     setCurrentView('novo-agendamento');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Persistence Check
+  React.useEffect(() => {
+    const checkUser = async () => {
+      const user = await supabaseService.getCurrentUser();
+      if (user) {
+        const profile = await supabaseService.getUserProfile(user.id);
+        if (profile) {
+          setCurrentUser(profile);
+          setIsLoggedIn(true);
+        }
+      }
+    };
+    checkUser();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    const emailInput = loginForm.email.trim().toLowerCase();
+    const passwordInput = loginForm.password;
+
     if (isRegistering) {
-      if (loginForm.password !== loginForm.confirmPassword) {
+      if (passwordInput !== loginForm.confirmPassword) {
         toast.error('As senhas não coincidem!');
         return;
       }
       
-      // Verifica se o e-mail já existe
-      const emailExists = (mockUsers || []).some((u: any) => u.email === loginForm.email);
-      if (emailExists) {
-        toast.error('Este e-mail já está em uso por outro usuário!');
-        return;
-      }
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: emailInput,
+          password: passwordInput,
+        });
 
-      // Cria o novo usuário administrador na lista persistente
-      const newUser = {
-        id: Date.now().toString(),
-        name: loginForm.username || 'Novo Usuário',
-        email: loginForm.email,
-        password: loginForm.password,
-        profile: 'Administrador',
-        active: true,
-        allowedUnits: 'all'
-      };
-      
-      mockUsers.push(newUser);
-      
-      // Save owner email in settings for hierarchy
-      (mockSystemSettings.geral as any).ownerEmail = loginForm.email;
-      
-      toast.success('Conta criada com sucesso! Faça login para continuar.');
-      setIsRegistering(false);
-    } else {
-      // Autenticação contra mockUsers
-      const user = (mockUsers || []).find(
-        (u: any) => u.email.toLowerCase() === loginForm.email.toLowerCase() && u.password === loginForm.password
-      );
+        if (authError) throw authError;
 
-      if (user) {
-        if (!user.active) {
-            toast.error('Este acesso está desativado. Contate o administrador.');
-            return;
+        if (authData.user) {
+          await supabaseService.createProfile({
+            id: authData.user.id,
+            name: loginForm.username || 'Admin',
+            email: emailInput,
+            profile: 'Administrador'
+          });
+          
+          toast.success('Cadastro realizado! Verifique seu e-mail ou faça login.');
+          setIsRegistering(false);
         }
-        
-        // Encontra o perfil e as permissões associadas
-        const profile = (mockSystemSettings.perfis || []).find((p: any) => p.name === user.profile);
-        const userWithPerms = { 
-            ...user, 
-            permissions: profile?.permissions || [] 
-        };
+      } catch (err: any) {
+        toast.error(err.message || 'Erro ao realizar cadastro.');
+      }
+    } else {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailInput,
+          password: passwordInput,
+        });
 
-        setCurrentUser(userWithPerms);
-        setIsLoggedIn(true);
-        toast.success(`Bem-vindo, ${user.name}! (${user.profile})`);
-      } else {
-        toast.error('E-mail ou senha incorretos.');
+        if (error) throw error;
+
+        if (data.user) {
+          const profile = await supabaseService.getUserProfile(data.user.id);
+          if (profile) {
+            setCurrentUser(profile);
+            setIsLoggedIn(true);
+            toast.success(`Bem-vindo, ${profile.name}!`);
+          } else {
+            // Se o perfil não existir por algum motivo, cria um básico
+            const newProfile = await supabaseService.createProfile({
+               id: data.user.id,
+               name: data.user.email?.split('@')[0] || 'Usuário',
+               email: data.user.email || '',
+               profile: 'Administrador'
+            });
+            setCurrentUser(newProfile);
+            setIsLoggedIn(true);
+            toast.success('Perfil criado e acesso liberado!');
+          }
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'E-mail ou senha incorretos.');
       }
     }
   };
@@ -217,8 +232,10 @@ export default function Home() {
                             onChange={(e) => {
                                 const email = e.target.value;
                                 setLoginForm({...loginForm, email});
-                                const exists = (mockUsers || []).some((u: any) => u.email.toLowerCase() === email.toLowerCase());
-                                setIsEmailInUse(exists && email.length > 0);
+                                // A validação em tempo real via Supabase poderia ser feita aqui,
+                                // mas por economia de chamadas, vamos deixar para o momento do submit
+                                // por enquanto desativamos o alerta de 'em uso' imediato via mock
+                                setIsEmailInUse(false);
                             }}
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
@@ -323,9 +340,9 @@ export default function Home() {
     );
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
-    setLoginForm({ username: '', email: '', password: '', confirmPassword: '' });
     toast.info('Sessão encerrada.');
   };
 
@@ -397,14 +414,12 @@ export default function Home() {
         <UserProfileModal 
           user={currentUser}
           onClose={() => setIsProfileModalOpen(false)}
-          onUpdate={(newData) => {
+          onUpdate={async (newData) => {
             const updatedUser = { ...currentUser, ...newData };
             setCurrentUser(updatedUser);
-            // Sync with mockUsers
-            const index = mockUsers.findIndex((u: any) => u.id === currentUser.id);
-            if (index > -1) {
-              mockUsers[index] = { ...mockUsers[index], ...newData };
-            }
+            // Sync with Supabase table 'profiles'
+            const { error } = await supabase.from('profiles').update(newData).eq('id', currentUser.id);
+            if (error) toast.error('Erro ao salvar no banco.');
           }}
         />
       )}

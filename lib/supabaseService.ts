@@ -2,6 +2,41 @@ import { supabase } from './supabase';
 import { Appointment, Patient, Doctor, Unit, ScheduleConfig, ScheduleBlock, Procedure } from './types';
 
 export const supabaseService = {
+  // Auth & Profiles
+  async getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) return null;
+    return user;
+  },
+
+  async getUserProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async createProfile(profile: any) {
+    const { data, error } = await supabase.from('profiles').insert(profile).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getAdminProfiles() {
+    const { data, error } = await supabase.from('profiles').select('*').order('name');
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteProfile(id: string) {
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
   // Units
   async getUnits() {
     const { data, error } = await supabase.from('units').select('*').order('name');

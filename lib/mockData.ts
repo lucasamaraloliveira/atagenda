@@ -24,7 +24,7 @@ const createPersistentArray = <T>(key: string, initialData: T[]): T[] => {
   return new Proxy(data || [], {
     get(target, prop, receiver) {
         const val = Reflect.get(target, prop, receiver);
-        if (typeof val === 'function' && ['push', 'pop', 'splice', 'shirt', 'unshift', 'reverse', 'sort'].includes(prop as string)) {
+        if (typeof val === 'function' && ['push', 'pop', 'splice', 'shift', 'unshift', 'reverse', 'sort'].includes(prop as string)) {
             return (...args: any[]) => {
                 const result = val.apply(target, args);
                 saveToStorage(key, target);
@@ -52,71 +52,29 @@ const createPersistentObject = <T extends object>(key: string, initialData: T): 
   });
 };
 
-// RESET SYSTEM - Using v6 keys for a clean start
-export const mockUnits: Unit[] = createPersistentArray('atagenda_units_v6', [
+// FINAL SYSTEM RESET - VERSION 7
+export const mockUnits: Unit[] = createPersistentArray('atagenda_units_v7', [
   { id: '1', name: 'Unidade Principal - Jardins', address: 'Rua das Flores, 123', phone: '(11) 3333-4444', isActive: true },
 ]);
 
-export const mockUsers: any[] = createPersistentArray('atagenda_users_v6', []); // Base totalmente limpa
+export const mockUsers: any[] = createPersistentArray('atagenda_users_v7', []); // LIMPO V7
 
-export const mockPatients: Patient[] = createPersistentArray('atagenda_patients_v6', []);
-export const mockDoctors: Doctor[] = createPersistentArray('atagenda_doctors_v6', []);
-export const mockAppointments: Appointment[] = createPersistentArray('atagenda_appointments_v6', []);
-export const mockScheduleBlocks: ScheduleBlock[] = createPersistentArray('atagenda_blocks_v6', []);
+export const mockPatients: Patient[] = createPersistentArray('atagenda_patients_v7', []);
+export const mockDoctors: Doctor[] = createPersistentArray('atagenda_doctors_v7', []);
+export const mockAppointments: Appointment[] = createPersistentArray('atagenda_appointments_v7', []);
+export const mockScheduleBlocks: ScheduleBlock[] = createPersistentArray('atagenda_blocks_v7', []);
 
-const defaultSchedule = {
-  '0': { active: false, startTime: '08:00', endTime: '12:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '1': { active: true, startTime: '08:00', endTime: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '2': { active: true, startTime: '08:00', endTime: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '3': { active: true, startTime: '08:00', endTime: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '4': { active: true, startTime: '08:00', endTime: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '5': { active: true, startTime: '08:00', endTime: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
-  '6': { active: false, startTime: '08:00', endTime: '12:00', lunchStart: '12:00', lunchEnd: '13:00' },
-};
+export const mockScheduleConfigs: ScheduleConfig[] = createPersistentArray('atagenda_configs_v7', []);
+export const mockProcedures: Procedure[] = createPersistentArray('atagenda_procedures_v7', []);
+export const mockInsurances: Insurance[] = createPersistentArray('atagenda_insurances_v7', []);
 
-export const mockScheduleConfigs: ScheduleConfig[] = createPersistentArray('atagenda_configs_v6', []);
-
-export const mockProcedures: Procedure[] = createPersistentArray('atagenda_procedures_v6', []);
-export const mockInsurances: Insurance[] = createPersistentArray('atagenda_insurances_v6', []);
-
-export const mockSystemSettings = createPersistentObject('atagenda_settings_v6', {
-  geral: {
-    unitName: 'Minha Clínica',
-    language: 'Português (Brasil)',
-    timezone: 'GMT-3 (Brasília)',
-    autoLogout: '30 min',
-  },
-  agenda: {
-    requiredFields: ['Paciente', 'Procedimento', 'Médico', 'Telefone'],
-    slotDuration: '20',
-    startTime: '08:00',
-    endTime: '19:00',
-    allowOverlapping: false,
-    retroactiveBooking: false,
-  },
-  pacientes: {
-    requiredFields: ['Nome Completo', 'CPF', 'Data de Nascimento', 'Telefone'],
-    autoPatientId: true,
-    cpfValidation: true,
-    showDebtAlert: true,
-  },
-  profissionais: {
-    showCrmOnCalendar: true,
-    multiRoomScale: false,
-    requiredFields: ['Nome', 'CRM', 'Especialidade'],
-  },
-  financeiro: {
-    currency: 'BRL',
-    defaultPaymentMethod: 'Cartão de Crédito',
-    billingAlert: true,
-  },
-  integracao: {
-    risEnabled: false,
-    pacsUrl: '',
-    reportCenterApiKey: '',
-    hl7Enabled: false,
-    dicomServer: '',
-  },
+export const mockSystemSettings = createPersistentObject('atagenda_settings_v7', {
+  geral: { unitName: 'Minha Clínica', language: 'Português (Brasil)', timezone: 'GMT-3 (Brasília)', autoLogout: '30 min' },
+  agenda: { requiredFields: ['Paciente', 'Procedimento', 'Médico', 'Telefone'], slotDuration: '20', startTime: '08:00', endTime: '19:00', allowOverlapping: false, retroactiveBooking: false },
+  pacientes: { requiredFields: ['Nome Completo', 'CPF', 'Data de Nascimento', 'Telefone'], autoPatientId: true, cpfValidation: true, showDebtAlert: true },
+  profissionais: { showCrmOnCalendar: true, multiRoomScale: false, requiredFields: ['Nome', 'CRM', 'Especialidade'] },
+  financeiro: { currency: 'BRL', defaultPaymentMethod: 'Cartão de Crédito', billingAlert: true },
+  integracao: { risEnabled: false, pacsUrl: '', reportCenterApiKey: '', hl7Enabled: false, dicomServer: '' },
   perfis: [
     { id: 1, name: 'Administrador', permissions: ['Total'], color: 'bg-indigo-500' },
     { id: 2, name: 'Médico', permissions: ['Agenda', 'Histórico'], color: 'bg-emerald-500' },
