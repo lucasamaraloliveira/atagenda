@@ -91,15 +91,17 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
           firebaseService.getProcedures()
         ]);
         
-        const availableUnits = u.length > 0 ? u : _mockUnits;
+        // Only fallback to mocks if the result is truly empty and no user data exists
+        // but for a production-like experience, we should trust the database.
+        const availableUnits = u;
         const filteredUnits = (user && user.allowedUnits && user.allowedUnits !== 'all')
             ? availableUnits.filter((unit: any) => unit.id === user.allowedUnits)
             : availableUnits;
 
         setUnits(filteredUnits);
-        setDoctors(d.length > 0 ? d : _mockDoctors);
-        setPatients(p.length > 0 ? p : _mockPatients);
-        setProcedures(proc.length > 0 ? proc : _mockProcedures);
+        setDoctors(d);
+        setPatients(p);
+        setProcedures(proc);
         
         if (d.length > 0) setSelectedDoctor(d[0].id);
         else if (_mockDoctors.length > 0) setSelectedDoctor(_mockDoctors[0].id);
@@ -141,13 +143,14 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         ]);
 
         setAppointments(appts.length > 0 ? appts : _mockAppointments.filter(a => a.doctorId === selectedDoctor && a.unitId === selectedUnit));
+        setAppointments(appts);
         if (configRes) {
             setScheduleConfigs(prev => {
                 const filtered = prev.filter(c => c.doctorId !== selectedDoctor || c.unitId !== selectedUnit);
                 return [...filtered, configRes];
             });
         }
-        setScheduleBlocks(blocksRes.length > 0 ? blocksRes : _mockScheduleBlocks);
+        setScheduleBlocks(blocksRes);
       } catch (err) {
         console.warn('Failed to load dynamic data from Firebase:', err);
       }

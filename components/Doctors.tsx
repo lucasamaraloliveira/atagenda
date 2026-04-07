@@ -30,7 +30,7 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
       try {
         setLoading(true);
         const data = await firebaseService.getDoctors();
-        setDoctors(data.length > 0 ? data : _mockDoctors);
+        setDoctors(data); 
       } catch (err) {
         console.warn('Failed to load doctors from Firebase:', err);
         setDoctors(_mockDoctors);
