@@ -127,12 +127,18 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
   };
 
   const handleProceduresDelete = async (itemToRemove: any) => {
+    const idToRemove = itemToRemove.id;
+    // Optimistic delete
+    setProcedures(prev => prev.filter(p => p.id !== idToRemove));
+    
     try {
-      await firebaseService.deleteProcedure(itemToRemove.id);
-      setRefreshKey(prev => prev + 1);
+      await firebaseService.deleteProcedure(idToRemove);
       toast.info('Procedimento removido.');
+      setRefreshKey(prev => prev + 1);
     } catch (e) {
-      toast.error('Erro ao excluir.');
+      console.error('Failure to delete procedure:', e);
+      toast.error('Erro ao excluir no Firestore. Restaurando...');
+      setRefreshKey(prev => prev + 1); 
     }
   };
 
@@ -172,12 +178,18 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
   };
 
   const handleInsurancesDelete = async (itemToRemove: any) => {
+    const idToRemove = itemToRemove.id;
+    // Optimistic delete
+    setInsurances(prev => prev.filter(i => i.id !== idToRemove));
+    
     try {
-      await firebaseService.deleteInsurance(itemToRemove.id);
-      setRefreshKey(prev => prev + 1);
+      await firebaseService.deleteInsurance(idToRemove);
       toast.info('Convênio removido.');
+      setRefreshKey(prev => prev + 1);
     } catch (e) {
-      toast.error('Erro ao excluir.');
+      console.error('Failure to delete insurance:', e);
+      toast.error('Erro ao excluir no Firestore. Restaurando...');
+      setRefreshKey(prev => prev + 1);
     }
   };
 

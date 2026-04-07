@@ -98,14 +98,21 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
   const handleDeletePatient = async () => {
     if (!patientToDelete) return;
+    const idToRemove = patientToDelete.id;
+    
+    // Optimistic UI update: remove from local state immediately
+    setPatients(prev => prev.filter(p => p.id !== idToRemove));
+    setPatientToDelete(null);
+
     try {
-      await firebaseService.deletePatient(patientToDelete.id);
-      toast.success('Paciente removido');
+      await firebaseService.deletePatient(idToRemove);
+      toast.success('Paciente removido com sucesso');
+      // Still trigger a background refresh to be safe and synced
       setRefreshKey(prev => prev + 1);
     } catch (err) {
-      toast.error('Erro ao excluir paciente.');
-    } finally {
-      setPatientToDelete(null);
+      console.error('Error deleting patient:', err);
+      toast.error('Erro ao excluir no servidor. Recarregando...');
+      setRefreshKey(prev => prev + 1); // Re-sync to restore if failed
     }
   };
 

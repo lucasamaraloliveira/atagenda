@@ -97,15 +97,20 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
 
   const handleDeleteDoctor = async () => {
     if (!doctorToDelete) return;
+    const idToRemove = doctorToDelete.id;
     
+    // Optimistic UI update
+    setDoctors(prev => prev.filter(d => d.id !== idToRemove));
+    setDoctorToDelete(null);
+
     try {
-        await firebaseService.deleteDoctor(doctorToDelete.id);
+        await firebaseService.deleteDoctor(idToRemove);
         toast.success('Médico removido com sucesso!');
         setRefreshKey(prev => prev + 1);
     } catch (err) {
-        toast.error('Erro ao excluir médico no banco.');
-    } finally {
-        setDoctorToDelete(null);
+        console.error('Error deleting doctor:', err);
+        toast.error('Erro ao excluir médico no banco. Restaurando...');
+        setRefreshKey(prev => prev + 1); // Recover state
     }
   };
 
