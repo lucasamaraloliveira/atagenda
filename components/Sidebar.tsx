@@ -52,8 +52,10 @@ export default function Sidebar({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
   const hasPermission = (permission: string) => {
-    if (!user || !user.permissions) return false;
-    if (user.permissions.includes('Total')) return true;
+    if (!user) return false;
+    // Se for Administrador (Pai), tem acesso total imediato
+    if (user.profile === 'Administrador' || (user.permissions && user.permissions.includes('Total'))) return true;
+    if (!user.permissions) return false;
     return user.permissions.some((p: string) => p.toLowerCase().includes(permission.toLowerCase()));
   };
 
@@ -61,7 +63,7 @@ export default function Sidebar({
     { id: 'novo-agendamento', label: 'Novo Agendamento', icon: PlusCircle, primary: true, perm: 'Agendar' },
     { id: 'agenda', label: 'Agenda', icon: Calendar, perm: 'Agenda' },
     { id: 'pacientes', label: 'Pacientes', icon: Users, perm: 'Pacientes' },
-    { id: 'medicos', label: 'Médicos', icon: 'Profissionais' }, // Use 'Profissionais' as string for checking
+    { id: 'medicos', label: 'Médicos', icon: UserRound, perm: 'Profissionais' },
     { id: 'historico', label: 'Histórico', icon: History, perm: 'Histórico' },
     { id: 'relatorios', label: 'Relatórios', icon: BarChart3, perm: 'Relatórios' },
     { id: 'configuracoes', label: 'Configurações', icon: Settings, perm: 'Configurações' },
@@ -72,8 +74,7 @@ export default function Sidebar({
     return hasPermission(permKey);
   });
   
-  // Re-map icon for medicos since I used a string in filter for easy check
-  const finalMenuItems = menuItems.map(item => item.id === 'medicos' ? { ...item, icon: UserRound } : item);
+  const finalMenuItems = menuItems;
 
   return (
     <>
