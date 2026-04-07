@@ -35,6 +35,7 @@ interface SidebarProps {
   setIsCollapsed: (isCollapsed: boolean) => void;
   onOpenProfile: () => void;
   onLogout: () => void;
+  user: any;
 }
 
 export default function Sidebar({ 
@@ -45,18 +46,34 @@ export default function Sidebar({
   isCollapsed,
   setIsCollapsed,
   onOpenProfile,
-  onLogout
+  onLogout,
+  user
 }: SidebarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  
+  const hasPermission = (permission: string) => {
+    if (!user || !user.permissions) return false;
+    if (user.permissions.includes('Total')) return true;
+    return user.permissions.some((p: string) => p.toLowerCase().includes(permission.toLowerCase()));
+  };
+
   const menuItems = [
-    { id: 'novo-agendamento', label: 'Novo Agendamento', icon: PlusCircle, primary: true },
-    { id: 'agenda', label: 'Agenda', icon: Calendar },
-    { id: 'pacientes', label: 'Pacientes', icon: Users },
-    { id: 'medicos', label: 'Médicos', icon: UserRound },
-    { id: 'historico', label: 'Histórico', icon: History },
-    { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-    { id: 'configuracoes', label: 'Configurações', icon: Settings },
-  ];
+    { id: 'novo-agendamento', label: 'Novo Agendamento', icon: PlusCircle, primary: true, perm: 'Agendar' },
+    { id: 'agenda', label: 'Agenda', icon: Calendar, perm: 'Agenda' },
+    { id: 'pacientes', label: 'Pacientes', icon: Users, perm: 'Pacientes' },
+    { id: 'medicos', label: 'Médicos', icon: 'Profissionais' }, // Use 'Profissionais' as string for checking
+    { id: 'historico', label: 'Histórico', icon: History, perm: 'Histórico' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, perm: 'Relatórios' },
+    { id: 'configuracoes', label: 'Configurações', icon: Settings, perm: 'Configurações' },
+  ].filter(item => {
+    // Basic mapping for simpler mock check
+    const permKey = item.perm || '';
+    if (!permKey) return true;
+    return hasPermission(permKey);
+  });
+  
+  // Re-map icon for medicos since I used a string in filter for easy check
+  const finalMenuItems = menuItems.map(item => item.id === 'medicos' ? { ...item, icon: UserRound } : item);
 
   return (
     <>
@@ -103,7 +120,7 @@ export default function Sidebar({
 
         {/* Navigation */}
         <nav id="sidebar-nav" className="flex-1 px-2 py-4 2xl:py-6 space-y-1 sm:space-y-2 overflow-y-auto no-scrollbar">
-          {menuItems.map((item) => (
+          {finalMenuItems.map((item) => (
             <button
               key={item.id}
               id={`nav-${item.id}`}
@@ -194,11 +211,11 @@ export default function Sidebar({
                 )}
               >
                 <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold shrink-0 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
-                  <img src="https://ui-avatars.com/api/?name=Lucas+Silva&background=EEF2FF&color=4F46E5" alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5`} alt="Avatar" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm leading-tight">Lucas Silva</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider truncate">Admin</p>
+                  <p className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm leading-tight">{user?.name || 'Usuário'}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider truncate">{user?.profile || 'Perfil'}</p>
                 </div>
                 <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-300", isUserMenuOpen && "rotate-180")} />
               </button>

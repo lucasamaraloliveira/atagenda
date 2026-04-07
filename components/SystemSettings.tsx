@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
   CreditCard, 
@@ -51,6 +51,8 @@ import { View } from '@/lib/types';
 import { toast } from 'react-toastify';
 import ImportProceduresModal from './ImportProceduresModal';
 import ImportInsurancesModal from './ImportInsurancesModal';
+import CustomSelect from './CustomSelect';
+import { mockUsers } from '@/lib/mockData';
 
 type SettingTab = 'perfis' | 'convenios' | 'procedimentos' | 'parametros' | 'mala-direta' | 'campanha';
 
@@ -1493,9 +1495,22 @@ function SystemParameters({
   const [unitLinks, setUnitLinks] = useState<any[]>([]);
   const [unitToEdit, setUnitToEdit] = useState<any>(null);
   const [isAddingUnit, setIsAddingUnit] = useState(false);
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string>('Recepção');
+  const [users, setUsers] = useState<any[]>(mockUsers);
+
+  useEffect(() => {
+    if (editingUser) {
+      setSelectedProfile(editingUser.profile);
+    } else {
+      setSelectedProfile('Recepção');
+    }
+  }, [editingUser]);
 
   const modules = [
     { id: 'geral', label: 'Geral', icon: SettingsIcon },
+    { id: 'usuarios', label: 'Usuários', icon: UserPlus },
     { id: 'unidades', label: 'Unidades', icon: Building2 },
     { id: 'agenda', label: 'Agenda', icon: CalendarIcon },
     { id: 'pacientes', label: 'Pacientes', icon: UsersIcon },
@@ -1629,6 +1644,172 @@ function SystemParameters({
 
   const renderModuleContent = () => {
     switch (activeModule) {
+      case 'usuarios':
+        return (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="flex justify-between items-center bg-indigo-50/30 dark:bg-indigo-900/10 p-6 rounded-[2rem] border border-indigo-100 dark:border-indigo-900/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg dark:shadow-none">
+                  <UserPlus size={24} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Profissionais Administrativos</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Gerencie quem tem acesso ao sistema e seus respectivos níveis de permissão.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setEditingUser(null);
+                  setIsAddingUser(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all active:scale-[0.98]"
+              >
+                <Plus size={16} /> Novo Acesso
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {users.map((admin: any) => (
+                <div key={admin.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-center justify-between group hover:border-indigo-200 dark:hover:border-indigo-500 transition-all shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs uppercase">
+                      {admin.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-slate-800 dark:text-slate-100">{admin.name}</h5>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{admin.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md text-[9px] font-black uppercase tracking-tighter border border-indigo-100 dark:border-indigo-800">
+                          {admin.profile}
+                        </span>
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          admin.active ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                        )} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => {
+                        setEditingUser(admin);
+                        setIsAddingUser(true);
+                      }}
+                      className="p-2 text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                      onClick={() => {
+                        const index = mockUsers.findIndex((u: any) => u.id === admin.id);
+                        if (index > -1) {
+                            mockUsers.splice(index, 1);
+                            setUsers([...mockUsers]);
+                        }
+                        toast.info('Acesso removido.');
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {isAddingUser && (
+              <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-md flex flex-col border border-white dark:border-slate-800">
+                  <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{editingUser ? 'Editar Acesso' : 'Cadastrar Novo Acesso'}</h3>
+                    <button onClick={() => setIsAddingUser(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={20} /></button>
+                  </div>
+                  <form className="p-6 space-y-4" onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const userData = {
+                      id: editingUser?.id || Date.now().toString(),
+                      name: formData.get('name') as string,
+                      email: formData.get('email') as string,
+                      profile: selectedProfile,
+                      allowedUnits: formData.get('allowedUnits') as string,
+                      parentEmail: (mockSystemSettings.geral as any).ownerEmail || 'admin@atagenda.com',
+                      active: true
+                    };
+
+                    const emailToVerify = formData.get('email') as string;
+                    if (!editingUser || (editingUser && editingUser.email !== emailToVerify)) {
+                        const emailExists = mockUsers.some((u: any) => u.email === emailToVerify);
+                        if (emailExists) {
+                            toast.error('Este e-mail já está vinculado a outro profissional!');
+                            return;
+                        }
+                    }
+                    
+                    if (editingUser) {
+                      const index = mockUsers.findIndex((u: any) => u.id === editingUser.id);
+                      if (index > -1) {
+                        mockUsers[index] = { ...userData, password: editingUser.password };
+                        setUsers([...mockUsers]);
+                      }
+                    } else {
+                      mockUsers.push({ ...userData, password: formData.get('password') as string });
+                      setUsers([...mockUsers]);
+                    }
+                    
+                    setIsAddingUser(false);
+                    toast.success(editingUser ? 'Acesso atualizado!' : 'Acesso criado com sucesso!');
+                  }}>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
+                      <input name="name" required defaultValue={editingUser?.name} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white" placeholder="Ex: Maria Souza" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">E-mail / Login</label>
+                      <input name="email" type="email" required defaultValue={editingUser?.email} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white" placeholder="maria@exemplo.com" />
+                    </div>
+                    {!editingUser && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Senha de Acesso</label>
+                        <div className="relative">
+                          <input name="password" type="password" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white" placeholder="Digite a senha temporária" />
+                          <Lock size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Perfil de Acesso</label>
+                      <CustomSelect 
+                        options={[
+                          { id: 'Administrador', name: 'Administrador' },
+                          { id: 'Médico', name: 'Médico' },
+                          { id: 'Recepção', name: 'Recepção' },
+                          { id: 'Enfermagem', name: 'Enfermagem' },
+                        ]}
+                        value={selectedProfile || 'Recepção'}
+                        onChange={(val) => setSelectedProfile(val)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Unidades Permitidas</label>
+                        <select name="allowedUnits" defaultValue={editingUser?.allowedUnits || 'all'} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white">
+                            <option value="all">Todas as Unidades</option>
+                            {(settings.unidades || []).map((u: any) => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="pt-4 flex gap-3">
+                      <button type="button" onClick={() => setIsAddingUser(false)} className="flex-1 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">Cancelar</button>
+                      <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all">Salvar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        );
       case 'geral':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
@@ -2364,8 +2545,8 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-300 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
         <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center dark:shadow-none">
@@ -2384,7 +2565,7 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
           </button>
         </div>
 
-        <div className="p-6 sm:p-8 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 custom-scrollbar">
           {/* Logo Upload */}
           <div className="flex flex-col items-center gap-4 mb-4">
             <div className="relative group">
@@ -2469,22 +2650,22 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
                )} />
              </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <button 
-              onClick={onClose}
-              className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-            >
-              Cancelar
-            </button>
-            <button 
-              onClick={() => onSave(formData)}
-              disabled={!formData.name}
-              className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50"
-            >
-              {unit ? 'Salvar Alterações' : 'Cadastrar Unidade'}
-            </button>
-          </div>
+        <div className="p-6 sm:p-8 pt-2 grid grid-cols-2 gap-4 border-t border-slate-50 dark:border-slate-800">
+          <button 
+            onClick={onClose}
+            className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={() => onSave(formData)}
+            disabled={!formData.name}
+            className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50"
+          >
+            {unit ? 'Salvar Alterações' : 'Cadastrar Unidade'}
+          </button>
         </div>
       </div>
     </div>
@@ -2550,17 +2731,10 @@ function MalaDireta({ searchQuery }: { searchQuery: string }) {
 }
 
 function Campanhas({ searchQuery }: { searchQuery: string }) {
-  const [campaigns, setCampaigns] = useState([
-    { id: 1, title: 'Aniversariantes do Mês', desc: 'Envie felicitações e descontos especiais.', icon: Calendar, color: 'indigo', status: 'Ativo', patientsReached: 124, type: 'aniversario', audienceId: '2' },
-    { id: 2, title: 'Reativar Inativos', desc: 'Pacientes que não agendam há mais de 6 meses.', icon: History, color: 'amber', status: 'Ativação Pendente', patientsReached: 0, type: 'reativacao', audienceId: '3' },
-    { id: 3, title: 'Confirmação de Agenda', desc: 'Lembretes automáticos via WhatsApp/Email.', icon: CheckCircle, color: 'emerald', status: 'Ativo', patientsReached: 856, type: 'confirmacao', audienceId: '1' },
-  ]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   const [customAudiences, setCustomAudiences] = useState<any[]>([
     { id: '1', name: 'Todos os Pacientes', type: 'all' },
-    { id: '2', name: 'Aniversariantes', type: 'birthday' },
-    { id: '3', name: 'Inativos (> 6 meses)', type: 'inactive', months: 6 },
-    { id: '4', name: 'Convênio Bradesco', type: 'insurance', insuranceName: 'Bradesco Saúde' },
   ]);
 
   const [activeConfig, setActiveConfig] = useState<any>(null);

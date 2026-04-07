@@ -14,9 +14,10 @@ import UserProfileModal from '@/components/UserProfileModal';
 import GuidedTour from '@/components/GuidedTour';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { View } from '@/lib/types';
+import { mockSystemSettings, mockUsers } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, User, LogIn } from 'lucide-react';
+import { Lock, User, LogIn, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Home() {
@@ -28,10 +29,12 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string, unitId?: string } | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Login/Register State
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+  const [isEmailInUse, setIsEmailInUse] = useState(false);
 
   const handleNewAppointment = (date?: string, time?: string, doctorId?: string, unitId?: string) => {
     setAppointmentData(date && time ? { date, time, doctorId, unitId } : null);
@@ -46,15 +49,56 @@ export default function Home() {
         toast.error('As senhas não coincidem!');
         return;
       }
+      
+      // Verifica se o e-mail já existe
+      const emailExists = (mockUsers || []).some((u: any) => u.email === loginForm.email);
+      if (emailExists) {
+        toast.error('Este e-mail já está em uso por outro usuário!');
+        return;
+      }
+
+      // Cria o novo usuário administrador na lista persistente
+      const newUser = {
+        id: Date.now().toString(),
+        name: loginForm.username || 'Novo Usuário',
+        email: loginForm.email,
+        password: loginForm.password,
+        profile: 'Administrador',
+        active: true,
+        allowedUnits: 'all'
+      };
+      
+      mockUsers.push(newUser);
+      
+      // Save owner email in settings for hierarchy
+      (mockSystemSettings.geral as any).ownerEmail = loginForm.email;
+      
       toast.success('Conta criada com sucesso! Faça login para continuar.');
       setIsRegistering(false);
     } else {
-      // Simple mock login
-      if (loginForm.username && loginForm.password) {
+      // Autenticação contra mockUsers
+      const user = (mockUsers || []).find(
+        (u: any) => u.email === loginForm.email && u.password === loginForm.password
+      );
+
+      if (user) {
+        if (!user.active) {
+            toast.error('Este acesso está desativado. Contate o administrador.');
+            return;
+        }
+        
+        // Encontra o perfil e as permissões associadas
+        const profile = (mockSystemSettings.perfis || []).find((p: any) => p.name === user.profile);
+        const userWithPerms = { 
+            ...user, 
+            permissions: profile?.permissions || [] 
+        };
+
+        setCurrentUser(userWithPerms);
         setIsLoggedIn(true);
-        toast.success(`Bem-vindo de volta, ${loginForm.username}!`);
+        toast.success(`Bem-vindo, ${user.name}! (${user.profile})`);
       } else {
-        toast.error('Preencha os campos de usuário e senha.');
+        toast.error('E-mail ou senha incorretos.');
       }
     }
   };
@@ -156,14 +200,32 @@ export default function Home() {
                             type="email" 
                             required
                             placeholder="seu@email.com"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
+                            className={cn(
+                              "w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs focus:ring-2 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500",
+                              isEmailInUse 
+                                ? "border-red-500 focus:ring-red-500 ring-red-500/20" 
+                                : "border-slate-200 dark:border-slate-700 focus:ring-indigo-500"
+                            )}
                             value={loginForm.email}
-                            onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                            onChange={(e) => {
+                                const email = e.target.value;
+                                setLoginForm({...loginForm, email});
+                                const exists = (mockUsers || []).some((u: any) => u.email.toLowerCase() === email.toLowerCase());
+                                setIsEmailInUse(exists && email.length > 0);
+                            }}
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                             </div>
+                            {isEmailInUse && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 animate-in fade-in zoom-in duration-200">
+                                <AlertTriangle size={14} />
+                              </div>
+                            )}
                         </div>
+                        {isEmailInUse && (
+                          <p className="text-[10px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1 duration-200">Este e-mail já está em uso!</p>
+                        )}
                     </div>
                   </div>
                 )}
@@ -262,14 +324,14 @@ export default function Home() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'agenda': return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} />;
+      case 'agenda': return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} user={currentUser} />;
       case 'pacientes': return <Patients searchQuery={searchQuery} />;
       case 'medicos': return <Doctors searchQuery={searchQuery} />;
       case 'historico': return <History searchQuery={searchQuery} />;
       case 'novo-agendamento': return <NewAppointment initialData={appointmentData} onCancel={() => setCurrentView('agenda')} />;
       case 'configuracoes': return <SystemSettings searchQuery={searchQuery} setView={setCurrentView} />;
       case 'relatorios': return <Reports />;
-      default: return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} />;
+      default: return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} user={currentUser} />;
     }
   };
 
@@ -297,6 +359,7 @@ export default function Home() {
         setIsCollapsed={setSidebarCollapsed}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onLogout={handleLogout}
+        user={currentUser}
       />
       
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

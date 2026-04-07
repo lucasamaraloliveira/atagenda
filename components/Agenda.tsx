@@ -16,10 +16,10 @@ import { toast } from 'react-toastify';
 import AppointmentStatusModal from './AppointmentStatusModal';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
 interface AgendaProps {
-  onNewAppointment?: (date: string, time: string, doctorId: string) => void;
+  onNewAppointment?: (date: string, time: string, doctorId: string, unitId?: string) => void;
   searchQuery?: string;
+  user: any;
 }
 
 export const getDaySchedule = (doctorId: string, unitId: string, date: Date, configs: ScheduleConfig[] = []) => {
@@ -51,7 +51,7 @@ export const isTimeOverbook = (doctorId: string, unitId: string, date: Date, tim
   return false;
 };
 
-export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaProps) {
+export default function Agenda({ onNewAppointment, searchQuery = '', user }: AgendaProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -92,7 +92,13 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
         ]);
         
         // Fallback to mocks if Supabase is empty or variables missing
-        setUnits(u.length > 0 ? u : _mockUnits);
+        // Filter units by permission
+        const availableUnits = u.length > 0 ? u : _mockUnits;
+        const filteredUnits = (user && user.allowedUnits && user.allowedUnits !== 'all')
+            ? availableUnits.filter((unit: any) => unit.id === user.allowedUnits)
+            : availableUnits;
+
+        setUnits(filteredUnits);
         setDoctors(d.length > 0 ? d : _mockDoctors);
         setPatients(p.length > 0 ? p : _mockPatients);
         setProcedures(proc.length > 0 ? proc : _mockProcedures);
@@ -100,7 +106,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
         if (d.length > 0) setSelectedDoctor(d[0].id);
         else if (_mockDoctors.length > 0) setSelectedDoctor(_mockDoctors[0].id);
         
-        if (u.length > 0) setSelectedUnit(u[0].id);
+        if (filteredUnits.length > 0) setSelectedUnit(filteredUnits[0].id);
         else if (_mockUnits.length > 0) setSelectedUnit(_mockUnits[0].id);
 
       } catch (err) {

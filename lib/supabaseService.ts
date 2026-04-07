@@ -6,7 +6,10 @@ export const supabaseService = {
   async getUnits() {
     const { data, error } = await supabase.from('units').select('*').order('name');
     if (error) throw error;
-    return data as Unit[];
+    return data.map(u => ({
+      ...u,
+      isActive: u.is_active
+    })) as Unit[];
   },
 
   // Doctors
@@ -24,13 +27,30 @@ export const supabaseService = {
     }
     const { data, error } = await query;
     if (error) throw error;
-    return data as Patient[];
+    return data.map(p => ({
+      ...p,
+      recordNumber: p.record_number,
+      birthDate: p.birth_date
+    })) as Patient[];
   },
 
   async createPatient(patient: Omit<Patient, 'id'>) {
-    const { data, error } = await supabase.from('patients').insert(patient).select().single();
+    const payload = {
+      name: patient.name,
+      cpf: patient.cpf,
+      birth_date: patient.birthDate,
+      gender: patient.gender,
+      phone: patient.phone,
+      email: patient.email,
+      record_number: patient.recordNumber
+    };
+    const { data, error } = await supabase.from('patients').insert(payload).select().single();
     if (error) throw error;
-    return data as Patient;
+    return {
+      ...data,
+      recordNumber: data.record_number,
+      birthDate: data.birth_date
+    } as Patient;
   },
 
   // Appointments
@@ -154,7 +174,10 @@ export const supabaseService = {
   async getProcedures() {
     const { data, error } = await supabase.from('procedures').select('*').order('name');
     if (error) throw error;
-    return data as Procedure[];
+    return data.map(p => ({
+      ...p,
+      integraRis: p.integra_ris
+    })) as Procedure[];
   },
 
   // System Settings
@@ -171,6 +194,12 @@ export const supabaseService = {
 
   async updateSetting(key: string, value: any) {
     const { error } = await supabase.from('system_settings').upsert({ key, value, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    return true;
+  },
+
+  async deletePatient(id: string) {
+    const { error } = await supabase.from('patients').delete().eq('id', id);
     if (error) throw error;
     return true;
   }

@@ -94,10 +94,18 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     } else {
       supabaseService.createPatient(patientData as any)
         .then(() => {
-            toast.success('Paciente salvo no Supabase!');
+            toast.success('Paciente salvo com sucesso!');
             setRefreshKey(prev => prev + 1);
         })
-        .catch(() => toast.error('Erro ao salvar no Supabase'));
+        .catch((err) => {
+            console.error('Erro detalhado Supabase (Patient):', err);
+            const msg = err.message || 'Erro de conexão';
+            if (msg.includes('duplicate key')) {
+              toast.error('Erro: CPF ou Número de Prontuário já cadastrado.');
+            } else {
+              toast.error(`Falha ao salvar: ${msg}`);
+            }
+        });
     }
     setSelectedPatientForForm(null);
   };
@@ -107,47 +115,52 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     setRefreshKey(prev => prev + 1);
   };
 
-  const handleDeletePatient = () => {
+  const handleDeletePatient = async () => {
     if (!patientToDelete) return;
     
-    // Capture data for undo
     const patient = { ...patientToDelete };
-    const appointments = _mockAppointments.filter(app => app.patientId === patient.id);
     
-    // 1. Remove from currentPatients/Supabase (Local mock update for UI undo consistency)
-    const pIndex = _mockPatients.findIndex(p => p.id === patient.id);
-    if (pIndex >= 0) _mockPatients.splice(pIndex, 1);
-    
-    // 2. Remove Appointments
-    for (let i = _mockAppointments.length - 1; i >= 0; i--) {
-      if (_mockAppointments[i].patientId === patient.id) {
-        _mockAppointments.splice(i, 1);
-      }
-    }
-    
-    toast.success(
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="font-bold">Paciente removido</p>
-          <p className="text-[10px] opacity-80">{patient.name} e histórico excluídos.</p>
-        </div>
-        <button 
-          onClick={() => {
-            _mockPatients.push(patient);
-            _mockAppointments.push(...appointments);
-            setRefreshKey(prev => prev + 1);
-            toast.info('Exclusão do paciente desfeita!');
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-indigo-600 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50 transition-colors shrink-0"
-        >
-          <RotateCcw size={14} /> Desfazer
-        </button>
-      </div>,
-      { autoClose: 8000 }
-    );
+    try {
+        // 1. Exclusão no Supabase
+        await supabaseService.deletePatient(patient.id);
+        
+        toast.success(
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <p className="font-bold">Paciente removido</p>
+                    <p className="text-[10px] opacity-80">{patient.name} e histórico excluídos.</p>
+                </div>
+                <button 
+                    onClick={async () => {
+                        try {
+                            await supabaseService.createPatient(patient as any);
+                            setRefreshKey(prev => prev + 1);
+                            toast.info('Paciente restaurado com sucesso!');
+                        } catch (e) {
+                            toast.error('Falha ao restaurar paciente.');
+                        }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-indigo-600 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50 transition-colors shrink-0"
+                >
+                    <RotateCcw size={14} /> Desfazer
+                </button>
+            </div>,
+            { autoClose: 8000 }
+        );
 
-    setPatientToDelete(null);
-    setRefreshKey(prev => prev + 1);
+    } catch (err) {
+        // Fallback para Mock se a exclusão no Supabase falhar ou for mock ID
+        const pIndex = _mockPatients.findIndex(p => p.id === patient.id);
+        if (pIndex >= 0) {
+            _mockPatients.splice(pIndex, 1);
+            toast.success('Mock removido (Sem conexão com Supabase)');
+        } else {
+            toast.error('Erro ao excluir paciente no banco.');
+        }
+    } finally {
+        setPatientToDelete(null);
+        setRefreshKey(prev => prev + 1);
+    }
   };
 
   return (
