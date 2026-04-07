@@ -88,13 +88,14 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
           firebaseService.getUnits()
         ]);
 
-        setProcedures(proc.length > 0 ? proc : _mockProcedures);
-        setInsurances(ins.length > 0 ? ins : _mockInsurances);
+        setProcedures(proc);
+        setInsurances(ins);
         
+        // Use mock template only for structure if Firebase is empty
         const initialSettings = settings || JSON.parse(JSON.stringify(_mockSystemSettings));
         setGlobalSettings({
           ...initialSettings,
-          unidades: uList.length > 0 ? uList : _mockUnits
+          unidades: uList // Pure Firebase list
         });
       } catch (err) {
         console.warn('Failed to load from Firebase:', err);
@@ -215,6 +216,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
           onImport={handleImportInsurances}
         />;
       case 'parametros':
+        if (!globalSettings) return <div className="flex items-center justify-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
         return <SystemParameters 
           setView={setView} 
           settings={globalSettings}
