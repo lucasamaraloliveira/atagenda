@@ -47,11 +47,13 @@ export interface Appointment {
   date: string;
   time: string;
   procedure: string;
+  procedureName?: string;
   procedures?: string[];
   insurance: string;
   status: 'agendado' | 'confirmado' | 'em-atendimento' | 'realizado' | 'cancelado';
   isOverbook?: boolean;
   statusHistory?: StatusHistory[];
+  price?: string;
 }
 
 export interface ScheduleBlock {

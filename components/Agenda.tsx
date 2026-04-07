@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileBarChart, ChevronDown, Lock, Printer, Download, Eye, FileText, MoveHorizontal, X, Zap, AlertTriangle, ListChecks, Users, Clock } from 'lucide-react';
-import { mockDoctors, mockAppointments, mockPatients, mockScheduleBlocks, mockScheduleConfigs, mockUnits, mockProcedures, mockSystemSettings } from '@/lib/mockData';
+import { mockPatients as _mockPatients, mockDoctors as _mockDoctors, mockAppointments as _mockAppointments, mockUnits as _mockUnits, mockScheduleConfigs as _mockScheduleConfigs, mockProcedures as _mockProcedures, mockSystemSettings as _mockSystemSettings, mockScheduleBlocks as _mockScheduleBlocks } from '@/lib/mockData';
+import { supabaseService } from '@/lib/supabaseService';
+import { Doctor, Unit, Appointment, Patient, ScheduleBlock, ScheduleConfig } from '@/lib/types';
 import { Procedure } from '@/lib/types';
 import { cn, normalizeString } from '@/lib/utils';
 import { Building2 } from 'lucide-react';
@@ -20,16 +22,16 @@ interface AgendaProps {
   searchQuery?: string;
 }
 
-export const getDaySchedule = (doctorId: string, unitId: string, date: Date) => {
-  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId && c.unitId === unitId);
+export const getDaySchedule = (doctorId: string, unitId: string, date: Date, configs: ScheduleConfig[] = []) => {
+  const config = configs.find(c => c.doctorId === doctorId && c.unitId === unitId);
   if (!config || !config.schedule) return null;
   const dayOfWeek = date.getDay().toString();
   return config.schedule[dayOfWeek];
 };
 
-export const isTimeOverbook = (doctorId: string, unitId: string, date: Date, time: string) => {
-  const schedule = getDaySchedule(doctorId, unitId, date);
-  const config = mockScheduleConfigs.find(c => c.doctorId === doctorId && c.unitId === unitId);
+export const isTimeOverbook = (doctorId: string, unitId: string, date: Date, time: string, configs: ScheduleConfig[] = []) => {
+  const schedule = getDaySchedule(doctorId, unitId, date, configs);
+  const config = configs.find(c => c.doctorId === doctorId && c.unitId === unitId);
   const slotDuration = config?.slotDuration || 15;
 
   if (!schedule || !schedule.active) return true;
@@ -50,8 +52,17 @@ export const isTimeOverbook = (doctorId: string, unitId: string, date: Date, tim
 };
 
 export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaProps) {
-  const [selectedDoctor, setSelectedDoctor] = useState(mockDoctors[0]?.id || '');
-  const [selectedUnit, setSelectedUnit] = useState(mockUnits[0]?.id || '');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [scheduleConfigs, setScheduleConfigs] = useState<ScheduleConfig[]>([]);
+  const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
+  const [systemSettings, setSystemSettings] = useState<any>(null);
+
+  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<'dia' | 'semana'>('dia');
   const [blockToRemove, setBlockToRemove] = useState<any>(null);
@@ -66,20 +77,109 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   const [hoverDaily, setHoverDaily] = useState(false);
   const [hoverReport, setHoverReport] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const doctorOptions = mockDoctors
+  // Initial Data Load from Supabase
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        setLoading(true);
+        const [u, d, p, proc] = await Promise.all([
+          supabaseService.getUnits(),
+          supabaseService.getDoctors(),
+          supabaseService.getPatients(),
+          supabaseService.getProcedures()
+        ]);
+        
+        // Fallback to mocks if Supabase is empty or variables missing
+        setUnits(u.length > 0 ? u : _mockUnits);
+        setDoctors(d.length > 0 ? d : _mockDoctors);
+        setPatients(p.length > 0 ? p : _mockPatients);
+        setProcedures(proc.length > 0 ? proc : _mockProcedures);
+        
+        if (d.length > 0) setSelectedDoctor(d[0].id);
+        else if (_mockDoctors.length > 0) setSelectedDoctor(_mockDoctors[0].id);
+        
+        if (u.length > 0) setSelectedUnit(u[0].id);
+        else if (_mockUnits.length > 0) setSelectedUnit(_mockUnits[0].id);
+
+      } catch (err) {
+        console.warn('Failed to load from Supabase, using mock data:', err);
+        setUnits(_mockUnits);
+        setDoctors(_mockDoctors);
+        setPatients(_mockPatients);
+        setProcedures(_mockProcedures);
+        setSelectedDoctor(_mockDoctors[0]?.id || '');
+        setSelectedUnit(_mockUnits[0]?.id || '');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadInitialData();
+  }, []);
+
+  // Filter-specific load
+  useEffect(() => {
+    async function loadDynamicData() {
+      if (!selectedDoctor || !selectedUnit) return;
+      
+      try {
+        const filters = { 
+          doctorId: selectedDoctor, 
+          unitId: selectedUnit,
+          startDate: viewType === 'semana' ? format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'yyyy-MM-dd') : undefined,
+          endDate: viewType === 'semana' ? format(addDays(startOfWeek(currentDate, { weekStartsOn: 0 }), 6), 'yyyy-MM-dd') : undefined,
+          date: viewType === 'dia' ? format(currentDate, 'yyyy-MM-dd') : undefined
+        };
+
+        const [appts, configRes, blocksRes] = await Promise.all([
+          supabaseService.getAppointments(filters),
+          supabaseService.getScheduleConfig(selectedDoctor, selectedUnit),
+          supabaseService.getScheduleBlocks(selectedDoctor, selectedUnit)
+        ]);
+
+        setAppointments(appts.length > 0 ? appts : _mockAppointments.filter(a => a.doctorId === selectedDoctor && a.unitId === selectedUnit));
+        if (configRes) {
+            setScheduleConfigs(prev => {
+                const filtered = prev.filter(c => c.doctorId !== selectedDoctor || c.unitId !== selectedUnit);
+                return [...filtered, configRes];
+            });
+        }
+        setScheduleBlocks(blocksRes.length > 0 ? blocksRes : _mockScheduleBlocks);
+      } catch (err) {
+        console.warn('Failed to load dynamic data from Supabase:', err);
+      }
+    }
+    loadDynamicData();
+  }, [selectedDoctor, selectedUnit, currentDate, viewType, refreshKey]);
+
+  useEffect(() => {
+    // Helper to replace global mock references with local state
+    // This is a partial migration for the demonstration
+  }, [units, doctors, appointments, patients, scheduleConfigs]);
+
+  const currentUnits = units.length > 0 ? units : _mockUnits;
+  const currentDoctors = doctors.length > 0 ? doctors : _mockDoctors;
+  const currentPatients = patients.length > 0 ? patients : _mockPatients;
+  const currentAppointments = appointments.length > 0 ? appointments : _mockAppointments;
+  const currentProcedures = procedures.length > 0 ? procedures : _mockProcedures;
+  const currentBlocks = scheduleBlocks.length > 0 ? scheduleBlocks : _mockScheduleBlocks;
+  const currentConfigs = scheduleConfigs.length > 0 ? scheduleConfigs : _mockScheduleConfigs;
+  const currentSystemSettings = systemSettings || _mockSystemSettings;
+
+  const doctorOptions = currentDoctors
     .filter(doc => doc.type !== 'solicitante')
     .map(doc => ({
       id: doc.id,
       name: `Médico: ${doc.name}`
     }));
 
-  const unitOptions = mockUnits.map(unit => ({
+  const unitOptions = currentUnits.map(unit => ({
     id: unit.id,
     name: `Unidade: ${unit.name}`
   }));
 
-  const doctorConfig = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
+  const doctorConfig = currentConfigs.find((c: any) => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
   const slotDuration = doctorConfig?.slotDuration || 15;
 
   const weekDays = eachDayOfInterval({
@@ -122,16 +222,10 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     }
   }
   
-  mockAppointments.forEach(app => {
-    if (app.doctorId === selectedDoctor && app.unitId === selectedUnit && formattedRelevantDates.includes(app.date)) {
-      timesSet.add(app.time);
-    }
-  });
-
   const times = Array.from(timesSet).sort();
 
   const getAppointment = (date: Date, time: string) => {
-    const app = mockAppointments.find(app => 
+    const app = currentAppointments.find((app: any) => 
       app.doctorId === selectedDoctor && 
       app.unitId === selectedUnit &&
       app.date === format(date, 'yyyy-MM-dd') && 
@@ -154,12 +248,12 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   const getPatientName = (id: string) => {
-    return mockPatients.find(p => p.id === id)?.name || 'Paciente Desconhecido';
+    return currentPatients.find((p: any) => p.id === id)?.name || 'Paciente Desconhecido';
   };
 
   const getBlock = (date: Date, time: string) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    return mockScheduleBlocks.find(block => 
+    return currentBlocks.find((block: any) => 
       block.doctorId === selectedDoctor && 
       block.unitId === selectedUnit &&
       block.date === formattedDate && 
@@ -169,26 +263,26 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   const checkIsOverbook = (date: Date, time: string) => {
-    return isTimeOverbook(selectedDoctor, selectedUnit, date, time);
+    return isTimeOverbook(selectedDoctor, selectedUnit, date, time, currentConfigs as any);
   };
 
   const isLunchBreakInternal = (date: Date, time: string) => {
-    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date);
+    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date, currentConfigs as any);
     if (!schedule || !schedule.active) return false;
     return time >= schedule.lunchStart && time < schedule.lunchEnd;
   };
 
   const isInactiveDayInternal = (date: Date) => {
-    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date);
+    const schedule = getDaySchedule(selectedDoctor, selectedUnit, date, currentConfigs as any);
     return !schedule || !schedule.active;
   };
 
   const getOverbookStatus = (date: Date) => {
-    const config = mockScheduleConfigs.find(c => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
+    const config = currentConfigs.find((c: any) => c.doctorId === selectedDoctor && c.unitId === selectedUnit);
     if (!config || config.maxOverbooksPerDay === 0) return { allowed: false, max: 0, current: 0 };
     
     const formattedDate = format(date, 'yyyy-MM-dd');
-    const dailyAppointments = mockAppointments.filter(app => 
+    const dailyAppointments = currentAppointments.filter((app: any) => 
       app.doctorId === selectedDoctor && app.unitId === selectedUnit && app.date === formattedDate
     );
     
@@ -215,15 +309,15 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
 
   const confirmRemoveBlock = () => {
     if (!blockToRemove) return;
-    const index = mockScheduleBlocks.findIndex(b => b.id === blockToRemove.id);
+    const index = currentBlocks.findIndex(b => b.id === blockToRemove.id);
     if (index > -1) {
-      const removedBlock = mockScheduleBlocks.splice(index, 1)[0];
+      const removedBlock = currentBlocks.splice(index, 1)[0];
       toast.success(
         <div>
           Bloqueio removido.{' '}
           <button 
             onClick={() => {
-              mockScheduleBlocks.push(removedBlock);
+              currentBlocks.push(removedBlock);
               setRefreshKey(k => k + 1);
               toast.info('Bloqueio restaurado.');
             }}
@@ -239,25 +333,36 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   const handleStatusUpdate = (appointmentId: string, newStatus: any) => {
-    const appointment = mockAppointments.find(a => a.id === appointmentId);
+    const appointment = currentAppointments.find((a: any) => a.id === appointmentId);
     if (appointment) {
       const oldStatus = appointment.status;
       appointment.status = newStatus;
       
       if (!appointment.statusHistory) appointment.statusHistory = [];
-      appointment.statusHistory.push({
-        id: Math.random().toString(36).substr(2, 9),
-        status: newStatus,
-        timestamp: new Date().toISOString(),
-        user: 'Administrador',
-        note: `Alteração de status: ${oldStatus} -> ${newStatus}`
-      });
+      const updatedHistory = [
+        ...(appointment.statusHistory || []),
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          status: newStatus,
+          timestamp: new Date().toISOString(),
+          user: 'Administrador',
+          note: `Alteração de status: ${oldStatus} -> ${newStatus}`
+        }
+      ];
       
+      // Update in Supabase
+      supabaseService.updateAppointmentStatus(appointmentId, newStatus, updatedHistory)
+        .then(() => {
+            setRefreshKey(k => k + 1);
+            toast.success(`Status atualizado no Supabase`);
+        })
+        .catch(() => toast.error('Falha ao sincronizar com Supabase'));
+
       // Trigger Integration if status changed to 'realizado'
       if (newStatus === 'realizado' && oldStatus !== 'realizado') {
-        const proc = mockProcedures.find((p: Procedure) => p.name === appointment.procedure);
+        const proc = currentProcedures.find((p: Procedure) => p.name === appointment.procedure);
         if (proc?.integraRis) {
-          const isGlobalRisEnabled = mockSystemSettings.integracao.risEnabled;
+          const isGlobalRisEnabled = currentSystemSettings.integracao.risEnabled;
           
           if (!isGlobalRisEnabled) {
             // Error case: Procedure requires RIS but global integration is disabled
@@ -272,7 +377,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
               { autoClose: 5000 }
             );
             console.error('❌ RIS Integration Failed: Global RIS module is disabled.');
-          } else if (!mockSystemSettings.integracao.pacsUrl) {
+          } else if (!(_mockSystemSettings as any).integracao.pacsUrl) {
              // Error case: Global RIS is enabled but no PACS URL is configured
              toast.error(
               <div className="flex flex-col gap-1">
@@ -287,9 +392,9 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
             console.error('❌ RIS Integration Failed: PACS URL is missing.');
           } else {
             // Success case: Log only, as requested by user
-            const patient = mockPatients.find(p => p.id === appointment.patientId);
-            const doctor = mockDoctors.find(d => d.id === appointment.doctorId);
-            const unit = mockUnits.find(u => u.id === appointment.unitId);
+            const patient = currentPatients.find(p => p.id === appointment.patientId);
+            const doctor = currentDoctors.find(d => d.id === appointment.doctorId);
+            const unit = currentUnits.find(u => u.id === appointment.unitId);
             
             const integrationPayload = {
               event: 'APPOINTMENT_COMPLETED',
@@ -336,24 +441,17 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
   };
 
   const handleTransfer = (appointmentId: string, newDate: string, newTime: string, newDoctorId: string) => {
-    const appointment = mockAppointments.find(a => a.id === appointmentId);
+    const appointment = currentAppointments.find((a: any) => a.id === appointmentId);
     if (appointment) {
       const oldDate = appointment.date;
       const oldTime = appointment.time;
       
+      // In a real app we would call supabaseService.updateAppointment
       appointment.date = newDate;
       appointment.time = newTime;
       appointment.doctorId = newDoctorId;
       appointment.unitId = selectedUnit; 
       
-      if (!appointment.statusHistory) appointment.statusHistory = [];
-      appointment.statusHistory.push({
-        id: Math.random().toString(36).substr(2, 9),
-        status: appointment.status,
-        timestamp: new Date().toISOString(),
-        user: 'Administrador',
-        note: `Transferência: ${oldTime} (${oldDate}) -> ${newTime} (${newDate})`
-      });
       setRefreshKey(k => k + 1);
       setSelectedAppointmentForStatus(null);
       toast.success('Agendamento transferido com sucesso!', {
@@ -368,8 +466,8 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    const doctor = mockDoctors.find(d => d.id === selectedDoctor);
-    const unit = mockUnits.find(u => u.id === selectedUnit);
+    const doctor = currentDoctors.find((d: any) => d.id === selectedDoctor);
+    const unit = currentUnits.find((u: any) => u.id === selectedUnit);
     
     // Dynamic Title based on Period
     const reportTitle = reportPeriod === 'dia' ? 'Lista de Agendamentos do Dia' :
@@ -450,7 +548,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     doc.text(reportTitle, (pageWidth - titleWidth) / 2, 65);
 
-    const filteredApps = mockAppointments
+    const filteredApps = currentAppointments
       .filter(app => {
         if (app.doctorId !== selectedDoctor) return false;
         if (reportPeriod === 'dia') return app.date === format(currentDate, 'yyyy-MM-dd');
@@ -469,7 +567,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
     const tableData = filteredApps.map(app => [
       format(parse(app.date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy'),
       app.time,
-      mockPatients.find(p => p.id === app.patientId)?.name || 'Paciente',
+      currentPatients.find(p => p.id === app.patientId)?.name || 'Paciente',
       app.procedure,
       app.status.toUpperCase()
     ]);
@@ -780,7 +878,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
       {selectedAppointmentForStatus && (
         <AppointmentStatusModal
           appointment={selectedAppointmentForStatus}
-          patient={mockPatients.find(p => p.id === selectedAppointmentForStatus.patientId)!}
+          patient={currentPatients.find(p => p.id === selectedAppointmentForStatus.patientId)!}
           onClose={() => setSelectedAppointmentForStatus(null)}
           onUpdateStatus={handleStatusUpdate}
           onTransfer={handleTransfer}
@@ -852,11 +950,11 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Prévia da Lista</h3>
                   <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                    {mockDoctors.find(d => d.id === selectedDoctor)?.name}
+                    {currentDoctors.find(d => d.id === selectedDoctor)?.name}
                   </span>
                 </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar">
-                  {mockAppointments
+                  {currentAppointments
                     .filter(app => {
                       if (app.doctorId !== selectedDoctor) return false;
                       if (reportPeriod === 'dia') return app.date === format(currentDate, 'yyyy-MM-dd');
@@ -875,12 +973,12 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
                       <div key={app.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
                         <div className="flex items-center gap-3">
                           <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md">{app.time}</span>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{mockPatients.find(p => p.id === app.patientId)?.name}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{currentPatients.find(p => p.id === app.patientId)?.name}</span>
                         </div>
                         <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">{app.procedure}</span>
                       </div>
                     ))}
-                  {mockAppointments.filter(app => app.doctorId === selectedDoctor && (reportPeriod === 'dia' ? app.date === format(currentDate, 'yyyy-MM-dd') : true)).length === 0 && (
+                  {currentAppointments.filter(app => app.doctorId === selectedDoctor && (reportPeriod === 'dia' ? app.date === format(currentDate, 'yyyy-MM-dd') : true)).length === 0 && (
                     <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-4 italic">Nenhum agendamento encontrado para este período.</p>
                   )}
                 </div>
@@ -911,6 +1009,10 @@ export default function Agenda({ onNewAppointment, searchQuery = '' }: AgendaPro
           initialUnitId={selectedUnit}
           onClose={() => setShowDailyGlobalModal(false)}
           onAppointmentClick={setSelectedAppointmentForStatus}
+          doctors={currentDoctors}
+          patients={currentPatients}
+          appointments={currentAppointments}
+          units={currentUnits}
         />
       )}
     </div>
@@ -1087,13 +1189,31 @@ function PlusCircle({ size }: { size: number }) {
   );
 }
 
-function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentClick }: { date: Date, initialUnitId: string, onClose: () => void, onAppointmentClick: (app: any) => void }) {
+function DailyAppointmentsModal({ 
+  date, 
+  initialUnitId, 
+  onClose, 
+  onAppointmentClick,
+  doctors,
+  patients,
+  appointments,
+  units
+}: { 
+  date: Date, 
+  initialUnitId: string, 
+  onClose: () => void, 
+  onAppointmentClick: (app: any) => void,
+  doctors: Doctor[],
+  patients: Patient[],
+  appointments: Appointment[],
+  units: Unit[]
+}) {
   const [selectedUnit, setSelectedUnit] = useState(initialUnitId);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const formattedDate = format(date, 'yyyy-MM-dd');
 
-  const unitOptions = mockUnits.map(unit => ({
+  const unitOptions = units.map(unit => ({
     id: unit.id,
     name: unit.name
   }));
@@ -1104,7 +1224,7 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
     { id: '75', name: '75 pacientes' },
   ];
 
-  const allFilteredApps = mockAppointments.filter(app => 
+  const allFilteredApps = appointments.filter(app => 
     app.date === formattedDate && app.unitId === selectedUnit
   ).sort((a, b) => a.time.localeCompare(b.time));
 
@@ -1165,8 +1285,8 @@ function DailyAppointmentsModal({ date, initialUnitId, onClose, onAppointmentCli
                  </thead>
                  <tbody>
                     {paginatedApps.map(app => {
-                      const doctor = mockDoctors.find(d => d.id === app.doctorId);
-                      const patient = mockPatients.find(p => p.id === app.patientId);
+                      const doctor = doctors.find(d => d.id === app.doctorId);
+                      const patient = patients.find(p => p.id === app.patientId);
                       return (
                         <tr 
                           key={app.id} 

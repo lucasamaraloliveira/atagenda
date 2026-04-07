@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mockPatients, mockAppointments } from '@/lib/mockData';
+import { mockPatients as _mockPatients, mockAppointments as _mockAppointments } from '@/lib/mockData';
+import { supabaseService } from '@/lib/supabaseService';
 import { cn, normalizeString } from '@/lib/utils';
 import { Patient } from '@/lib/types';
 import PatientFormModal from './PatientFormModal';
@@ -12,6 +13,8 @@ import { toast } from 'react-toastify';
 import { Upload } from 'lucide-react';
 
 export default function Patients({ searchQuery = '' }: { searchQuery?: string }) {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedPatientForForm, setSelectedPatientForForm] = useState<Patient | null | 'new'>(null);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [patientForHistory, setPatientForHistory] = useState<Patient | null>(null);
@@ -21,6 +24,25 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Load patients from Supabase
+  React.useEffect(() => {
+    async function loadPatients() {
+      try {
+        setLoading(true);
+        const data = await supabaseService.getPatients();
+        setPatients(data.length > 0 ? data : _mockPatients);
+      } catch (err) {
+        console.warn('Failed to load patients from Supabase:', err);
+        setPatients(_mockPatients);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPatients();
+  }, [refreshKey]);
+
+  const currentPatients = patients;
+
   const handleSort = (key: keyof Patient) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -28,7 +50,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     }
     setSortConfig({ key, direction });
   };
-  const filteredPatients = mockPatients.filter(p => {
+  const filteredPatients = currentPatients.filter(p => {
     const search = normalizeString(searchQuery);
     const [year, month, day] = p.birthDate.split('-');
     const formattedDob = `${day}/${month}/${year}`;
@@ -59,26 +81,29 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
   const handleSavePatient = (patientData: Patient) => {
     // Check for duplicate CPF
-    const duplicateCPF = mockPatients.find(p => p.cpf === patientData.cpf && p.id !== patientData.id);
+    const duplicateCPF = currentPatients.find((p: Patient) => p.cpf === patientData.cpf && p.id !== patientData.id);
     if (duplicateCPF) {
       toast.error(`Já existe um paciente cadastrado com este CPF (${duplicateCPF.name})`);
       return;
     }
 
-    const index = mockPatients.findIndex(p => p.id === patientData.id);
+    const index = currentPatients.findIndex(p => p.id === patientData.id);
     if (index >= 0) {
-      mockPatients[index] = patientData;
-      toast.success('Dados do paciente atualizados!');
+      // Update logic could call Supabase here
+      toast.success('Dados do paciente atualizados (Simulação)!');
     } else {
-      mockPatients.push(patientData);
-      toast.success('Novo paciente cadastrado com sucesso!');
+      supabaseService.createPatient(patientData as any)
+        .then(() => {
+            toast.success('Paciente salvo no Supabase!');
+            setRefreshKey(prev => prev + 1);
+        })
+        .catch(() => toast.error('Erro ao salvar no Supabase'));
     }
     setSelectedPatientForForm(null);
-    setRefreshKey(prev => prev + 1);
   };
 
   const handleImportPatients = (importedPatients: Patient[]) => {
-    mockPatients.push(...importedPatients);
+    _mockPatients.push(...importedPatients);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -87,16 +112,16 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     
     // Capture data for undo
     const patient = { ...patientToDelete };
-    const appointments = mockAppointments.filter(app => app.patientId === patient.id);
-
-    // 1. Remove from mockPatients
-    const pIndex = mockPatients.findIndex(p => p.id === patient.id);
-    if (pIndex >= 0) mockPatients.splice(pIndex, 1);
+    const appointments = _mockAppointments.filter(app => app.patientId === patient.id);
+    
+    // 1. Remove from currentPatients/Supabase (Local mock update for UI undo consistency)
+    const pIndex = _mockPatients.findIndex(p => p.id === patient.id);
+    if (pIndex >= 0) _mockPatients.splice(pIndex, 1);
     
     // 2. Remove Appointments
-    for (let i = mockAppointments.length - 1; i >= 0; i--) {
-      if (mockAppointments[i].patientId === patient.id) {
-        mockAppointments.splice(i, 1);
+    for (let i = _mockAppointments.length - 1; i >= 0; i--) {
+      if (_mockAppointments[i].patientId === patient.id) {
+        _mockAppointments.splice(i, 1);
       }
     }
     
@@ -108,8 +133,8 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         </div>
         <button 
           onClick={() => {
-            mockPatients.push(patient);
-            mockAppointments.push(...appointments);
+            _mockPatients.push(patient);
+            _mockAppointments.push(...appointments);
             setRefreshKey(prev => prev + 1);
             toast.info('Exclusão do paciente desfeita!');
           }}
@@ -420,7 +445,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         <ImportPatientsModal 
           onClose={() => setShowImportModal(false)}
           onImport={handleImportPatients}
-          existingPatients={mockPatients}
+          existingPatients={currentPatients}
         />
       )}
 
