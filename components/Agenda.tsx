@@ -104,19 +104,10 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         setProcedures(proc);
         
         if (d.length > 0) setSelectedDoctor(d[0].id);
-        else if (_mockDoctors.length > 0) setSelectedDoctor(_mockDoctors[0].id);
-        
         if (filteredUnits.length > 0) setSelectedUnit(filteredUnits[0].id);
-        else if (_mockUnits.length > 0) setSelectedUnit(_mockUnits[0].id);
 
       } catch (err) {
-        console.warn('Failed to load from Firebase, using mock data:', err);
-        setUnits(_mockUnits);
-        setDoctors(_mockDoctors);
-        setPatients(_mockPatients);
-        setProcedures(_mockProcedures);
-        setSelectedDoctor(_mockDoctors[0]?.id || '');
-        setSelectedUnit(_mockUnits[0]?.id || '');
+        console.warn('Failed to load from Firebase:', err);
       } finally {
         setLoading(false);
       }

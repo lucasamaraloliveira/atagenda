@@ -50,9 +50,9 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
           firebaseService.getDoctors(),
           firebaseService.getProcedures()
         ]);
-        setPatients(p.length > 0 ? p : _mockPatients);
-        setDoctors(d.length > 0 ? d : _mockDoctors);
-        setProcedures(proc.length > 0 ? proc : _mockProcedures);
+        setPatients(p);
+        setDoctors(d);
+        setProcedures(proc);
       } finally {
         setLoading(false);
       }
