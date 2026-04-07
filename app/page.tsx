@@ -65,6 +65,11 @@ export default function Home() {
               active: true,
               permissions: ['Total']
            });
+        } else if (user.providerData.some(p => p.providerId === 'google.com') && profile.profile !== 'Administrador') {
+           // Upgrade existing Google users
+           const upgradedProfile = { ...profile, profile: 'Administrador', permissions: ['Total'] };
+           await firebaseService.updateProfile(user.uid, { profile: 'Administrador', permissions: ['Total'] });
+           profile = upgradedProfile;
         }
         setCurrentUser(profile);
         setIsLoggedIn(true);
