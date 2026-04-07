@@ -49,13 +49,17 @@ export default function Home() {
     let mounted = true;
 
     const initAuth = async () => {
+      // Timeout de segurança: 3 segundos para não travar o usuário
+      const timeout = setTimeout(() => {
+        if (mounted) setAuthLoading(false);
+      }, 3000);
+
       try {
         const user = await supabaseService.getCurrentUser();
         if (user && mounted) {
           let profile = await supabaseService.getUserProfile(user.id);
           
           if (!profile) {
-             // Fala-safe: cria perfil se não existir
              profile = await supabaseService.createProfile({
                 id: user.id,
                 name: user.email?.split('@')[0] || 'Usuário',
@@ -73,6 +77,7 @@ export default function Home() {
       } catch (err) {
         console.error('Erro na inicialização do Auth:', err);
       } finally {
+        clearTimeout(timeout);
         if (mounted) setAuthLoading(false);
       }
     };
