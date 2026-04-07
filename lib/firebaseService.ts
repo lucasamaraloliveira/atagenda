@@ -65,10 +65,10 @@ export const firebaseService = {
           name: user.displayName || 'Google User',
           email: user.email!,
           avatar: user.photoURL || '',
-          profile: 'Recepção', // Default profile
+          profile: 'Administrador', // Elevated to Admin
           allowed_units: 'all',
           active: true,
-          permissions: ['Agenda', 'Pacientes']
+          permissions: ['Total'] // Full permissions for main owner
         };
         await this.createProfile(newProfile);
         profile = newProfile;
