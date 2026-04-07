@@ -22,6 +22,7 @@ create table if not exists public.profiles (
   avatar text,
   allowed_units text default 'all',
   active boolean default true,
+  permissions jsonb default '["Total"]'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

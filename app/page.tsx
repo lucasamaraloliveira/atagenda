@@ -43,10 +43,10 @@ export default function Home() {
     setCurrentView('novo-agendamento');
   };
 
-  // Persistence Check
+  // Persistence Check & Auth State Change Listener
   React.useEffect(() => {
-    const checkUser = async () => {
-      const user = await supabaseService.getCurrentUser();
+    // 1. Check current session
+    supabaseService.getCurrentUser().then(async (user) => {
       if (user) {
         const profile = await supabaseService.getUserProfile(user.id);
         if (profile) {
@@ -54,14 +54,37 @@ export default function Home() {
           setIsLoggedIn(true);
         }
       }
-    };
-    checkUser();
+    });
+
+    // 2. Listen for auth changes (Confirmation Emails, Logouts, etc)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await supabaseService.getUserProfile(session.user.id);
+        if (profile) {
+          setCurrentUser(profile);
+          setIsLoggedIn(true);
+        }
+      }
+      if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emailInput = loginForm.email.trim().toLowerCase();
+    const emailInput = loginForm.email?.trim().toLowerCase();
     const passwordInput = loginForm.password;
+
+    console.log('🔍 Tentativa de Login/Cadastro:', { email: emailInput, hasPassword: !!passwordInput });
+
+    if (!emailInput || !passwordInput) {
+      toast.error('Informe e-mail e senha!');
+      return;
+    }
 
     if (isRegistering) {
       if (passwordInput !== loginForm.confirmPassword) {
@@ -82,7 +105,8 @@ export default function Home() {
             id: authData.user.id,
             name: loginForm.username || 'Admin',
             email: emailInput,
-            profile: 'Administrador'
+            profile: 'Administrador',
+            permissions: ['Total']
           });
           
           toast.success('Cadastro realizado! Verifique seu e-mail ou faça login.');
@@ -112,7 +136,8 @@ export default function Home() {
                id: data.user.id,
                name: data.user.email?.split('@')[0] || 'Usuário',
                email: data.user.email || '',
-               profile: 'Administrador'
+               profile: 'Administrador',
+               permissions: ['Total']
             });
             setCurrentUser(newProfile);
             setIsLoggedIn(true);
