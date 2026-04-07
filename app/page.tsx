@@ -388,7 +388,17 @@ export default function Home() {
       </div>
       {isProfileModalOpen && (
         <UserProfileModal 
+          user={currentUser}
           onClose={() => setIsProfileModalOpen(false)}
+          onUpdate={(newData) => {
+            const updatedUser = { ...currentUser, ...newData };
+            setCurrentUser(updatedUser);
+            // Sync with mockUsers
+            const index = mockUsers.findIndex((u: any) => u.id === currentUser.id);
+            if (index > -1) {
+              mockUsers[index] = { ...mockUsers[index], ...newData };
+            }
+          }}
         />
       )}
       <GuidedTour 

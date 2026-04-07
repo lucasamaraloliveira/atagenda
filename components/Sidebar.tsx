@@ -211,7 +211,11 @@ export default function Sidebar({
                 )}
               >
                 <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold shrink-0 shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img 
+                    src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5`} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                  />
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <p className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm leading-tight">{user?.name || 'Usuário'}</p>
@@ -229,7 +233,11 @@ export default function Sidebar({
                   isUserMenuOpen ? "bg-indigo-600 border-indigo-600 dark:border-indigo-500 text-white" : "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-100 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
                 )}
               >
-                <img src="https://ui-avatars.com/api/?name=Lucas+Silva&background=EEF2FF&color=4F46E5" alt="Avatar" className="w-full h-full object-cover" />
+                <img 
+                  src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5`} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover" 
+                />
               </button>
             </div>
           )}

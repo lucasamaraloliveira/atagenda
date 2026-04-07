@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Camera, 
@@ -17,19 +17,36 @@ import { toast } from 'react-toastify';
 
 interface UserProfileModalProps {
   onClose: () => void;
+  onUpdate: (data: any) => void;
+  user: any;
 }
 
-export default function UserProfileModal({ onClose }: UserProfileModalProps) {
+export default function UserProfileModal({ onClose, onUpdate, user }: UserProfileModalProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
-    name: 'Lucas Silva',
-    email: 'lucas.silva@atagenda.com',
+    name: user?.name || 'Lucas Silva',
+    email: user?.email || 'lucas.silva@atagenda.com',
     currentPassword: '',
-    newPassword: ''
+    newPassword: '',
+    avatar: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5&size=128`
   });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, avatar: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    onUpdate({ name: formData.name, avatar: formData.avatar });
     toast.success('Perfil atualizado com sucesso!');
     onClose();
   };
@@ -60,24 +77,31 @@ export default function UserProfileModal({ onClose }: UserProfileModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 sm:p-6 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto custom-scrollbar">
-          {/* Avatar Change */}
           <div className="flex flex-col items-center gap-3 sm:gap-4">
             <div className="relative group">
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden group-hover:brightness-90 transition-all">
                 <img 
-                  src="https://ui-avatars.com/api/?name=Lucas+Silva&background=EEF2FF&color=4F46E5&size=128" 
+                  src={formData.avatar} 
                   alt="Avatar" 
                   className="w-full h-full object-cover"
                 />
               </div>
               <button 
                 type="button"
+                onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 text-white rounded-xl sm:rounded-2xl border-4 border-white dark:border-slate-800 flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95"
               >
                 <Camera size={16} className="sm:w-[18px] sm:h-[18px]" />
               </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleAvatarChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
             </div>
-            <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full">Administrador</p>
+            <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full">{user?.profile || 'Administrador'}</p>
           </div>
 
           <div className="space-y-4">
