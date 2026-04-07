@@ -35,6 +35,13 @@ export default function Home() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [isEmailInUse, setIsEmailInUse] = useState(false);
+  
+  // Debug log for users
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('📝 Usuários Registrados:', mockUsers.map(u => u.email));
+    }
+  }, []);
 
   const handleNewAppointment = (date?: string, time?: string, doctorId?: string, unitId?: string) => {
     setAppointmentData(date && time ? { date, time, doctorId, unitId } : null);
@@ -78,7 +85,7 @@ export default function Home() {
     } else {
       // Autenticação contra mockUsers
       const user = (mockUsers || []).find(
-        (u: any) => u.email === loginForm.email && u.password === loginForm.password
+        (u: any) => u.email.toLowerCase() === loginForm.email.toLowerCase() && u.password === loginForm.password
       );
 
       if (user) {
