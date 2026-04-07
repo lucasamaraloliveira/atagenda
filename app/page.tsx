@@ -32,6 +32,7 @@ export default function Home() {
   const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string, unitId?: string } | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   
   // Login/Register State
   const [isRegistering, setIsRegistering] = useState(false);
@@ -45,33 +46,69 @@ export default function Home() {
 
   // Persistence Check & Auth State Change Listener
   React.useEffect(() => {
-    // 1. Check current session
-    supabaseService.getCurrentUser().then(async (user) => {
-      if (user) {
-        const profile = await supabaseService.getUserProfile(user.id);
-        if (profile) {
-          setCurrentUser(profile);
-          setIsLoggedIn(true);
-        }
-      }
-    });
+    let mounted = true;
 
-    // 2. Listen for auth changes (Confirmation Emails, Logouts, etc)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const profile = await supabaseService.getUserProfile(session.user.id);
-        if (profile) {
-          setCurrentUser(profile);
-          setIsLoggedIn(true);
+    const initAuth = async () => {
+      try {
+        const user = await supabaseService.getCurrentUser();
+        if (user && mounted) {
+          let profile = await supabaseService.getUserProfile(user.id);
+          
+          if (!profile) {
+             // Fala-safe: cria perfil se não existir
+             profile = await supabaseService.createProfile({
+                id: user.id,
+                name: user.email?.split('@')[0] || 'Usuário',
+                email: user.email || '',
+                profile: 'Administrador',
+                permissions: ['Total']
+             });
+          }
+
+          if (profile && mounted) {
+            setCurrentUser(profile);
+            setIsLoggedIn(true);
+          }
         }
+      } catch (err) {
+        console.error('Erro na inicialização do Auth:', err);
+      } finally {
+        if (mounted) setAuthLoading(false);
       }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        let profile = await supabaseService.getUserProfile(session.user.id);
+        if (!profile) {
+          profile = await supabaseService.createProfile({
+            id: session.user.id,
+            name: session.user.email?.split('@')[0] || 'Usuário',
+            email: session.user.email || '',
+            profile: 'Administrador',
+            permissions: ['Total']
+          });
+        }
+        setCurrentUser(profile);
+        setIsLoggedIn(true);
+        setAuthLoading(false);
+      }
+      
       if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setAuthLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -149,6 +186,15 @@ export default function Home() {
       }
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-slate-500 animate-pulse font-medium">Validando acesso...</p>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
