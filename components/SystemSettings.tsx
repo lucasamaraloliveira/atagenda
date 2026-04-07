@@ -46,87 +46,139 @@ import {
 import { format, differenceInMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, normalizeString } from '@/lib/utils';
-import { mockUnits, mockAppointments, mockScheduleConfigs, mockScheduleBlocks, mockPatients, mockProcedures, mockSystemSettings, mockDoctors, mockInsurances } from '@/lib/mockData';
+import { 
+  mockUnits as _mockUnits, 
+  mockAppointments as _mockAppointments, 
+  mockScheduleConfigs as _mockScheduleConfigs, 
+  mockScheduleBlocks as _mockScheduleBlocks, 
+  mockPatients as _mockPatients, 
+  mockProcedures as _mockProcedures, 
+  mockSystemSettings as _mockSystemSettings, 
+  mockDoctors as _mockDoctors, 
+  mockInsurances as _mockInsurances,
+  mockUsers as _mockUsers
+} from '@/lib/mockData';
+import { firebaseService } from '@/lib/firebaseService';
 import { View } from '@/lib/types';
 import { toast } from 'react-toastify';
 import ImportProceduresModal from './ImportProceduresModal';
 import ImportInsurancesModal from './ImportInsurancesModal';
 import CustomSelect from './CustomSelect';
-import { mockUsers } from '@/lib/mockData';
 
 type SettingTab = 'perfis' | 'convenios' | 'procedimentos' | 'parametros' | 'mala-direta' | 'campanha';
 
 export default function SystemSettings({ searchQuery = '', setView }: { searchQuery?: string, setView?: (view: View) => void }) {
   const [activeTab, setActiveTab] = useState<SettingTab>('parametros');
   
-  // Persistent state for modules
-  const [procedures, setProcedures] = useState<any[]>([...mockProcedures]);
-  const [globalSettings, setGlobalSettings] = useState({
-    ...JSON.parse(JSON.stringify(mockSystemSettings)),
-    unidades: [...mockUnits]
-  });
-  const [insurances, setInsurances] = useState([...mockInsurances]);
+  const [procedures, setProcedures] = useState<any[]>([]);
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [insurances, setInsurances] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleProceduresSave = (data: any, editingProcedure?: any) => {
-    if (editingProcedure) {
-      const newProcedures = procedures.map(p => p.id === editingProcedure.id ? { ...p, ...data } : p);
-      setProcedures(newProcedures);
-      // Synchronize with mockData
-      mockProcedures.length = 0;
-      mockProcedures.push(...newProcedures);
-      toast.success('Procedimento atualizado!');
-    } else {
-      const newProcedure = { id: Date.now().toString(), ...data };
-      const newProcedures = [...procedures, newProcedure];
-      setProcedures(newProcedures);
-      // Synchronize with mockData
-      mockProcedures.length = 0;
-      mockProcedures.push(...newProcedures);
-      toast.success('Procedimento criado!');
+  // Initial Data Load from Firebase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [proc, settings, ins, uList] = await Promise.all([
+          firebaseService.getProcedures(),
+          firebaseService.getSystemSettings(),
+          firebaseService.getInsurances(),
+          firebaseService.getUnits()
+        ]);
+
+        setProcedures(proc.length > 0 ? proc : _mockProcedures);
+        setInsurances(ins.length > 0 ? ins : _mockInsurances);
+        
+        const initialSettings = settings || JSON.parse(JSON.stringify(_mockSystemSettings));
+        setGlobalSettings({
+          ...initialSettings,
+          unidades: uList.length > 0 ? uList : _mockUnits
+        });
+      } catch (err) {
+        console.warn('Failed to load from Firebase, using mock data:', err);
+        setProcedures(_mockProcedures);
+        setInsurances(_mockInsurances);
+        setGlobalSettings({
+          ...JSON.parse(JSON.stringify(_mockSystemSettings)),
+          unidades: _mockUnits
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [refreshKey]);
+
+  const handleProceduresSave = async (data: any, editingProcedure?: any) => {
+    try {
+      if (editingProcedure) {
+        await firebaseService.updateProcedure(editingProcedure.id, data);
+        toast.success('Procedimento atualizado no Firebase!');
+      } else {
+        await firebaseService.createProcedure(data);
+        toast.success('Procedimento criado no Firebase!');
+      }
+      setRefreshKey(prev => prev + 1);
+    } catch (e) {
+      toast.error('Erro ao salvar no Firebase.');
     }
   };
 
-  const handleProceduresDelete = (itemToRemove: any) => {
-    const newProcedures = procedures.filter(p => p.id !== itemToRemove.id);
-    setProcedures(newProcedures);
-    mockProcedures.length = 0;
-    mockProcedures.push(...newProcedures);
-  };
-
-  const handleImportProcedures = (imported: any[]) => {
-    const newProcedures = [...procedures, ...imported];
-    setProcedures(newProcedures);
-    mockProcedures.length = 0;
-    mockProcedures.push(...newProcedures);
-  };
-
-  const handleImportInsurances = (imported: any[]) => {
-    const newInsurances = [...insurances, ...imported];
-    setInsurances(newInsurances);
-    mockInsurances.length = 0;
-    mockInsurances.push(...newInsurances);
-  };
-
-  const handleInsurancesSave = (data: any, editingInsurance?: any) => {
-    let newInsurances;
-    if (editingInsurance) {
-      newInsurances = insurances.map(i => i.id === editingInsurance.id ? { ...i, ...data } : i);
-      toast.success('Convênio atualizado!');
-    } else {
-      const newInsurance = { id: Date.now(), ...data, patients: 0 };
-      newInsurances = [...insurances, newInsurance];
-      toast.success('Convênio criado com sucesso!');
+  const handleProceduresDelete = async (itemToRemove: any) => {
+    try {
+      await firebaseService.deleteProcedure(itemToRemove.id);
+      setRefreshKey(prev => prev + 1);
+      toast.info('Procedimento removido.');
+    } catch (e) {
+      toast.error('Erro ao excluir.');
     }
-    setInsurances(newInsurances);
-    mockInsurances.length = 0;
-    mockInsurances.push(...newInsurances);
   };
 
-  const handleInsurancesDelete = (itemToRemove: any) => {
-    const newInsurances = insurances.filter(i => i.id !== itemToRemove.id);
-    setInsurances(newInsurances);
-    mockInsurances.length = 0;
-    mockInsurances.push(...newInsurances);
+  const handleImportProcedures = async (imported: any[]) => {
+    try {
+      await Promise.all(imported.map(p => firebaseService.createProcedure(p)));
+      setRefreshKey(prev => prev + 1);
+      toast.success('Procedimentos importados no Firebase!');
+    } catch (e) {
+      toast.error('Erro ao importar.');
+    }
+  };
+
+  const handleImportInsurances = async (imported: any[]) => {
+    try {
+      await Promise.all(imported.map(i => firebaseService.createInsurance(i)));
+      setRefreshKey(prev => prev + 1);
+      toast.success('Convênios importados no Firebase!');
+    } catch (e) {
+      toast.error('Erro ao importar.');
+    }
+  };
+
+  const handleInsurancesSave = async (data: any, editingInsurance?: any) => {
+    try {
+      if (editingInsurance) {
+        await firebaseService.updateInsurance(editingInsurance.id, data);
+        toast.success('Convênio atualizado!');
+      } else {
+        await firebaseService.createInsurance({ ...data, patients: 0 });
+        toast.success('Convênio criado!');
+      }
+      setRefreshKey(prev => prev + 1);
+    } catch (e) {
+      toast.error('Erro ao salvar no Firebase.');
+    }
+  };
+
+  const handleInsurancesDelete = async (itemToRemove: any) => {
+    try {
+      await firebaseService.deleteInsurance(itemToRemove.id);
+      setRefreshKey(prev => prev + 1);
+      toast.info('Convênio removido.');
+    } catch (e) {
+      toast.error('Erro ao excluir.');
+    }
   };
 
   const tabs: { id: SettingTab; label: string; icon: any }[] = [
@@ -1498,7 +1550,7 @@ function SystemParameters({
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [selectedProfile, setSelectedProfile] = useState<string>('Recepção');
-  const [users, setUsers] = useState<any[]>(mockUsers);
+  const [users, setUsers] = useState<any[]>(_mockUsers);
 
   useEffect(() => {
     if (editingUser) {
@@ -1522,13 +1574,13 @@ function SystemParameters({
   const handleSave = () => {
     // Persist to mockData (simulation of backend save)
     if (settings.unidades) {
-      mockUnits.length = 0;
-      mockUnits.push(...settings.unidades);
+      _mockUnits.length = 0;
+      _mockUnits.push(...settings.unidades);
     }
     
-    // Persist all other settings to mockSystemSettings
-    Object.keys(mockSystemSettings).forEach(key => {
-      (mockSystemSettings as any)[key] = JSON.parse(JSON.stringify(settings[key as keyof typeof mockSystemSettings]));
+    // Persist all other settings to _mockSystemSettings
+    Object.keys(_mockSystemSettings).forEach(key => {
+      (_mockSystemSettings as any)[key] = JSON.parse(JSON.stringify(settings[key as keyof typeof _mockSystemSettings]));
     });
     
     toast.success('Parâmetros salvos com sucesso!');
@@ -1571,7 +1623,7 @@ function SystemParameters({
     const links = [];
     
     // Check appointments
-    const appointmentsCount = mockAppointments.filter(app => app.unitId === unitId).length;
+    const appointmentsCount = _mockAppointments.filter(app => app.unitId === unitId).length;
     if (appointmentsCount > 0) {
       links.push({
         type: 'Agendamentos',
@@ -1583,7 +1635,7 @@ function SystemParameters({
     }
 
     // Check schedule configs (grades)
-    const schedulesCount = mockScheduleConfigs.filter(conf => conf.unitId === unitId).length;
+    const schedulesCount = _mockScheduleConfigs.filter(conf => conf.unitId === unitId).length;
     if (schedulesCount > 0) {
       links.push({
         type: 'Grades de Horários',
@@ -1595,7 +1647,7 @@ function SystemParameters({
     }
 
     // Check blocks
-    const blocksCount = mockScheduleBlocks.filter(block => block.unitId === unitId).length;
+    const blocksCount = _mockScheduleBlocks.filter(block => block.unitId === unitId).length;
     if (blocksCount > 0) {
       links.push({
         type: 'Bloqueios de Agenda',
@@ -1702,10 +1754,10 @@ function SystemParameters({
                     <button 
                       className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                       onClick={() => {
-                        const index = mockUsers.findIndex((u: any) => u.id === admin.id);
+                        const index = _mockUsers.findIndex((u: any) => u.id === admin.id);
                         if (index > -1) {
-                            mockUsers.splice(index, 1);
-                            setUsers([...mockUsers]);
+                            _mockUsers.splice(index, 1);
+                            setUsers([..._mockUsers]);
                         }
                         toast.info('Acesso removido.');
                       }}
@@ -1733,13 +1785,13 @@ function SystemParameters({
                       email: formData.get('email') as string,
                       profile: selectedProfile,
                       allowedUnits: formData.get('allowedUnits') as string,
-                      parentEmail: (mockSystemSettings.geral as any).ownerEmail || 'admin@atagenda.com',
+                      parentEmail: (_mockSystemSettings.geral as any).ownerEmail || 'admin@atagenda.com',
                       active: true
                     };
 
                     const emailToVerify = formData.get('email') as string;
                     if (!editingUser || (editingUser && editingUser.email !== emailToVerify)) {
-                        const emailExists = mockUsers.some((u: any) => u.email === emailToVerify);
+                        const emailExists = _mockUsers.some((u: any) => u.email === emailToVerify);
                         if (emailExists) {
                             toast.error('Este e-mail já está vinculado a outro profissional!');
                             return;
@@ -1747,14 +1799,14 @@ function SystemParameters({
                     }
                     
                     if (editingUser) {
-                      const index = mockUsers.findIndex((u: any) => u.id === editingUser.id);
+                      const index = _mockUsers.findIndex((u: any) => u.id === editingUser.id);
                       if (index > -1) {
-                        mockUsers[index] = { ...userData, password: editingUser.password };
-                        setUsers([...mockUsers]);
+                        _mockUsers[index] = { ...userData, password: editingUser.password };
+                        setUsers([..._mockUsers]);
                       }
                     } else {
-                      mockUsers.push({ ...userData, password: formData.get('password') as string });
-                      setUsers([...mockUsers]);
+                      _mockUsers.push({ ...userData, password: formData.get('password') as string });
+                      setUsers([..._mockUsers]);
                     }
                     
                     setIsAddingUser(false);
@@ -2673,7 +2725,7 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
 }
 
 function MalaDireta({ searchQuery }: { searchQuery: string }) {
-  const filteredPatients = mockPatients.filter(p => {
+  const filteredPatients = _mockPatients.filter(p => {
     const search = normalizeString(searchQuery);
     return normalizeString(p.name).includes(search);
   });
@@ -2836,25 +2888,25 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
     
     switch (audience.type) {
       case 'birthday':
-        return mockPatients.filter(p => {
+        return _mockPatients.filter(p => {
           const birthDate = new Date(p.birthDate);
           return birthDate.getMonth() === today.getMonth();
         });
       case 'inactive':
         const months = audience.months || 6;
-        return mockPatients.filter(p => {
-          const patientApps = mockAppointments.filter(app => app.patientId === p.id);
+        return _mockPatients.filter(p => {
+          const patientApps = _mockAppointments.filter(app => app.patientId === p.id);
           if (patientApps.length === 0) return true;
           const lastApp = [...patientApps].sort((a,b) => b.date.localeCompare(a.date))[0];
           const lastDate = new Date(lastApp.date);
           return differenceInMonths(today, lastDate) >= months;
         });
       case 'insurance':
-        return mockPatients.filter(p => {
-          return mockAppointments.some(app => app.patientId === p.id && app.insurance === audience.insuranceName);
+        return _mockPatients.filter(p => {
+          return _mockAppointments.some(app => app.patientId === p.id && app.insurance === audience.insuranceName);
         });
       default:
-        return mockPatients;
+        return _mockPatients;
     }
   };
 
@@ -3209,7 +3261,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
     name: audienceToEdit?.name || '',
     type: audienceToEdit?.type || 'inactive',
     months: audienceToEdit?.months || 12,
-    insuranceName: audienceToEdit?.insuranceName || mockInsurances[0]?.name || ''
+    insuranceName: audienceToEdit?.insuranceName || _mockInsurances[0]?.name || ''
   });
 
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
@@ -3332,7 +3384,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                     />
                     <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
                       <div className="max-h-60 overflow-y-auto p-1">
-                        {mockInsurances.map((ins) => (
+                        {_mockInsurances.map((ins) => (
                           <button
                             key={ins.id}
                             type="button"

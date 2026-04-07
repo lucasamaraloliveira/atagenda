@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, UserRound, Stethoscope, RotateCcw, LayoutGrid, List, ChevronUp, ChevronDown, Settings, Upload, Info, FileDown, X, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mockDoctors, mockAppointments, mockScheduleConfigs, mockScheduleBlocks } from '@/lib/mockData';
+import { mockDoctors as _mockDoctors, mockAppointments, mockScheduleConfigs, mockScheduleBlocks } from '@/lib/mockData';
+import { firebaseService } from '@/lib/firebaseService';
 import { cn, normalizeString } from '@/lib/utils';
 import { Doctor } from '@/lib/types';
 import DoctorScheduleModal from './DoctorScheduleModal';
@@ -14,12 +15,31 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
   const [selectedDoctorForSchedule, setSelectedDoctorForSchedule] = useState<Doctor | null>(null);
   const [selectedDoctorForForm, setSelectedDoctorForForm] = useState<Doctor | null | 'new'>(null);
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Doctor; direction: 'asc' | 'desc' } | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Load doctors from Firebase
+  React.useEffect(() => {
+    async function loadDoctors() {
+      try {
+        setLoading(true);
+        const data = await firebaseService.getDoctors();
+        setDoctors(data.length > 0 ? data : _mockDoctors);
+      } catch (err) {
+        console.warn('Failed to load doctors from Firebase:', err);
+        setDoctors(_mockDoctors);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDoctors();
+  }, [refreshKey]);
 
   const handleSort = (key: keyof Doctor) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -29,7 +49,7 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
     setSortConfig({ key, direction });
   };
   
-  const filteredDoctors = mockDoctors.filter(d => {
+  const filteredDoctors = doctors.filter(d => {
     const search = normalizeString(searchQuery);
     return normalizeString(d.name).includes(search) ||
            d.crm.includes(searchQuery) ||
@@ -53,80 +73,40 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const handleSaveDoctor = (doctorData: Doctor) => {
-    const index = mockDoctors.findIndex(d => d.id === doctorData.id);
-    if (index >= 0) {
-      mockDoctors[index] = doctorData;
-      toast.success('Informações do médico atualizadas!');
-    } else {
-      mockDoctors.push(doctorData);
-      toast.success('Novo médico cadastrado com sucesso!');
+  const handleSaveDoctor = async (doctorData: Doctor) => {
+    try {
+      const index = doctors.findIndex(d => d.id === doctorData.id);
+      if (index >= 0) {
+        await firebaseService.updateDoctor(doctorData.id, doctorData);
+        toast.success('Informações do médico atualizadas!');
+      } else {
+        await firebaseService.createDoctor(doctorData as any);
+        toast.success('Novo médico cadastrado com sucesso!');
+      }
+      setRefreshKey(prev => prev + 1);
+    } catch (err: any) {
+      toast.error(`Falha ao salvar: ${err.message}`);
     }
     setSelectedDoctorForForm(null);
-    setRefreshKey(prev => prev + 1);
   };
 
   const handleImportDoctors = (importedDoctors: Doctor[]) => {
-    mockDoctors.push(...importedDoctors);
+    _mockDoctors.push(...importedDoctors);
     setRefreshKey(prev => prev + 1);
   };
 
-  const handleDeleteDoctor = () => {
+  const handleDeleteDoctor = async () => {
     if (!doctorToDelete) return;
     
-    // Capture data for undo
-    const doctor = { ...doctorToDelete };
-    const appointments = mockAppointments.filter(app => app.doctorId === doctor.id);
-    const config = mockScheduleConfigs.find(c => c.doctorId === doctor.id);
-    const blocks = mockScheduleBlocks.filter(b => b.doctorId === doctor.id);
-
-    // 1. Remove from mockDoctors
-    const docIndex = mockDoctors.findIndex(d => d.id === doctor.id);
-    if (docIndex >= 0) mockDoctors.splice(docIndex, 1);
-    
-    // 2. Remove Appointments
-    for (let i = mockAppointments.length - 1; i >= 0; i--) {
-      if (mockAppointments[i].doctorId === doctor.id) {
-        mockAppointments.splice(i, 1);
-      }
+    try {
+        await firebaseService.deleteDoctor(doctorToDelete.id);
+        toast.success('Médico removido com sucesso!');
+        setRefreshKey(prev => prev + 1);
+    } catch (err) {
+        toast.error('Erro ao excluir médico no banco.');
+    } finally {
+        setDoctorToDelete(null);
     }
-    
-    // 3. Remove ScheduleConfigs
-    const configIndex = mockScheduleConfigs.findIndex(c => c.doctorId === doctor.id);
-    if (configIndex >= 0) mockScheduleConfigs.splice(configIndex, 1);
-    
-    // 4. Remove ScheduleBlocks
-    for (let i = mockScheduleBlocks.length - 1; i >= 0; i--) {
-      if (mockScheduleBlocks[i].doctorId === doctor.id) {
-        mockScheduleBlocks.splice(i, 1);
-      }
-    }
-    
-    toast.success(
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="font-bold">Médico removido</p>
-          <p className="text-[10px] opacity-80">{doctor.name} e dados vinculados foram excluídos.</p>
-        </div>
-        <button 
-          onClick={() => {
-            mockDoctors.push(doctor);
-            mockAppointments.push(...appointments);
-            if (config) mockScheduleConfigs.push(config);
-            mockScheduleBlocks.push(...blocks);
-            setRefreshKey(prev => prev + 1);
-            toast.info('Exclusão desfeita com sucesso!');
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-indigo-600 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50 transition-colors shrink-0"
-        >
-          <RotateCcw size={14} /> Desfazer
-        </button>
-      </div>,
-      { autoClose: 8000 }
-    );
-
-    setDoctorToDelete(null);
-    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -401,7 +381,7 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
         <ImportDoctorsModal 
           onClose={() => setShowImportModal(false)}
           onImport={handleImportDoctors}
-          existingDoctors={mockDoctors}
+          existingDoctors={_mockDoctors}
         />
       )}
 

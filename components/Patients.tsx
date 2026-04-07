@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { mockPatients as _mockPatients, mockAppointments as _mockAppointments } from '@/lib/mockData';
-import { supabaseService } from '@/lib/supabaseService';
+import { firebaseService } from '@/lib/firebaseService';
 import { cn, normalizeString } from '@/lib/utils';
 import { Patient } from '@/lib/types';
 import PatientFormModal from './PatientFormModal';
@@ -24,15 +24,15 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Load patients from Supabase
+  // Load patients from Firebase Firestore
   React.useEffect(() => {
     async function loadPatients() {
       try {
         setLoading(true);
-        const data = await supabaseService.getPatients();
+        const data = await firebaseService.getPatients();
         setPatients(data.length > 0 ? data : _mockPatients);
       } catch (err) {
-        console.warn('Failed to load patients from Supabase:', err);
+        console.warn('Failed to load patients from Firebase:', err);
         setPatients(_mockPatients);
       } finally {
         setLoading(false);
@@ -89,22 +89,22 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
     const index = currentPatients.findIndex(p => p.id === patientData.id);
     if (index >= 0) {
-      // Update logic could call Supabase here
-      toast.success('Dados do paciente atualizados (Simulação)!');
+      // Update logic Firebase
+      firebaseService.updatePatient(patientData.id, patientData)
+        .then(() => {
+          toast.success('Paciente atualizado com sucesso!');
+          setRefreshKey(prev => prev + 1);
+        })
+        .catch(err => toast.error('Erro ao atualizar paciente.'));
     } else {
-      supabaseService.createPatient(patientData as any)
+      firebaseService.createPatient(patientData as any)
         .then(() => {
             toast.success('Paciente salvo com sucesso!');
             setRefreshKey(prev => prev + 1);
         })
         .catch((err) => {
-            console.error('Erro detalhado Supabase (Patient):', err);
-            const msg = err.message || 'Erro de conexão';
-            if (msg.includes('duplicate key')) {
-              toast.error('Erro: CPF ou Número de Prontuário já cadastrado.');
-            } else {
-              toast.error(`Falha ao salvar: ${msg}`);
-            }
+            console.error('Erro detalhado Firebase (Patient):', err);
+            toast.error(`Falha ao salvar: ${err.message}`);
         });
     }
     setSelectedPatientForForm(null);
@@ -121,8 +121,8 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     const patient = { ...patientToDelete };
     
     try {
-        // 1. Exclusão no Supabase
-        await supabaseService.deletePatient(patient.id);
+        // 1. Exclusão no Firebase
+        await firebaseService.deletePatient(patient.id);
         
         toast.success(
             <div className="flex items-center justify-between gap-4">
@@ -133,7 +133,7 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                 <button 
                     onClick={async () => {
                         try {
-                            await supabaseService.createPatient(patient as any);
+                            await firebaseService.createPatient(patient as any);
                             setRefreshKey(prev => prev + 1);
                             toast.info('Paciente restaurado com sucesso!');
                         } catch (e) {
@@ -149,11 +149,11 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         );
 
     } catch (err) {
-        // Fallback para Mock se a exclusão no Supabase falhar ou for mock ID
+        // Fallback para Mock se a exclusão no Firebase falhar
         const pIndex = _mockPatients.findIndex(p => p.id === patient.id);
         if (pIndex >= 0) {
             _mockPatients.splice(pIndex, 1);
-            toast.success('Mock removido (Sem conexão com Supabase)');
+            toast.success('Mock removido (Sem conexão com Firebase)');
         } else {
             toast.error('Erro ao excluir paciente no banco.');
         }

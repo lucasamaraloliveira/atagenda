@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import Agenda from '@/components/Agenda';
@@ -13,10 +13,15 @@ import Reports from '@/components/Reports';
 import UserProfileModal from '@/components/UserProfileModal';
 import GuidedTour from '@/components/GuidedTour';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { View } from '@/lib/types';
-import { mockSystemSettings } from '@/lib/mockData';
-import { supabase } from '@/lib/supabase';
-import { supabaseService } from '@/lib/supabaseService';
+import { View, Profile } from '@/lib/types';
+import { auth } from '@/lib/firebase';
+import { firebaseService } from '@/lib/firebaseService';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, User, LogIn, AlertTriangle } from 'lucide-react';
@@ -31,9 +36,9 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string, unitId?: string } | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  
+
   // Login/Register State
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
@@ -44,75 +49,34 @@ export default function Home() {
     setCurrentView('novo-agendamento');
   };
 
-  // Persistence Check & Auth State Change Listener
-  React.useEffect(() => {
+  // Auth State Change Listener
+  useEffect(() => {
     let mounted = true;
-
-    const initAuth = async () => {
-      // Timeout de segurança: 3 segundos para não travar o usuário
-      const timeout = setTimeout(() => {
-        if (mounted) setAuthLoading(false);
-      }, 3000);
-
-      try {
-        const user = await supabaseService.getCurrentUser();
-        if (user && mounted) {
-          let profile = await supabaseService.getUserProfile(user.id);
-          
-          if (!profile) {
-             profile = await supabaseService.createProfile({
-                id: user.id,
-                name: user.email?.split('@')[0] || 'Usuário',
-                email: user.email || '',
-                profile: 'Administrador',
-                permissions: ['Total']
-             });
-          }
-
-          if (profile && mounted) {
-            setCurrentUser(profile);
-            setIsLoggedIn(true);
-          }
-        }
-      } catch (err) {
-        console.error('Erro na inicialização do Auth:', err);
-      } finally {
-        clearTimeout(timeout);
-        if (mounted) setAuthLoading(false);
-      }
-    };
-
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        let profile = await supabaseService.getUserProfile(session.user.id);
+      if (user) {
+        let profile = await firebaseService.getUserProfile(user.uid);
         if (!profile) {
-          profile = await supabaseService.createProfile({
-            id: session.user.id,
-            name: session.user.email?.split('@')[0] || 'Usuário',
-            email: session.user.email || '',
-            profile: 'Administrador',
-            permissions: ['Total']
-          });
+           profile = await firebaseService.createProfile({
+              id: user.uid,
+              name: user.displayName || user.email?.split('@')[0] || 'Usuário',
+              email: user.email || '',
+              profile: 'Administrador',
+              active: true,
+              permissions: ['Total']
+           });
         }
         setCurrentUser(profile);
         setIsLoggedIn(true);
-        setAuthLoading(false);
-      }
-      
-      if (event === 'SIGNED_OUT') {
+      } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
-        setAuthLoading(false);
       }
+      setAuthLoading(false);
     });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -121,305 +85,73 @@ export default function Home() {
     const emailInput = loginForm.email?.trim().toLowerCase();
     const passwordInput = loginForm.password;
 
-    console.log('🔍 Tentativa de Login/Cadastro:', { email: emailInput, hasPassword: !!passwordInput });
-
     if (!emailInput || !passwordInput) {
       toast.error('Informe e-mail e senha!');
       return;
     }
 
-    if (isRegistering) {
-      if (passwordInput !== loginForm.confirmPassword) {
-        toast.error('As senhas não coincidem!');
-        return;
-      }
-      
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: emailInput,
-          password: passwordInput,
-        });
-
-        if (authError) throw authError;
-
-        if (authData.user) {
-          await supabaseService.createProfile({
-            id: authData.user.id,
+    try {
+      if (isRegistering) {
+        if (passwordInput !== loginForm.confirmPassword) {
+          toast.error('As senhas não coincidem!');
+          return;
+        }
+        const { user } = await createUserWithEmailAndPassword(auth, emailInput, passwordInput);
+        if (user) {
+          const newProfile: Profile = {
+            id: user.uid,
             name: loginForm.username || 'Admin',
             email: emailInput,
             profile: 'Administrador',
+            active: true,
             permissions: ['Total']
-          });
-          
-          toast.success('Cadastro realizado! Verifique seu e-mail ou faça login.');
+          };
+          await firebaseService.createProfile(newProfile);
+          toast.success('Cadastro realizado com sucesso!');
           setIsRegistering(false);
         }
-      } catch (err: any) {
-        toast.error(err.message || 'Erro ao realizar cadastro.');
-      }
-    } else {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailInput,
-          password: passwordInput,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-          const profile = await supabaseService.getUserProfile(data.user.id);
+      } else {
+        const { user } = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+        if (user) {
+          const profile = await firebaseService.getUserProfile(user.uid);
           if (profile) {
             setCurrentUser(profile);
             setIsLoggedIn(true);
             toast.success(`Bem-vindo, ${profile.name}!`);
-          } else {
-            // Se o perfil não existir por algum motivo, cria um básico
-            const newProfile = await supabaseService.createProfile({
-               id: data.user.id,
-               name: data.user.email?.split('@')[0] || 'Usuário',
-               email: data.user.email || '',
-               profile: 'Administrador',
-               permissions: ['Total']
-            });
-            setCurrentUser(newProfile);
-            setIsLoggedIn(true);
-            toast.success('Perfil criado e acesso liberado!');
           }
         }
-      } catch (err: any) {
-        toast.error(err.message || 'E-mail ou senha incorretos.');
+      }
+    } catch (err: any) {
+      toast.error(err.code === 'auth/email-already-in-use' ? 'E-mail em uso!' : 'Erro na autenticação.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { profile } = await firebaseService.signInWithGoogle();
+      if (profile) {
+        setCurrentUser(profile);
+        setIsLoggedIn(true);
+        toast.success(`Bem-vindo, ${profile.name}!`);
+      }
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Erro ao entrar com Google.');
       }
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-slate-500 animate-pulse font-medium">Validando acesso...</p>
-      </div>
-    );
-  }
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex lg:grid lg:grid-cols-2 items-center justify-center transition-colors font-sans overflow-hidden">
-        <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[60]">
-          <ThemeToggle />
-        </div>
-        
-        {/* Left Side - Visual (Desktop Only) */}
-        <div className="hidden lg:flex flex-col items-center justify-center bg-indigo-600 h-full p-8 xl:p-12 text-white relative overflow-hidden">
-             {/* Decorative circles */}
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl" />
-            
-            <div className="relative z-10 max-w-sm xl:max-w-md text-center">
-                <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="w-20 h-20 xl:w-24 xl:h-24 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6 xl:mb-8 backdrop-blur-xl border border-white/30"
-                >
-                    <Lock size={40} className="xl:w-12 xl:h-12" />
-                </motion.div>
-                <h1 className="text-4xl xl:text-5xl font-black tracking-tight mb-4">ATAgenda</h1>
-                <p className="text-lg xl:text-xl text-indigo-100 font-medium opacity-90 leading-relaxed">
-                   A plataforma inteligente para gestão de clínicas e centros de imagem.
-                </p>
-                
-                <div className="mt-8 xl:mt-12 grid grid-cols-2 gap-4">
-                    <div className="p-3 xl:p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                        <p className="text-xl xl:text-2xl font-bold">100%</p>
-                        <p className="text-[9px] xl:text-[10px] uppercase font-bold tracking-widest opacity-70">Seguro</p>
-                    </div>
-                    <div className="p-3 xl:p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                        <p className="text-xl xl:text-2xl font-bold">Cloud</p>
-                        <p className="text-[9px] xl:text-[10px] uppercase font-bold tracking-widest opacity-70">Supabase</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div className="w-full flex items-center justify-center p-4 lg:p-6 xl:p-12">
-            <motion.div 
-              layout
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="w-full max-w-[360px] xl:max-w-[420px] bg-white dark:bg-slate-900 rounded-3xl xl:rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden transition-all"
-            >
-              <div className={cn(
-                "text-center bg-indigo-600 lg:bg-transparent lg:text-slate-900 dark:lg:text-white text-white relative overflow-hidden shrink-0 transition-all",
-                isRegistering ? "p-3 xl:p-6" : "p-5 xl:p-8"
-              )}>
-                <div className="lg:hidden">
-                    {!isRegistering && (
-                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2 backdrop-blur-md border border-white/30 relative z-10">
-                            <Lock size={20} />
-                        </div>
-                    )}
-                    <h1 className={cn("font-bold tracking-tight relative z-10", isRegistering ? "text-base" : "text-lg")}>ATAgenda</h1>
-                </div>
-
-                <div className="hidden lg:block text-left">
-                    <h2 className={cn("font-black tracking-tight transition-all", isRegistering ? "text-lg xl:text-2xl" : "text-xl xl:text-2xl")}>
-                        {isRegistering ? 'Nova Conta' : 'Painel de Acesso'}
-                    </h2>
-                    {!isRegistering && (
-                        <p className="hidden xl:block text-slate-500 dark:text-slate-400 text-xs mt-1">Insira suas credenciais.</p>
-                    )}
-                </div>
-              </div>
-              
-              <form onSubmit={handleLogin} className={cn(
-                "p-5 xl:p-8 lg:pt-0 transition-all",
-                isRegistering ? "space-y-2 xl:space-y-4 pt-1" : "space-y-3 xl:space-y-5 pt-2"
-              )}>
-                <div className="space-y-1 text-left">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Usuário</label>
-                  <div className="relative group">
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Nome"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
-                      value={loginForm.username}
-                      onChange={(e) => setLoginForm({...loginForm, username: e.target.value})}
-                    />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={14} />
-                  </div>
-                </div>
-
-                {isRegistering && (
-                  <div className="animate-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-1 text-left">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
-                        <div className="relative group">
-                            <input 
-                            type="email" 
-                            required
-                            placeholder="seu@email.com"
-                            className={cn(
-                              "w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs focus:ring-2 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500",
-                              isEmailInUse 
-                                ? "border-red-500 focus:ring-red-500 ring-red-500/20" 
-                                : "border-slate-200 dark:border-slate-700 focus:ring-indigo-500"
-                            )}
-                            value={loginForm.email}
-                            onChange={(e) => {
-                                const email = e.target.value;
-                                setLoginForm({...loginForm, email});
-                                // A validação em tempo real via Supabase poderia ser feita aqui,
-                                // mas por economia de chamadas, vamos deixar para o momento do submit
-                                // por enquanto desativamos o alerta de 'em uso' imediato via mock
-                                setIsEmailInUse(false);
-                            }}
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                            </div>
-                            {isEmailInUse && (
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 animate-in fade-in zoom-in duration-200">
-                                <AlertTriangle size={14} />
-                              </div>
-                            )}
-                        </div>
-                        {isEmailInUse && (
-                          <p className="text-[10px] text-red-500 font-bold mt-1 ml-1 animate-in slide-in-from-top-1 duration-200">Este e-mail já está em uso!</p>
-                        )}
-                    </div>
-                  </div>
-                )}
-    
-                <div className="space-y-1 text-left">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Senha</label>
-                  <div className="relative group">
-                    <input 
-                      type="password" 
-                      required
-                      placeholder="Senha"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                    />
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={14} />
-                  </div>
-                </div>
-
-                {isRegistering && (
-                  <div className="animate-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-1 text-left">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Confirmar</label>
-                        <div className="relative group">
-                            <input 
-                            type="password" 
-                            required
-                            placeholder="Repita"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
-                            value={loginForm.confirmPassword}
-                            onChange={(e) => setLoginForm({...loginForm, confirmPassword: e.target.value})}
-                            />
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={14} />
-                        </div>
-                    </div>
-                  </div>
-                )}
-    
-                {!isRegistering && (
-                    <div className="flex items-center justify-between px-1">
-                    <label className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer select-none">
-                        <input type="checkbox" className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer" />
-                        Manter conectado
-                    </label>
-                    <button type="button" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">Esqueceu a senha?</button>
-                    </div>
-                )}
-    
-                <button 
-                  type="submit"
-                  className={cn(
-                    "w-full bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-indigo-100 dark:shadow-none",
-                    isRegistering ? "py-2.5" : "py-3 xl:py-4"
-                  )}
-                >
-                  {isRegistering ? (
-                    <>Criar Minha Conta</>
-                  ) : (
-                    <>
-                        <LogIn size={20} />
-                        Entrar no Sistema
-                    </>
-                  )}
-                </button>
-
-                <div className="text-center pt-2">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                        {isRegistering ? 'Já possui uma conta?' : 'Ainda não tem conta?'} 
-                        <button 
-                            type="button"
-                            onClick={() => setIsRegistering(!isRegistering)}
-                            className="ml-2 text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                        >
-                            {isRegistering ? 'Fazer Login' : 'Cadastre-se agora'}
-                        </button>
-                    </p>
-                </div>
-              </form>
-              
-              <div className="p-4 xl:p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-[8px] xl:text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">
-                  © 2026 ALRION TECH • Cloud 1.0
-                </p>
-              </div>
-            </motion.div>
-        </div>
-      </div>
-    );
-  }
-
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     setIsLoggedIn(false);
     toast.info('Sessão encerrada.');
+  };
+
+  const handleProfileUpdate = async (newData: any) => {
+    if (currentUser) {
+      await firebaseService.updateProfile(currentUser.id, newData);
+      setCurrentUser({ ...currentUser, ...newData });
+    }
   };
 
   const renderView = () => {
@@ -448,11 +180,122 @@ export default function Home() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-slate-500 animate-pulse font-medium">Validando acesso...</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex lg:grid lg:grid-cols-2 items-center justify-center transition-colors font-sans overflow-hidden">
+        <div className="fixed top-4 right-4 sm:top-8 sm:right-8 z-[60]">
+          <ThemeToggle />
+        </div>
+
+        <div className="hidden lg:flex flex-col items-center justify-center bg-indigo-600 h-full p-8 text-white relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="relative z-10 max-w-sm text-center">
+            <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-8 backdrop-blur-xl border border-white/30">
+              <Lock size={40} />
+            </div>
+            <h1 className="text-5xl font-black mb-4">ATAgenda</h1>
+            <p className="text-xl text-indigo-100 opacity-90 leading-relaxed">
+              Gestão inteligente para sua clínica.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full flex items-center justify-center p-4">
+          <motion.div layout className="w-full max-w-[400px] bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 dark:border-slate-800">
+            <h2 className="text-2xl font-black mb-6 text-slate-800 dark:text-white text-center">
+              {isRegistering ? 'Nova Conta' : 'Acesso ao Sistema'}
+            </h2>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">E-mail</label>
+                <input
+                  type="email"
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all dark:text-white"
+                  value={loginForm.email}
+                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">Senha</label>
+                <input
+                  type="password"
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all dark:text-white"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                />
+              </div>
+
+              {isRegistering && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1">Confirmar Senha</label>
+                  <input
+                    type="password"
+                    required
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all dark:text-white"
+                    value={loginForm.confirmPassword}
+                    onChange={(e) => setLoginForm({ ...loginForm, confirmPassword: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-[0.98]">
+                {isRegistering ? 'Criar Conta' : 'Entrar'}
+              </button>
+              
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest px-2 bg-white dark:bg-slate-900 text-slate-400">
+                  Ou continue com
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.98] transition-all"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                </svg>
+                Google
+              </button>
+
+              <p className="text-center text-sm text-slate-500 pt-2">
+                {isRegistering ? 'Já tem conta?' : 'Não tem conta?'}
+                <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="ml-1 text-indigo-600 font-bold hover:underline">
+                  {isRegistering ? 'Entrar' : 'Cadastre-se'}
+                </button>
+              </p>
+            </form>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar 
-        currentView={currentView} 
-        setView={setCurrentView} 
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-950 transition-colors">
+      <Sidebar
+        currentView={currentView}
+        setView={setCurrentView}
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
         isCollapsed={sidebarCollapsed}
@@ -461,23 +304,24 @@ export default function Home() {
         onLogout={handleLogout}
         user={currentUser}
       />
-      
+
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header 
-          setSidebarOpen={setSidebarOpen} 
-          title={getViewTitle()} 
+        <Header
+          setSidebarOpen={setSidebarOpen}
+          title={getViewTitle()}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onStartTour={() => setIsTourOpen(true)}
+          user={currentUser}
         />
-        
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
+
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="h-full"
             >
@@ -486,22 +330,17 @@ export default function Home() {
           </AnimatePresence>
         </main>
       </div>
+
       {isProfileModalOpen && (
-        <UserProfileModal 
+        <UserProfileModal
           user={currentUser}
           onClose={() => setIsProfileModalOpen(false)}
-          onUpdate={async (newData) => {
-            const updatedUser = { ...currentUser, ...newData };
-            setCurrentUser(updatedUser);
-            // Sync with Supabase table 'profiles'
-            const { error } = await supabase.from('profiles').update(newData).eq('id', currentUser.id);
-            if (error) toast.error('Erro ao salvar no banco.');
-          }}
+          onUpdate={handleProfileUpdate}
         />
       )}
-      <GuidedTour 
-        isOpen={isTourOpen} 
-        onClose={() => setIsTourOpen(false)} 
+      <GuidedTour
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
         onSetView={setCurrentView}
       />
     </div>

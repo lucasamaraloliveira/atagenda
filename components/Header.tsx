@@ -13,9 +13,10 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onStartTour: () => void;
+  user: any;
 }
 
-export default function Header({ setSidebarOpen, title, searchQuery, setSearchQuery, onStartTour }: HeaderProps) {
+export default function Header({ setSidebarOpen, title, searchQuery, setSearchQuery, onStartTour, user }: HeaderProps) {
   const [showHelpTray, setShowHelpTray] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
 

@@ -2,7 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Plus, Save, X, User, Phone, Stethoscope, ClipboardList, Clock, ChevronDown, UserPlus, LayoutGrid, Calendar, AlertCircle, Check, Trash2, RotateCcw } from 'lucide-react';
-import { mockPatients, mockDoctors, mockAppointments, mockScheduleConfigs, mockProcedures } from '@/lib/mockData';
+import { mockPatients as _mockPatients, mockDoctors as _mockDoctors, mockAppointments as _mockAppointments, mockScheduleConfigs as _mockScheduleConfigs, mockProcedures as _mockProcedures } from '@/lib/mockData';
+import { firebaseService } from '@/lib/firebaseService';
+import { Patient, Doctor, Procedure, ScheduleConfig } from '@/lib/types';
 import CustomSelect from './CustomSelect';
 import { toast } from 'react-toastify';
 import { isTimeOverbook } from './Agenda';
@@ -30,10 +32,33 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     selectedProcedures: [] as any[]
   });
 
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isVerifyingPatient, setIsVerifyingPatient] = useState(false);
   const [showOverbookModal, setShowOverbookModal] = useState<number | null>(null);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [showProcedureDropdown, setShowProcedureDropdown] = useState(false);
+
+  // Load baseline data from Firebase
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [p, d, proc] = await Promise.all([
+          firebaseService.getPatients(),
+          firebaseService.getDoctors(),
+          firebaseService.getProcedures()
+        ]);
+        setPatients(p.length > 0 ? p : _mockPatients);
+        setDoctors(d.length > 0 ? d : _mockDoctors);
+        setProcedures(proc.length > 0 ? proc : _mockProcedures);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const sanitizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -61,140 +86,108 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     }
   }, [formData.patientName]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Find or create patient
-    let patient = mockPatients.find(p => p.name === formData.patientName);
+    try {
+      // 1. Find or create patient in Firebase
+      let patient = patients.find(p => p.name === formData.patientName);
 
-    // If not found by name, check by CPF
-    if (!patient && formData.cpf) {
-      patient = mockPatients.find(p => p.cpf === formData.cpf);
-      if (patient) {
-        toast.warning(`Paciente encontrado pelo CPF: ${patient.name}. Usando cadastro existente.`);
-      }
-    }
-
-    let patientId = patient?.id;
-
-    if (!patientId) {
-      if (formData.cpf) {
-        const existingByCPF = mockPatients.find(p => p.cpf === formData.cpf);
-        if (existingByCPF) {
-          toast.error(`CPF ${formData.cpf} já pertence ao paciente ${existingByCPF.name}. Verifique os dados.`);
-          return;
-        }
+      if (!patient && formData.cpf) {
+        patient = patients.find(p => p.cpf === formData.cpf);
       }
 
-      patientId = Math.random().toString(36).substr(2, 9);
-      const nextRecordNumber = `PR-${(mockPatients.length + 1001).toString()}`;
-      mockPatients.push({
-        id: patientId,
-        recordNumber: nextRecordNumber,
-        name: formData.patientName,
-        cpf: formData.cpf,
-        birthDate: formData.birthDate,
-        gender: '',
-        phone: formData.phone,
-        email: ''
-      });
-    }
-    // List of procedures to schedule
-    const proceduresToSchedule = formData.selectedProcedures.length > 0
-      ? formData.selectedProcedures
-      : (formData.procedure ? [mockProcedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || { name: formData.procedure }] : []);
+      let patientId = patient?.id;
 
-    if (proceduresToSchedule.length === 0) {
-      toast.error('Selecione ao menos um procedimento.');
-      return;
-    }
-
-    // Get scheduling strategy
-    const config = mockScheduleConfigs.find(c => c.doctorId === formData.executingDoctor && c.unitId === formData.unitId);
-    const strategy = config?.multiProcedureStrategy || 'next_minute';
-    const slotDuration = config?.slotDuration || 20;
-    const limit = config?.maxOverbooksPerDay || 0;
-
-    const appDate = parse(formData.date, 'yyyy-MM-dd', new Date());
-    const isInitialTimeOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, formData.time);
-
-    let currentTimeStr = formData.time;
-    const appointmentsToCreate: any[] = [];
-
-    proceduresToSchedule.forEach((proc, index) => {
-      let appointmentTime = currentTimeStr;
-      let finalIsOverbook = false;
-
-      if (index > 0) {
-        if (strategy === 'next_minute') {
-          // Increment 1 minute
-          const [h, m] = appointmentTime.split(':').map(Number);
-          const nextDate = new Date();
-          nextDate.setHours(h, m + 1);
-          appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
-          
-          // Logic: If initial belonged to grid, increments of 1 minute are NOT considered encaixes (user request)
-          // If initial was already an overbook/encaixe, all subsequent are also encaixes
-          finalIsOverbook = isInitialTimeOverbook;
-        } else {
-          // Increment by slot duration
-          const [h, m] = appointmentTime.split(':').map(Number);
-          const nextDate = new Date();
-          nextDate.setHours(h, m + slotDuration);
-          appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
-          
-          // Re-verify if this specific slot is an overbook
-          finalIsOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, appointmentTime);
-        }
-        currentTimeStr = appointmentTime;
-      } else {
-        finalIsOverbook = isInitialTimeOverbook;
+      if (!patientId) {
+        const nextRecordNumber = `PR-${(patients.length + 1001).toString()}`;
+        const newPatient = await firebaseService.createPatient({
+          recordNumber: nextRecordNumber,
+          name: formData.patientName,
+          cpf: formData.cpf,
+          birthDate: formData.birthDate,
+          gender: '',
+          phone: formData.phone,
+          email: ''
+        });
+        patientId = newPatient.id;
       }
 
-      appointmentsToCreate.push({
-        id: Math.random().toString(36).substr(2, 9),
-        patientId,
-        doctorId: formData.executingDoctor,
-        unitId: formData.unitId,
-        date: formData.date,
-        time: appointmentTime,
-        procedure: proc.name,
-        insurance: formData.insurance || 'Particular',
-        status: 'agendado' as const,
-        isOverbook: finalIsOverbook,
-        statusHistory: [
-          {
-            id: Math.random().toString(36).substr(2, 9),
-            status: 'agendado',
-            timestamp: new Date().toISOString(),
-            user: 'Recepcionista: Maria Silva',
-            note: 'Agendamento Criado'
+      // 2. Prepare appointments
+      const proceduresToSchedule = formData.selectedProcedures.length > 0
+        ? formData.selectedProcedures
+        : (formData.procedure ? [procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || { name: formData.procedure }] : []);
+
+      if (proceduresToSchedule.length === 0) {
+        toast.error('Selecione ao menos um procedimento.');
+        return;
+      }
+
+      // 3. Strategy & Overbook verification
+      const config = await firebaseService.getScheduleConfig(formData.executingDoctor, formData.unitId);
+      const strategy = config?.multiProcedureStrategy || 'next_minute';
+      const slotDuration = config?.slotDuration || 20;
+      const limit = config?.maxOverbooksPerDay || 0;
+
+      const appDate = parse(formData.date, 'yyyy-MM-dd', new Date());
+      const isInitialTimeOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, formData.time, config ? [config] : []);
+
+      let currentTimeStr = formData.time;
+      const appointmentsToCreate: any[] = [];
+
+      for (let i = 0; i < proceduresToSchedule.length; i++) {
+        const proc = proceduresToSchedule[i];
+        let appointmentTime = currentTimeStr;
+        let finalIsOverbook = false;
+
+        if (i > 0) {
+          if (strategy === 'next_minute') {
+            const [h, m] = appointmentTime.split(':').map(Number);
+            const nextDate = new Date();
+            nextDate.setHours(h, m + 1);
+            appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
+            finalIsOverbook = isInitialTimeOverbook;
+          } else {
+            const [h, m] = appointmentTime.split(':').map(Number);
+            const nextDate = new Date();
+            nextDate.setHours(h, m + slotDuration);
+            appointmentTime = `${nextDate.getHours().toString().padStart(2, '0')}:${nextDate.getMinutes().toString().padStart(2, '0')}`;
+            finalIsOverbook = isTimeOverbook(formData.executingDoctor, formData.unitId, appDate, appointmentTime, config ? [config] : []);
           }
-        ]
-      });
-    });
+          currentTimeStr = appointmentTime;
+        } else {
+          finalIsOverbook = isInitialTimeOverbook;
+        }
 
-    // Verify daily limit for encaixes
-    const newOverbooksCount = appointmentsToCreate.filter(a => a.isOverbook).length;
-    const existingDailyOverbooks = mockAppointments.filter(app => 
-      app.doctorId === formData.executingDoctor && 
-      app.unitId === formData.unitId &&
-      app.date === formData.date && 
-      app.isOverbook
-    ).length;
+        appointmentsToCreate.push({
+          patientId,
+          doctorId: formData.executingDoctor,
+          unitId: formData.unitId,
+          date: formData.date,
+          time: appointmentTime,
+          procedure: proc.name,
+          insurance: formData.insurance || 'Particular',
+          status: 'agendado',
+          isOverbook: finalIsOverbook,
+          statusHistory: [
+            {
+              id: Math.random().toString(36).substr(2, 9),
+              status: 'agendado',
+              timestamp: new Date().toISOString(),
+              user: 'Sistema',
+              note: 'Agendamento Criado (Firebase)'
+            }
+          ]
+        });
+      }
 
-    if (existingDailyOverbooks + newOverbooksCount > limit) {
-      setShowOverbookModal(limit);
-      return;
-    }
-
-    // Success: Push all appointments
-    mockAppointments.push(...appointmentsToCreate);
-    
-    toast.success('Agendamento criado com sucesso!');
-
-    if (onCancel) {
-      onCancel(); // Go back to agenda
+      // 4. Persistence
+      await Promise.all(appointmentsToCreate.map(a => firebaseService.createAppointment(a)));
+      
+      toast.success('Agendamento criado com sucesso!');
+      if (onCancel) onCancel();
+    } catch (err: any) {
+      toast.error(`Falha ao agendar: ${err.message}`);
     }
   };
 
@@ -235,7 +228,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     setShowPatientDropdown(true);
   };
 
-  const filteredPatients = mockPatients.filter(p => {
+  const filteredPatients = patients.filter(p => {
     if (!formData.patientName) return false;
     const query = sanitizeStr(formData.patientName);
     const originalQuery = formData.patientName.toLowerCase();
@@ -253,7 +246,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     return nameMatch || dobMatch || cpfMatch;
   });
 
-  const handlePatientSelect = (patient: typeof mockPatients[0]) => {
+  const handlePatientSelect = (patient: Patient) => {
     setFormData({
       ...formData,
       patientName: patient.name,
@@ -264,7 +257,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     setShowPatientDropdown(false);
   };
 
-  const filteredProcedures = mockProcedures.filter(p => {
+  const filteredProcedures = procedures.filter(p => {
     const matchesModality = !formData.modality || p.modality === formData.modality;
     if (!matchesModality) return false;
 
@@ -273,7 +266,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     return sanitizeStr(p.name).includes(query);
   });
 
-  const handleProcedureSelect = (proc: typeof mockProcedures[0]) => {
+  const handleProcedureSelect = (proc: Procedure) => {
     setFormData({
       ...formData,
       procedure: proc.name,
@@ -282,7 +275,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
     setShowProcedureDropdown(false);
   };
 
-  const doctorOptions = mockDoctors
+  const doctorOptions = doctors
     .filter(d => d.type !== 'solicitante')
     .map(d => ({ id: d.id, name: d.name }));
   const insuranceOptions = [
@@ -483,7 +476,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                     type="button"
                     onClick={() => {
                       if (formData.procedure) {
-                        const proc = mockProcedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || {
+                        const proc = procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || {
                           id: Math.random().toString(36).substr(2, 9),
                           name: formData.procedure,
                           modality: formData.modality || '---'

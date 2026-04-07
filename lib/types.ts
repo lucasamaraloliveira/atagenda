@@ -99,3 +99,14 @@ export interface Insurance {
   status: 'Ativo' | 'Inativo';
   patients?: number;
 }
+
+export interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  profile: string;
+  avatar?: string;
+  allowed_units?: string;
+  active: boolean;
+  permissions: string[];
+}

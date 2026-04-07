@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileBarChart, ChevronDown, Lock, Printer, Download, Eye, FileText, MoveHorizontal, X, Zap, AlertTriangle, ListChecks, Users, Clock } from 'lucide-react';
 import { mockPatients as _mockPatients, mockDoctors as _mockDoctors, mockAppointments as _mockAppointments, mockUnits as _mockUnits, mockScheduleConfigs as _mockScheduleConfigs, mockProcedures as _mockProcedures, mockSystemSettings as _mockSystemSettings, mockScheduleBlocks as _mockScheduleBlocks } from '@/lib/mockData';
-import { supabaseService } from '@/lib/supabaseService';
+import { firebaseService } from '@/lib/firebaseService';
 import { Doctor, Unit, Appointment, Patient, ScheduleBlock, ScheduleConfig } from '@/lib/types';
 import { Procedure } from '@/lib/types';
 import { cn, normalizeString } from '@/lib/utils';
@@ -79,20 +79,18 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Initial Data Load from Supabase
+  // Initial Data Load from Firebase
   useEffect(() => {
     async function loadInitialData() {
       try {
         setLoading(true);
         const [u, d, p, proc] = await Promise.all([
-          supabaseService.getUnits(),
-          supabaseService.getDoctors(),
-          supabaseService.getPatients(),
-          supabaseService.getProcedures()
+          firebaseService.getUnits(),
+          firebaseService.getDoctors(),
+          firebaseService.getPatients(),
+          firebaseService.getProcedures()
         ]);
         
-        // Fallback to mocks if Supabase is empty or variables missing
-        // Filter units by permission
         const availableUnits = u.length > 0 ? u : _mockUnits;
         const filteredUnits = (user && user.allowedUnits && user.allowedUnits !== 'all')
             ? availableUnits.filter((unit: any) => unit.id === user.allowedUnits)
@@ -110,7 +108,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         else if (_mockUnits.length > 0) setSelectedUnit(_mockUnits[0].id);
 
       } catch (err) {
-        console.warn('Failed to load from Supabase, using mock data:', err);
+        console.warn('Failed to load from Firebase, using mock data:', err);
         setUnits(_mockUnits);
         setDoctors(_mockDoctors);
         setPatients(_mockPatients);
@@ -133,15 +131,13 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         const filters = { 
           doctorId: selectedDoctor, 
           unitId: selectedUnit,
-          startDate: viewType === 'semana' ? format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'yyyy-MM-dd') : undefined,
-          endDate: viewType === 'semana' ? format(addDays(startOfWeek(currentDate, { weekStartsOn: 0 }), 6), 'yyyy-MM-dd') : undefined,
           date: viewType === 'dia' ? format(currentDate, 'yyyy-MM-dd') : undefined
         };
 
         const [appts, configRes, blocksRes] = await Promise.all([
-          supabaseService.getAppointments(filters),
-          supabaseService.getScheduleConfig(selectedDoctor, selectedUnit),
-          supabaseService.getScheduleBlocks(selectedDoctor, selectedUnit)
+          firebaseService.getAppointments(filters),
+          firebaseService.getScheduleConfig(selectedDoctor, selectedUnit),
+          firebaseService.getScheduleBlocks(selectedDoctor, selectedUnit)
         ]);
 
         setAppointments(appts.length > 0 ? appts : _mockAppointments.filter(a => a.doctorId === selectedDoctor && a.unitId === selectedUnit));
@@ -153,7 +149,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         }
         setScheduleBlocks(blocksRes.length > 0 ? blocksRes : _mockScheduleBlocks);
       } catch (err) {
-        console.warn('Failed to load dynamic data from Supabase:', err);
+        console.warn('Failed to load dynamic data from Firebase:', err);
       }
     }
     loadDynamicData();
@@ -356,13 +352,13 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         }
       ];
       
-      // Update in Supabase
-      supabaseService.updateAppointmentStatus(appointmentId, newStatus, updatedHistory)
+      // Update in Firebase
+      firebaseService.updateAppointmentStatus(appointmentId, newStatus, updatedHistory)
         .then(() => {
             setRefreshKey(k => k + 1);
-            toast.success(`Status atualizado no Supabase`);
+            toast.success(`Status atualizado no Firebase`);
         })
-        .catch(() => toast.error('Falha ao sincronizar com Supabase'));
+        .catch(() => toast.error('Falha ao sincronizar com Firebase'));
 
       // Trigger Integration if status changed to 'realizado'
       if (newStatus === 'realizado' && oldStatus !== 'realizado') {
@@ -446,23 +442,22 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
     }
   };
 
-  const handleTransfer = (appointmentId: string, newDate: string, newTime: string, newDoctorId: string) => {
-    const appointment = currentAppointments.find((a: any) => a.id === appointmentId);
-    if (appointment) {
-      const oldDate = appointment.date;
-      const oldTime = appointment.time;
-      
-      // In a real app we would call supabaseService.updateAppointment
-      appointment.date = newDate;
-      appointment.time = newTime;
-      appointment.doctorId = newDoctorId;
-      appointment.unitId = selectedUnit; 
+  const handleTransfer = async (appointmentId: string, newDate: string, newTime: string, newDoctorId: string) => {
+    try {
+      await firebaseService.updateAppointment(appointmentId, {
+        date: newDate,
+        time: newTime,
+        doctorId: newDoctorId,
+        unitId: selectedUnit
+      });
       
       setRefreshKey(k => k + 1);
       setSelectedAppointmentForStatus(null);
       toast.success('Agendamento transferido com sucesso!', {
         icon: <MoveHorizontal className="text-indigo-600" />
       });
+    } catch (e) {
+      toast.error('Erro ao transferir agendamento.');
     }
   };
 
