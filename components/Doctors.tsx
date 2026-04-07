@@ -33,7 +33,6 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
         setDoctors(data); 
       } catch (err) {
         console.warn('Failed to load doctors from Firebase:', err);
-        setDoctors(_mockDoctors);
       } finally {
         setLoading(false);
       }
@@ -106,7 +105,6 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
     try {
         await firebaseService.deleteDoctor(idToRemove);
         toast.success('Médico removido com sucesso!');
-        setRefreshKey(prev => prev + 1);
     } catch (err) {
         console.error('Error deleting doctor:', err);
         toast.error('Erro ao excluir médico no banco. Restaurando...');

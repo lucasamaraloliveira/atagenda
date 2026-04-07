@@ -33,7 +33,6 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         setPatients(data); 
       } catch (err) {
         console.warn('Failed to load patients from Firebase:', err);
-        setPatients(_mockPatients);
       } finally {
         setLoading(false);
       }
@@ -107,11 +106,10 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     try {
       await firebaseService.deletePatient(idToRemove);
       toast.success('Paciente removido com sucesso');
-      // Still trigger a background refresh to be safe and synced
-      setRefreshKey(prev => prev + 1);
+      // No refreshKey here to avoid immediate re-fetching of potentially stale data
     } catch (err) {
       console.error('Error deleting patient:', err);
-      toast.error('Erro ao excluir no servidor. Recarregando...');
+      toast.error('Erro ao excluir no servidor. Restaurando...');
       setRefreshKey(prev => prev + 1); // Re-sync to restore if failed
     }
   };

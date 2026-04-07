@@ -97,13 +97,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
           unidades: uList.length > 0 ? uList : _mockUnits
         });
       } catch (err) {
-        console.warn('Failed to load from Firebase, using mock data:', err);
-        setProcedures(_mockProcedures);
-        setInsurances(_mockInsurances);
-        setGlobalSettings({
-          ...JSON.parse(JSON.stringify(_mockSystemSettings)),
-          unidades: _mockUnits
-        });
+        console.warn('Failed to load from Firebase:', err);
       } finally {
         setLoading(false);
       }
@@ -134,7 +128,6 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     try {
       await firebaseService.deleteProcedure(idToRemove);
       toast.info('Procedimento removido.');
-      setRefreshKey(prev => prev + 1);
     } catch (e) {
       console.error('Failure to delete procedure:', e);
       toast.error('Erro ao excluir no Firestore. Restaurando...');
@@ -185,7 +178,6 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     try {
       await firebaseService.deleteInsurance(idToRemove);
       toast.info('Convênio removido.');
-      setRefreshKey(prev => prev + 1);
     } catch (e) {
       console.error('Failure to delete insurance:', e);
       toast.error('Erro ao excluir no Firestore. Restaurando...');
