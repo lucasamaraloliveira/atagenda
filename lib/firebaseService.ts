@@ -97,6 +97,26 @@ export const firebaseService = {
     return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Unit[];
   },
 
+  async createUnit(unit: Omit<Unit, 'id'>) {
+    const docRef = await addDoc(collection(db, 'units'), {
+      ...unit,
+      created_at: serverTimestamp()
+    });
+    return { id: docRef.id, ...unit } as Unit;
+  },
+
+  async updateUnit(id: string, unit: Partial<Unit>) {
+    const docRef = doc(db, 'units', id);
+    const { id: _, ...data } = unit as any;
+    await updateDoc(docRef, { ...data, updated_at: serverTimestamp() });
+    return true;
+  },
+
+  async deleteUnit(id: string) {
+    await deleteDoc(doc(db, 'units', id));
+    return true;
+  },
+
   // Patients — Force server reads to avoid stale cache
   async getPatients(search?: string) {
     let q = query(collection(db, 'patients'), orderBy('name'));

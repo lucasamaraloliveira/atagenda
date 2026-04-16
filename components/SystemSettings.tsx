@@ -1656,28 +1656,17 @@ function SystemParameters({
     setUnitToDelete(unit);
   };
 
-  const confirmDeleteUnit = () => {
+  const confirmDeleteUnit = async () => {
     if (!unitToDelete) return;
 
-    const oldUnits = [...settings.unidades];
-    const newUnits = settings.unidades.filter((u: any) => u.id !== unitToDelete.id);
-    updateSetting('unidades', '', newUnits);
-
-    toast.success(
-      <div className="flex flex-col gap-1">
-        <span className="font-bold">Unidade removida com sucesso!</span>
-        <button
-          onClick={() => {
-            updateSetting('unidades', '', oldUnits);
-            toast.info('Exclusão desfeita.');
-          }}
-          className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 hover:underline text-left"
-        >
-          Desfazer Exclusão
-        </button>
-      </div>,
-      { autoClose: 5000 }
-    );
+    try {
+      await firebaseService.deleteUnit(unitToDelete.id);
+      const newUnits = settings.unidades.filter((u: any) => u.id !== unitToDelete.id);
+      updateSetting('unidades', '', newUnits);
+      toast.success('Unidade removida com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao excluir unidade no servidor.');
+    }
 
     setUnitToDelete(null);
     setUnitLinks([]);
@@ -2560,19 +2549,20 @@ function SystemParameters({
             setIsAddingUnit(false);
             setUnitToEdit(null);
           }}
-          onSave={(unitData) => {
-            if (unitToEdit) {
-              const newUnits = settings.unidades.map((u: any) => u.id === unitToEdit.id ? { ...u, ...unitData } : u);
-              updateSetting('unidades', '', newUnits);
-              toast.success('Unidade atualizada com sucesso!');
-            } else {
-              const newUnit = {
-                id: Math.random().toString(36).substr(2, 9),
-                ...unitData,
-                isActive: true
-              };
-              updateSetting('unidades', '', [...settings.unidades, newUnit]);
-              toast.success('Unidade cadastrada com sucesso!');
+          onSave={async (unitData) => {
+            try {
+              if (unitToEdit) {
+                await firebaseService.updateUnit(unitToEdit.id, unitData);
+                const newUnits = settings.unidades.map((u: any) => u.id === unitToEdit.id ? { ...u, ...unitData } : u);
+                updateSetting('unidades', '', newUnits);
+                toast.success('Unidade atualizada com sucesso!');
+              } else {
+                const created = await firebaseService.createUnit(unitData);
+                updateSetting('unidades', '', [...settings.unidades, created]);
+                toast.success('Unidade cadastrada com sucesso!');
+              }
+            } catch (err) {
+              toast.error('Erro ao salvar unidade no servidor.');
             }
             setIsAddingUnit(false);
             setUnitToEdit(null);
