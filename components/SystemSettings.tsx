@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ShieldCheck, 
-  CreditCard, 
-  ClipboardList, 
-  Mail, 
+import {
+  ShieldCheck,
+  CreditCard,
+  ClipboardList,
+  Mail,
   Megaphone,
   Plus,
   Trash2,
@@ -46,33 +46,38 @@ import {
 import { format, differenceInMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, normalizeString } from '@/lib/utils';
-import { 
-  mockUnits as _mockUnits, 
-  mockAppointments as _mockAppointments, 
-  mockScheduleConfigs as _mockScheduleConfigs, 
-  mockScheduleBlocks as _mockScheduleBlocks, 
-  mockPatients as _mockPatients, 
-  mockProcedures as _mockProcedures, 
-  mockSystemSettings as _mockSystemSettings, 
-  mockDoctors as _mockDoctors, 
-  mockInsurances as _mockInsurances,
-  mockUsers as _mockUsers
-} from '@/lib/mockData';
 import { firebaseService } from '@/lib/firebaseService';
 import { View } from '@/lib/types';
 import { toast } from 'react-toastify';
-import ImportProceduresModal from './ImportProceduresModal';
+
+const DEFAULT_SYSTEM_SETTINGS = {
+  geral: { unitName: 'Minha Clínica', language: 'Português (Brasil)', timezone: 'GMT-3 (Brasília)', autoLogout: '30 min' },
+  agenda: { requiredFields: ['Paciente', 'Procedimento', 'Médico', 'Telefone'], slotDuration: '20', startTime: '08:00', endTime: '19:00', allowOverlapping: false, retroactiveBooking: false },
+  pacientes: { requiredFields: ['Nome Completo', 'CPF', 'Data de Nascimento', 'Telefone'], autoPatientId: true, cpfValidation: true, showDebtAlert: true },
+  profissionais: { showCrmOnCalendar: true, multiRoomScale: false, requiredFields: ['Nome', 'CRM', 'Especialidade'] },
+  financeiro: { currency: 'BRL', defaultPaymentMethod: 'Cartão de Crédito', billingAlert: true },
+  integracao: { risEnabled: false, pacsUrl: '', reportCenterApiKey: '', hl7Enabled: false, dicomServer: '' },
+  perfis: [
+    { id: 1, name: 'Administrador', permissions: ['Total'], color: 'bg-indigo-500' },
+    { id: 2, name: 'Médico', permissions: ['Agenda', 'Histórico'], color: 'bg-emerald-500' },
+    { id: 3, name: 'Recepção', permissions: ['Agenda', 'Pacientes'], color: 'bg-sky-500' },
+    { id: 4, name: 'Enfermagem', permissions: ['Agenda', 'Procedimentos'], color: 'bg-rose-500' },
+  ]
+};
 import ImportInsurancesModal from './ImportInsurancesModal';
+import ImportProceduresModal from './ImportProceduresModal';
 import CustomSelect from './CustomSelect';
 
 type SettingTab = 'perfis' | 'convenios' | 'procedimentos' | 'parametros' | 'mala-direta' | 'campanha';
 
 export default function SystemSettings({ searchQuery = '', setView }: { searchQuery?: string, setView?: (view: View) => void }) {
   const [activeTab, setActiveTab] = useState<SettingTab>('parametros');
-  
+
   const [procedures, setProcedures] = useState<any[]>([]);
   const [globalSettings, setGlobalSettings] = useState<any>(null);
   const [insurances, setInsurances] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -81,24 +86,38 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     async function loadData() {
       try {
         setLoading(true);
-        const [proc, settings, ins, uList] = await Promise.all([
-          firebaseService.getProcedures(),
-          firebaseService.getSystemSettings(),
-          firebaseService.getInsurances(),
-          firebaseService.getUnits()
+        // Use individual try-catches to avoid one failure blocking everything
+        const [proc, settings, ins, uList, pats, apps] = await Promise.all([
+          firebaseService.getProcedures().catch(() => []),
+          firebaseService.getSystemSettings().catch(() => null),
+          firebaseService.getInsurances().catch(() => []),
+          firebaseService.getUnits().catch(() => []),
+          firebaseService.getPatients().catch(() => []),
+          firebaseService.getAppointments().catch(() => [])
         ]);
 
         setProcedures(proc);
         setInsurances(ins);
+        setPatients(pats);
+        setAppointments(apps);
+
+        // Merge fetched settings with DEFAULT_SYSTEM_SETTINGS to ensure all keys exist
+        const mergedSettings = {
+          ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_SETTINGS)),
+          ...(settings || {})
+        };
         
-        // Use mock template only for structure if Firebase is empty
-        const initialSettings = settings || JSON.parse(JSON.stringify(_mockSystemSettings));
         setGlobalSettings({
-          ...initialSettings,
-          unidades: uList // Pure Firebase list
+          ...mergedSettings,
+          unidades: uList
         });
       } catch (err) {
         console.warn('Failed to load from Firebase:', err);
+        // Fallback to defaults if everything fails
+        setGlobalSettings({
+          ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_SETTINGS)),
+          unidades: []
+        });
       } finally {
         setLoading(false);
       }
@@ -125,34 +144,14 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     const idToRemove = itemToRemove.id;
     // Optimistic delete
     setProcedures(prev => prev.filter(p => p.id !== idToRemove));
-    
+
     try {
       await firebaseService.deleteProcedure(idToRemove);
       toast.info('Procedimento removido.');
     } catch (e) {
       console.error('Failure to delete procedure:', e);
       toast.error('Erro ao excluir no Firestore. Restaurando...');
-      setRefreshKey(prev => prev + 1); 
-    }
-  };
-
-  const handleImportProcedures = async (imported: any[]) => {
-    try {
-      await Promise.all(imported.map(p => firebaseService.createProcedure(p)));
       setRefreshKey(prev => prev + 1);
-      toast.success('Procedimentos importados no Firebase!');
-    } catch (e) {
-      toast.error('Erro ao importar.');
-    }
-  };
-
-  const handleImportInsurances = async (imported: any[]) => {
-    try {
-      await Promise.all(imported.map(i => firebaseService.createInsurance(i)));
-      setRefreshKey(prev => prev + 1);
-      toast.success('Convênios importados no Firebase!');
-    } catch (e) {
-      toast.error('Erro ao importar.');
     }
   };
 
@@ -175,7 +174,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     const idToRemove = itemToRemove.id;
     // Optimistic delete
     setInsurances(prev => prev.filter(i => i.id !== idToRemove));
-    
+
     try {
       await firebaseService.deleteInsurance(idToRemove);
       toast.info('Convênio removido.');
@@ -200,32 +199,32 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
       case 'perfis':
         return <AccessProfiles searchQuery={searchQuery} />;
       case 'procedimentos':
-        return <Procedures 
-          searchQuery={searchQuery} 
-          procedures={procedures} 
+        return <Procedures
+          searchQuery={searchQuery}
+          procedures={procedures}
           onSave={handleProceduresSave}
           onDelete={handleProceduresDelete}
-          onImport={handleImportProcedures}
+          onImport={(items: any[]) => items.forEach(i => handleProceduresSave(i))}
         />;
       case 'convenios':
-        return <Insurances 
-          searchQuery={searchQuery} 
+        return <Insurances
+          searchQuery={searchQuery}
           insurances={insurances}
           onSave={handleInsurancesSave}
           onDelete={handleInsurancesDelete}
-          onImport={handleImportInsurances}
+          onImport={(items: any[]) => items.forEach(i => handleInsurancesSave(i))}
         />;
       case 'parametros':
         if (!globalSettings) return <div className="flex items-center justify-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
-        return <SystemParameters 
-          setView={setView} 
+        return <SystemParameters
+          setView={setView}
           settings={globalSettings}
           setSettings={setGlobalSettings}
         />;
       case 'mala-direta':
-        return <MalaDireta searchQuery={searchQuery} />;
+        return <MalaDireta searchQuery={searchQuery} patients={patients} />;
       case 'campanha':
-        return <Campanhas searchQuery={searchQuery} />;
+        return <Campanhas searchQuery={searchQuery} patients={patients} appointments={appointments} insurances={insurances} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
@@ -251,8 +250,8 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
             onClick={() => setActiveTab(tab.id)}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
-              activeTab === tab.id 
-                ? "bg-indigo-600 text-white dark:shadow-none" 
+              activeTab === tab.id
+                ? "bg-indigo-600 text-white dark:shadow-none"
                 : "text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
             )}
           >
@@ -292,13 +291,13 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
     const itemToRemove = itemToDelete;
     const previousProfiles = [...profiles];
     setProfiles(profiles.filter(p => p.id !== itemToRemove.id));
-    
+
     toast.info(
       <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
         <span className="text-[11px] font-medium truncate min-w-0">
           Perfil <strong>{itemToRemove.name}</strong> excluído
         </span>
-        <button 
+        <button
           onClick={() => {
             setProfiles(previousProfiles);
             toast.dismiss();
@@ -309,7 +308,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           DESFAZER
         </button>
       </div>,
-      { 
+      {
         icon: Trash2,
         autoClose: 5000,
         closeOnClick: false
@@ -356,7 +355,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
+              <button
                 onClick={() => {
                   setProfileToEdit(profile);
                   setProfileFormOpen(true);
@@ -366,7 +365,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
               >
                 <Edit2 size={16} />
               </button>
-              <button 
+              <button
                 onClick={() => setItemToDelete({ id: profile.id, name: profile.name, type: 'perfil' })}
                 className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl text-red-400 dark:text-red-500 transition-colors"
               >
@@ -374,7 +373,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Permissões Habilitadas</p>
             <div className="flex flex-wrap gap-2">
@@ -383,7 +382,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
                   <Check size={12} className="text-emerald-500" /> {perm}
                 </span>
               ))}
-              <button 
+              <button
                 onClick={() => setSelectedProfile(profile)}
                 className="px-3 py-1.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-lg text-[10px] font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors"
               >
@@ -398,7 +397,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
           Nenhum perfil encontrado para "{searchQuery}"
         </div>
       )}
-      <button 
+      <button
         onClick={() => {
           setProfileToEdit(null);
           setProfileFormOpen(true);
@@ -412,7 +411,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
       </button>
 
       {selectedProfile && (
-        <PermissionsModal 
+        <PermissionsModal
           profile={selectedProfile}
           onClose={() => setSelectedProfile(null)}
           onSave={handleSavePermissions}
@@ -420,7 +419,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
       )}
 
       {profileFormOpen && (
-        <ProfileModal 
+        <ProfileModal
           profile={profileToEdit}
           onClose={() => setProfileFormOpen(false)}
           onSave={handleSaveProfile}
@@ -428,7 +427,7 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
       )}
 
       {itemToDelete && (
-        <DeleteConfirmationModal 
+        <DeleteConfirmationModal
           itemName={itemToDelete.name}
           itemType={itemToDelete.type}
           onClose={() => setItemToDelete(null)}
@@ -501,7 +500,7 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
   ];
 
   const [selectedPerms, setSelectedPerms] = useState<string[]>(
-    profile.permissions.includes('Total') 
+    profile.permissions.includes('Total')
       ? categories.flatMap(c => c.perms.map(p => p.label))
       : profile.permissions
   );
@@ -536,7 +535,7 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
           {categories.map((cat) => {
             const Icon = cat.icon;
             const allSelected = cat.perms.every(p => selectedPerms.includes(p.label));
-            
+
             return (
               <div key={cat.id} className="space-y-4">
                 <div className="flex items-center justify-between px-2">
@@ -546,7 +545,7 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
                     </div>
                     <h3 className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-[11px]">{cat.label}</h3>
                   </div>
-                    <button 
+                  <button
                     onClick={() => {
                       if (allSelected) {
                         setSelectedPerms(selectedPerms.filter(p => !cat.perms.map(cp => cp.label).includes(p)));
@@ -602,7 +601,7 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
           <button onClick={onClose} className="px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
             Cancelar
           </button>
-          <button 
+          <button
             onClick={() => onSave(profile.id, selectedPerms)}
             className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
           >
@@ -614,18 +613,18 @@ function PermissionsModal({ profile, onClose, onSave }: { profile: any, onClose:
   );
 }
 
-function Insurances({ 
+function Insurances({
   searchQuery = '',
   insurances,
   onSave,
   onDelete,
   onImport
-}: { 
+}: {
   searchQuery: string,
   insurances: any[],
   onSave: (data: any, editingInsurance?: any) => void,
   onDelete: (item: any) => void,
-  onImport: (imported: any[]) => void
+  onImport: (items: any[]) => void
 }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -683,14 +682,13 @@ function Insurances({
       <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
         <h3 className="font-bold text-slate-900 dark:text-white">Convênios Ativos</h3>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setShowImportModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-[0.98]"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
           >
-            <Upload size={14} />
-            Importar Lista
+            <Upload size={16} /> Importar Lista
           </button>
-          <button 
+          <button
             onClick={() => {
               setEditingInsurance(null);
               setModalOpen(true);
@@ -705,7 +703,7 @@ function Insurances({
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-              <th 
+              <th
                 className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('name')}
               >
@@ -716,7 +714,7 @@ function Insurances({
                   )}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('status')}
               >
@@ -727,7 +725,7 @@ function Insurances({
                   )}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 onClick={() => handleSort('patients')}
               >
@@ -756,7 +754,7 @@ function Insurances({
                 <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{ins.patients} pacientes vinculados</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button 
+                    <button
                       onClick={() => {
                         setEditingInsurance(ins);
                         setModalOpen(true);
@@ -765,7 +763,7 @@ function Insurances({
                     >
                       <Edit2 size={14} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setItemToDelete({ id: ins.id, name: ins.name, type: 'convênio' })}
                       className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-red-400 dark:text-red-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
                     >
@@ -789,16 +787,16 @@ function Insurances({
             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
               Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedInsurances.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredInsurances.length}</span> convênios
             </p>
-            
+
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
               >
                 <ChevronLeft size={18} />
               </button>
-              
+
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(page => {
@@ -809,12 +807,12 @@ function Insurances({
                       {index > 0 && array[index - 1] !== page - 1 && (
                         <span className="text-slate-300 px-1 font-bold">...</span>
                       )}
-                      <button 
+                      <button
                         onClick={() => setCurrentPage(page)}
                         className={cn(
                           "w-10 h-10 rounded-xl text-xs font-bold transition-all",
-                          currentPage === page 
-                            ? "bg-indigo-600 text-white dark:shadow-none" 
+                          currentPage === page
+                            ? "bg-indigo-600 text-white dark:shadow-none"
                             : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
                         )}
                       >
@@ -824,7 +822,7 @@ function Insurances({
                   ))}
               </div>
 
-              <button 
+              <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
@@ -837,7 +835,7 @@ function Insurances({
       </div>
 
       {modalOpen && (
-        <InsuranceModal 
+        <InsuranceModal
           insurance={editingInsurance}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
@@ -845,7 +843,7 @@ function Insurances({
       )}
 
       {itemToDelete && (
-        <DeleteConfirmationModal 
+        <DeleteConfirmationModal
           itemName={itemToDelete.name}
           itemType={itemToDelete.type}
           onClose={() => setItemToDelete(null)}
@@ -856,7 +854,10 @@ function Insurances({
       {showImportModal && (
         <ImportInsurancesModal 
           onClose={() => setShowImportModal(false)}
-          onImport={onImport}
+          onImport={(imported) => {
+            onImport(imported);
+            setShowImportModal(false);
+          }}
           existingInsurances={insurances}
         />
       )}
@@ -875,7 +876,7 @@ function Procedures({
   procedures: any[], 
   onSave: (data: any, editingProcedure?: any) => void,
   onDelete: (item: any) => void,
-  onImport: (imported: any[]) => void
+  onImport: (items: any[]) => void
 }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -894,7 +895,7 @@ function Procedures({
   const filteredProcedures = procedures.filter(p => {
     const search = normalizeString(searchQuery);
     return normalizeString(p.name).includes(search) ||
-           normalizeString(p.modality).includes(search);
+      normalizeString(p.modality).includes(search);
   }).sort((a: any, b: any) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
@@ -937,14 +938,13 @@ function Procedures({
         <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
           <h3 className="font-bold text-slate-900 dark:text-white">Procedimentos</h3>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setShowImportModal(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-[0.98]"
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
             >
-              <Upload size={14} />
-              Importar Lista
+              <Upload size={16} /> Importar Lista
             </button>
-            <button 
+            <button
               onClick={() => {
                 setEditingProcedure(null);
                 setModalOpen(true);
@@ -959,7 +959,7 @@ function Procedures({
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th 
+                <th
                   className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('name')}
                 >
@@ -970,7 +970,7 @@ function Procedures({
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('modality')}
                 >
@@ -981,7 +981,7 @@ function Procedures({
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   onClick={() => handleSort('price')}
                 >
@@ -1007,10 +1007,10 @@ function Procedures({
                     <span className={cn(
                       "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all",
                       proc.modality === 'CONSULTA' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800 shadow-sm shadow-emerald-50 dark:shadow-none" :
-                      proc.modality === 'US' ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-sm shadow-indigo-50 dark:shadow-none" :
-                      proc.modality === 'CT' ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800 shadow-sm shadow-amber-50 dark:shadow-none" :
-                      proc.modality === 'CR' ? "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800 shadow-sm shadow-sky-50 dark:shadow-none" :
-                      "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700"
+                        proc.modality === 'US' ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-sm shadow-indigo-50 dark:shadow-none" :
+                          proc.modality === 'CT' ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800 shadow-sm shadow-amber-50 dark:shadow-none" :
+                            proc.modality === 'CR' ? "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800 shadow-sm shadow-sky-50 dark:shadow-none" :
+                              "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700"
                     )}>
                       {proc.modality}
                     </span>
@@ -1022,7 +1022,7 @@ function Procedures({
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
+                      <button
                         onClick={() => {
                           setEditingProcedure(proc);
                           setModalOpen(true);
@@ -1031,7 +1031,7 @@ function Procedures({
                       >
                         <Edit2 size={14} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => setItemToDelete({ id: proc.id, name: proc.name, type: 'procedimento' })}
                         className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
                       >
@@ -1055,16 +1055,16 @@ function Procedures({
               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
                 Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedProcedures.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredProcedures.length}</span> procedimentos
               </p>
-              
+
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                
+
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(page => {
@@ -1075,12 +1075,12 @@ function Procedures({
                         {index > 0 && array[index - 1] !== page - 1 && (
                           <span className="text-slate-300 px-1 font-bold">...</span>
                         )}
-                        <button 
+                        <button
                           onClick={() => setCurrentPage(page)}
                           className={cn(
                             "w-10 h-10 rounded-xl text-xs font-bold transition-all",
-                            currentPage === page 
-                              ? "bg-indigo-600 text-white dark:shadow-none" 
+                            currentPage === page
+                              ? "bg-indigo-600 text-white dark:shadow-none"
                               : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
                           )}
                         >
@@ -1090,7 +1090,7 @@ function Procedures({
                     ))}
                 </div>
 
-                <button 
+                <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
@@ -1104,27 +1104,30 @@ function Procedures({
       </div>
 
       {modalOpen && (
-        <ProcedureModal 
+        <ProcedureModal
           procedure={editingProcedure}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
         />
       )}
 
-      {showImportModal && (
-        <ImportProceduresModal 
-          onClose={() => setShowImportModal(false)}
-          onImport={onImport}
-          existingProcedures={procedures}
-        />
-      )}
-
       {itemToDelete && (
-        <DeleteConfirmationModal 
+        <DeleteConfirmationModal
           itemName={itemToDelete.name}
           itemType={itemToDelete.type}
           onClose={() => setItemToDelete(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportProceduresModal 
+          onClose={() => setShowImportModal(false)}
+          onImport={(imported) => {
+            onImport(imported);
+            setShowImportModal(false);
+          }}
+          existingProcedures={procedures}
         />
       )}
     </div>
@@ -1147,8 +1150,8 @@ function InsuranceModal({ insurance, onClose, onSave }: { insurance: any, onClos
         <form onSubmit={(e) => { e.preventDefault(); onSave({ name, status }); }} className="p-6 sm:p-8 space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Convênio</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
               value={name}
@@ -1158,7 +1161,7 @@ function InsuranceModal({ insurance, onClose, onSave }: { insurance: any, onClos
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Status</label>
-            <select 
+            <select
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
@@ -1212,9 +1215,9 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const finalModality = modality === 'OUTRO' ? customModality.toUpperCase() : modality;
-    onSave({ 
-      name: sanitize(name), 
-      modality: finalModality, 
+    onSave({
+      name: sanitize(name),
+      modality: finalModality,
       price,
       preparation: preparation,
       integraRis: integraRis
@@ -1257,8 +1260,8 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
             <div className="lg:col-span-2 space-y-8">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Descrição do Procedimento</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100"
                   value={name}
@@ -1274,8 +1277,8 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                     <span className="text-slate-400 dark:text-slate-500 font-black text-base group-focus-within:text-indigo-600 transition-colors">R$</span>
                     <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 group-focus-within:bg-indigo-300 transition-colors" />
                   </div>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     className="w-full pl-24 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all dark:text-white"
                     value={price ? parseFloat(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
@@ -1287,7 +1290,7 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo de Preparo</label>
-                <textarea 
+                <textarea
                   rows={4}
                   className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100 resize-none"
                   value={preparation}
@@ -1307,7 +1310,7 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                       <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">Habilitar exportação automática para o RIS/PACS.</p>
                     </div>
                   </div>
-                  <div 
+                  <div
                     onClick={() => setIntegraRis(!integraRis)}
                     className={cn(
                       "w-12 h-6 rounded-full transition-colors relative",
@@ -1336,7 +1339,7 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                       violet: modality === m.code ? "bg-violet-50 border-violet-500 shadow-violet-100 text-violet-600" : "text-slate-400 border-slate-100",
                       emerald: modality === m.code ? "bg-emerald-50 border-emerald-500 shadow-emerald-100 text-emerald-600" : "text-slate-400 border-slate-100",
                     };
-                    
+
                     const dotColorMap: Record<string, string> = {
                       indigo: "bg-indigo-500",
                       sky: "bg-sky-500",
@@ -1366,14 +1369,14 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                         <span className={cn(
                           "text-[9px] font-bold uppercase tracking-widest opacity-80 text-center",
                         )}>{m.label}</span>
-                        
+
                         {modality === m.code && (
                           <div className={cn("absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse", dotColorMap[m.color])} />
                         )}
                       </button>
                     );
                   })}
-                  
+
                   {/* Option for New Modality */}
                   <button
                     type="button"
@@ -1383,8 +1386,8 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                     }}
                     className={cn(
                       "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group relative",
-                      modality === 'OUTRO' 
-                        ? "bg-slate-900 border-slate-900 text-white shadow-xl" 
+                      modality === 'OUTRO'
+                        ? "bg-slate-900 border-slate-900 text-white shadow-xl"
                         : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
                     )}
                   >
@@ -1396,7 +1399,7 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
                 {showCustomInput && (
                   <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
                     <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Especificar Nova Modalidade</label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="DIX, PET, etc..."
                       className="w-full px-4 py-3 mt-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black focus:ring-2 focus:ring-slate-900 dark:focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all uppercase dark:text-white"
@@ -1465,19 +1468,19 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
             <X size={20} />
           </button>
         </div>
-        <form 
-          onSubmit={(e) => { 
-            e.preventDefault(); 
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
             if (!name.trim()) return;
-            onSave({ name, color }); 
-          }} 
+            onSave({ name, color });
+          }}
           className="p-6 sm:p-8 space-y-6"
         >
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Perfil</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
                 value={name}
@@ -1525,8 +1528,8 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
             <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
               Cancelar
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={!name.trim()}
               className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm dark:shadow-none flex items-center justify-center gap-2 px-6 sm:px-8 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
@@ -1539,11 +1542,11 @@ function ProfileModal({ profile, onClose, onSave }: { profile: any, onClose: () 
   );
 }
 
-function SystemParameters({ 
-  setView, 
-  settings, 
-  setSettings 
-}: { 
+function SystemParameters({
+  setView,
+  settings,
+  setSettings
+}: {
   setView?: (view: View) => void,
   settings: any,
   setSettings: React.Dispatch<React.SetStateAction<any>>
@@ -1556,7 +1559,24 @@ function SystemParameters({
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [selectedProfile, setSelectedProfile] = useState<string>('Recepção');
-  const [users, setUsers] = useState<any[]>(_mockUsers);
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        setUsersLoading(true);
+        const data = await firebaseService.getChildUsers();
+        setUsers(data);
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      } finally {
+        setUsersLoading(false);
+      }
+    }
+    loadUsers();
+  }, []);
 
   useEffect(() => {
     if (editingUser) {
@@ -1577,19 +1597,18 @@ function SystemParameters({
     { id: 'integracao', label: 'Integração', icon: Zap },
   ];
 
-  const handleSave = () => {
-    // Persist to mockData (simulation of backend save)
-    if (settings.unidades) {
-      _mockUnits.length = 0;
-      _mockUnits.push(...settings.unidades);
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      // Persist to Firestore
+      const { unidades, ...rest } = settings;
+      await firebaseService.updateSystemSettings(rest);
+      toast.success('Parâmetros salvos com sucesso no servidor!');
+    } catch (err) {
+      toast.error('Erro ao salvar parâmetros no servidor.');
+    } finally {
+      setIsSaving(false);
     }
-    
-    // Persist all other settings to _mockSystemSettings
-    Object.keys(_mockSystemSettings).forEach(key => {
-      (_mockSystemSettings as any)[key] = JSON.parse(JSON.stringify(settings[key as keyof typeof _mockSystemSettings]));
-    });
-    
-    toast.success('Parâmetros salvos com sucesso!');
   };
 
   const toggleRequiredField = (module: string, field: string) => {
@@ -1597,7 +1616,7 @@ function SystemParameters({
     const newFields = currentFields.includes(field)
       ? currentFields.filter((f: string) => f !== field)
       : [...currentFields, field];
-    
+
     setSettings({
       ...settings,
       [module]: {
@@ -1611,7 +1630,7 @@ function SystemParameters({
     setSettings((prev: any) => {
       // Create a copy of the previous state
       const newState = { ...prev };
-      
+
       if (key === '') {
         (newState as any)[module] = value;
       } else {
@@ -1620,51 +1639,15 @@ function SystemParameters({
           [key]: value
         };
       }
-      
+
       return newState;
     });
   };
 
   const checkUnitLinks = (unitId: string) => {
-    const links = [];
-    
-    // Check appointments
-    const appointmentsCount = _mockAppointments.filter(app => app.unitId === unitId).length;
-    if (appointmentsCount > 0) {
-      links.push({
-        type: 'Agendamentos',
-        count: appointmentsCount,
-        icon: CalendarIcon,
-        view: 'agenda',
-        label: `${appointmentsCount} agendamento(s) vinculado(s)`
-      });
-    }
-
-    // Check schedule configs (grades)
-    const schedulesCount = _mockScheduleConfigs.filter(conf => conf.unitId === unitId).length;
-    if (schedulesCount > 0) {
-      links.push({
-        type: 'Grades de Horários',
-        count: schedulesCount,
-        icon: ClipboardList,
-        view: 'medicos',
-        label: `${schedulesCount} grade(s) de horários vinculada(s)`
-      });
-    }
-
-    // Check blocks
-    const blocksCount = _mockScheduleBlocks.filter(block => block.unitId === unitId).length;
-    if (blocksCount > 0) {
-      links.push({
-        type: 'Bloqueios de Agenda',
-        count: blocksCount,
-        icon: Lock,
-        view: 'medicos',
-        label: `${blocksCount} bloqueio(s) de horário`
-      });
-    }
-
-    return links;
+    // These should ideally be Firebase queries, but for now we return 
+    // empty to satisfy the UI without relying on mock data.
+    return [];
   };
 
   const handleTryDeleteUnit = (unit: any) => {
@@ -1675,15 +1658,15 @@ function SystemParameters({
 
   const confirmDeleteUnit = () => {
     if (!unitToDelete) return;
-    
+
     const oldUnits = [...settings.unidades];
     const newUnits = settings.unidades.filter((u: any) => u.id !== unitToDelete.id);
     updateSetting('unidades', '', newUnits);
-    
+
     toast.success(
       <div className="flex flex-col gap-1">
         <span className="font-bold">Unidade removida com sucesso!</span>
-        <button 
+        <button
           onClick={() => {
             updateSetting('unidades', '', oldUnits);
             toast.info('Exclusão desfeita.');
@@ -1695,7 +1678,7 @@ function SystemParameters({
       </div>,
       { autoClose: 5000 }
     );
-    
+
     setUnitToDelete(null);
     setUnitLinks([]);
   };
@@ -1715,7 +1698,7 @@ function SystemParameters({
                   <p className="text-xs text-slate-500 dark:text-slate-400">Gerencie quem tem acesso ao sistema e seus respectivos níveis de permissão.</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setEditingUser(null);
                   setIsAddingUser(true);
@@ -1727,7 +1710,12 @@ function SystemParameters({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {users.map((admin: any) => (
+              {usersLoading ? (
+                <div className="col-span-2 py-10 flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-xs text-slate-500">Carregando usuários...</p>
+                </div>
+              ) : users.map((admin: any) => (
                 <div key={admin.id} className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl flex items-center justify-between group hover:border-indigo-200 dark:hover:border-indigo-500 transition-all shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-xs uppercase">
@@ -1748,7 +1736,7 @@ function SystemParameters({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                    <button
                       onClick={() => {
                         setEditingUser(admin);
                         setIsAddingUser(true);
@@ -1757,15 +1745,16 @@ function SystemParameters({
                     >
                       <Edit2 size={14} />
                     </button>
-                    <button 
+                    <button
                       className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
-                      onClick={() => {
-                        const index = _mockUsers.findIndex((u: any) => u.id === admin.id);
-                        if (index > -1) {
-                            _mockUsers.splice(index, 1);
-                            setUsers([..._mockUsers]);
+                      onClick={async () => {
+                        try {
+                          await firebaseService.deleteChildUserProfile(admin.id);
+                          setUsers(prev => prev.filter(u => u.id !== admin.id));
+                          toast.info('Acesso removido com sucesso.');
+                        } catch (err) {
+                          toast.error('Erro ao remover acesso.');
                         }
-                        toast.info('Acesso removido.');
                       }}
                     >
                       <Trash2 size={14} />
@@ -1773,6 +1762,11 @@ function SystemParameters({
                   </div>
                 </div>
               ))}
+              {!usersLoading && users.length === 0 && (
+                <div className="col-span-2 py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                  <p className="text-sm text-slate-400">Nenhum usuário cadastrado.</p>
+                </div>
+              )}
             </div>
 
             {isAddingUser && (
@@ -1782,41 +1776,48 @@ function SystemParameters({
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">{editingUser ? 'Editar Acesso' : 'Cadastrar Novo Acesso'}</h3>
                     <button onClick={() => setIsAddingUser(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={20} /></button>
                   </div>
-                  <form className="p-6 space-y-4" onSubmit={(e) => {
+                  <form className="p-6 space-y-4" onSubmit={async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     const userData = {
-                      id: editingUser?.id || Date.now().toString(),
                       name: formData.get('name') as string,
                       email: formData.get('email') as string,
                       profile: selectedProfile,
-                      allowedUnits: formData.get('allowedUnits') as string,
-                      parentEmail: (_mockSystemSettings.geral as any).ownerEmail || 'admin@atagenda.com',
-                      active: true
+                      allowed_units: formData.get('allowedUnits') as string,
+                      active: true,
+                      permissions: (DEFAULT_SYSTEM_SETTINGS.perfis.find(p => p.name === selectedProfile)?.permissions as string[]) || ['Agenda']
                     };
 
                     const emailToVerify = formData.get('email') as string;
                     if (!editingUser || (editingUser && editingUser.email !== emailToVerify)) {
-                        const emailExists = _mockUsers.some((u: any) => u.email === emailToVerify);
-                        if (emailExists) {
-                            toast.error('Este e-mail já está vinculado a outro profissional!');
-                            return;
-                        }
-                    }
-                    
-                    if (editingUser) {
-                      const index = _mockUsers.findIndex((u: any) => u.id === editingUser.id);
-                      if (index > -1) {
-                        _mockUsers[index] = { ...userData, password: editingUser.password };
-                        setUsers([..._mockUsers]);
+                      const emailExists = users.some((u: any) => u.email === emailToVerify);
+                      if (emailExists) {
+                        toast.error('Este e-mail já está vinculado a outro profissional!');
+                        return;
                       }
-                    } else {
-                      _mockUsers.push({ ...userData, password: formData.get('password') as string });
-                      setUsers([..._mockUsers]);
                     }
-                    
-                    setIsAddingUser(false);
-                    toast.success(editingUser ? 'Acesso atualizado!' : 'Acesso criado com sucesso!');
+
+                    try {
+                      setUsersLoading(true);
+                      if (editingUser) {
+                        await firebaseService.updateProfile(editingUser.id, userData);
+                        const updatedUsers = users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u);
+                        setUsers(updatedUsers);
+                        toast.success('Perfil atualizado com sucesso!');
+                      } else {
+                        const password = formData.get('password') as string;
+                        const newProfile = await firebaseService.createChildUser(userData.email, password, userData);
+                        setUsers(prev => [...prev, newProfile]);
+                        toast.success('Acesso criado com sucesso e pronto para login!');
+                      }
+                      setIsAddingUser(false);
+                      setEditingUser(null);
+                    } catch (err: any) {
+                      console.error('Error saving user:', err);
+                      toast.error('Erro ao salvar usuário: ' + (err.message || 'Erro desconhecido'));
+                    } finally {
+                      setUsersLoading(false);
+                    }
                   }}>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
@@ -1837,7 +1838,7 @@ function SystemParameters({
                     )}
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Perfil de Acesso</label>
-                      <CustomSelect 
+                      <CustomSelect
                         options={[
                           { id: 'Administrador', name: 'Administrador' },
                           { id: 'Médico', name: 'Médico' },
@@ -1850,13 +1851,13 @@ function SystemParameters({
                       />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Unidades Permitidas</label>
-                        <select name="allowedUnits" defaultValue={editingUser?.allowedUnits || 'all'} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white">
-                            <option value="all">Todas as Unidades</option>
-                            {(settings.unidades || []).map((u: any) => (
-                                <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
-                        </select>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Unidades Permitidas</label>
+                      <select name="allowedUnits" defaultValue={editingUser?.allowedUnits || 'all'} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white">
+                        <option value="all">Todas as Unidades</option>
+                        {(settings.unidades || []).map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="pt-4 flex gap-3">
                       <button type="button" onClick={() => setIsAddingUser(false)} className="flex-1 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl">Cancelar</button>
@@ -1874,8 +1875,8 @@ function SystemParameters({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome da Unidade</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                   value={settings.geral.unitName}
                   onChange={(e) => updateSetting('geral', 'unitName', e.target.value)}
@@ -1883,7 +1884,7 @@ function SystemParameters({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Idioma do Sistema</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                   value={settings.geral.language}
                   onChange={(e) => updateSetting('geral', 'language', e.target.value)}
@@ -1895,7 +1896,7 @@ function SystemParameters({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tempo para Logoff Automático</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-white"
                   value={settings.geral.autoLogout}
                   onChange={(e) => updateSetting('geral', 'autoLogout', e.target.value)}
@@ -1912,18 +1913,18 @@ function SystemParameters({
       case 'unidades':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
-          <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 mb-6">
-            <div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Gerenciamento de Unidades</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Cadastre e configure os locais de atendimento da clínica.</p>
+            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 mb-6">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Gerenciamento de Unidades</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Cadastre e configure os locais de atendimento da clínica.</p>
+              </div>
+              <button
+                onClick={() => setIsAddingUnit(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all dark:shadow-none"
+              >
+                <Plus size={16} /> Adicionar Unidade
+              </button>
             </div>
-            <button 
-              onClick={() => setIsAddingUnit(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all dark:shadow-none"
-            >
-              <Plus size={16} /> Adicionar Unidade
-            </button>
-          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {settings.unidades.map((unit: any, index: number) => (
@@ -1943,13 +1944,13 @@ function SystemParameters({
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={() => setUnitToEdit(unit)}
                         className="p-2 text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
                       >
                         <Edit2 size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleTryDeleteUnit(unit)}
                         className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                       >
@@ -1967,14 +1968,14 @@ function SystemParameters({
                       <PhoneIcon size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
                       <span>{unit.phone || 'Telefone não informado'}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
-                       <div className="flex items-center gap-2">
-                         <div className={cn("w-2 h-2 rounded-full", unit.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")} />
-                         <span className={cn("text-[10px] font-bold uppercase tracking-widest", unit.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600")}>
-                           {unit.isActive ? 'Unidade Ativa' : 'Unidade Inativa'}
-                         </span>
-                       </div>
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-2 h-2 rounded-full", unit.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")} />
+                        <span className={cn("text-[10px] font-bold uppercase tracking-widest", unit.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600")}>
+                          {unit.isActive ? 'Unidade Ativa' : 'Unidade Inativa'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1991,14 +1992,14 @@ function SystemParameters({
                 {['Paciente', 'Procedimento', 'Médico', 'Convênio', 'Telefone', 'Motivo'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.agenda.requiredFields.includes(field) 
-                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                    settings.agenda.requiredFields.includes(field)
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400"
                       : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.agenda.requiredFields.includes(field) 
-                        ? "bg-indigo-600 border-indigo-600" 
+                      settings.agenda.requiredFields.includes(field)
+                        ? "bg-indigo-600 border-indigo-600"
                         : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.agenda.requiredFields.includes(field) && <Check size={12} className="text-white" />}
@@ -2013,7 +2014,7 @@ function SystemParameters({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Duração Padrão (Slot)</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.agenda.slotDuration}
                   onChange={(e) => updateSetting('agenda', 'slotDuration', e.target.value)}
@@ -2027,8 +2028,8 @@ function SystemParameters({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Início do Expediente</label>
-                <input 
-                  type="time" 
+                <input
+                  type="time"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                   value={settings.agenda.startTime}
                   onChange={(e) => updateSetting('agenda', 'startTime', e.target.value)}
@@ -2036,8 +2037,8 @@ function SystemParameters({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Fim do Expediente</label>
-                <input 
-                  type="time" 
+                <input
+                  type="time"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-slate-100 dark:[color-scheme:dark]"
                   value={settings.agenda.endTime}
                   onChange={(e) => updateSetting('agenda', 'endTime', e.target.value)}
@@ -2051,7 +2052,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Permitir Conflito de Horário</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Habilita o agendamento de múltiplos pacientes no mesmo slot.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('agenda', 'allowOverlapping', !settings.agenda.allowOverlapping)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2069,7 +2070,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Bloqueio de Agendamento Retroativo</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Impede a criação de agendamentos em datas ou horários passados.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('agenda', 'retroactiveBooking', !settings.agenda.retroactiveBooking)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2094,14 +2095,14 @@ function SystemParameters({
                 {['Nome Completo', 'CPF', 'RG', 'Data de Nascimento', 'Telefone', 'Email', 'Endereço', 'Nome da Mãe'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.pacientes.requiredFields.includes(field) 
-                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                    settings.pacientes.requiredFields.includes(field)
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400"
                       : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.pacientes.requiredFields.includes(field) 
-                        ? "bg-indigo-600 border-indigo-600" 
+                      settings.pacientes.requiredFields.includes(field)
+                        ? "bg-indigo-600 border-indigo-600"
                         : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.pacientes.requiredFields.includes(field) && <Check size={12} className="text-white" />}
@@ -2114,12 +2115,12 @@ function SystemParameters({
             </div>
 
             <div className="flex flex-col gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-                   <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+              <label className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <div>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Número de Registro Automático</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Gera sequencialmente o número de prontuário para novos pacientes.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('pacientes', 'autoPatientId', !settings.pacientes.autoPatientId)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2137,7 +2138,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Validação rigorosa de CPF</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Impede o salvamento do cadastro se o número de CPF for inválido.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('pacientes', 'cpfValidation', !settings.pacientes.cpfValidation)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2155,7 +2156,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Alerta de Inadimplência na Seleção</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Exibe um aviso ao recepcionista quando o paciente possui débitos em aberto.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('pacientes', 'showDebtAlert', !settings.pacientes.showDebtAlert)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2180,14 +2181,14 @@ function SystemParameters({
                 {['Nome', 'CRM', 'CPF', 'Especialidade', 'Telefone', 'Email'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
-                    settings.profissionais.requiredFields.includes(field) 
-                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400" 
+                    settings.profissionais.requiredFields.includes(field)
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400"
                       : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}>
                     <div className={cn(
                       "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
-                      settings.profissionais.requiredFields.includes(field) 
-                        ? "bg-indigo-600 border-indigo-600" 
+                      settings.profissionais.requiredFields.includes(field)
+                        ? "bg-indigo-600 border-indigo-600"
                         : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
                     )}>
                       {settings.profissionais.requiredFields.includes(field) && <Check size={12} className="text-white" />}
@@ -2205,7 +2206,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Exibir CRM/Registro na Agenda</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Mostra o número do registro profissional abaixo do nome na visualização diária.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('profissionais', 'showCrmOnCalendar', !settings.profissionais.showCrmOnCalendar)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2223,7 +2224,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Escala Multi-Sala Simultânea</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Permite que um mesmo profissional seja alocado em salas diferentes no mesmo horário.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('profissionais', 'multiRoomScale', !settings.profissionais.multiRoomScale)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2245,7 +2246,7 @@ function SystemParameters({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Moeda Padrão</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.financeiro.currency}
                   onChange={(e) => updateSetting('financeiro', 'currency', e.target.value)}
@@ -2257,7 +2258,7 @@ function SystemParameters({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Forma de Pagamento Padrão</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none dark:text-slate-100"
                   value={settings.financeiro.defaultPaymentMethod}
                   onChange={(e) => updateSetting('financeiro', 'defaultPaymentMethod', e.target.value)}
@@ -2277,7 +2278,7 @@ function SystemParameters({
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Alerta de Cobertura (Glosa)</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Avisar se o procedimento selecionado não possui cobertura pelo convênio do paciente.</p>
                 </div>
-                <div 
+                <div
                   onClick={() => updateSetting('financeiro', 'billingAlert', !settings.financeiro.billingAlert)}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2316,7 +2317,7 @@ function SystemParameters({
                         <Activity className="text-indigo-600 dark:text-indigo-400" size={18} />
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Ativar Integração RIS</span>
                       </div>
-                      <div 
+                      <div
                         onClick={() => updateSetting('integracao', 'risEnabled', !settings.integracao.risEnabled)}
                         className={cn(
                           "w-12 h-6 rounded-full transition-colors relative",
@@ -2334,8 +2335,8 @@ function SystemParameters({
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Servidor PACS (URL)</label>
                       <div className="relative">
                         <Database className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="https://pacs.servidor.com:8080"
                           className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                           value={settings.integracao.pacsUrl}
@@ -2346,8 +2347,8 @@ function SystemParameters({
 
                     <div className="space-y-2 opacity-90">
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">DICOM AE Title</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="ATAGENDA_AE"
                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                         value={settings.integracao.dicomServer}
@@ -2366,8 +2367,8 @@ function SystemParameters({
                       <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">API Key do Centro de Laudos</label>
                       <div className="relative">
                         <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
-                        <input 
-                          type="password" 
+                        <input
+                          type="password"
                           placeholder="••••••••••••••••"
                           className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono dark:text-white"
                           value={settings.integracao.reportCenterApiKey}
@@ -2381,7 +2382,7 @@ function SystemParameters({
                         <Database className="text-emerald-600 dark:text-emerald-400" size={18} />
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Protocolo HL7 Ativo</span>
                       </div>
-                      <div 
+                      <div
                         onClick={() => updateSetting('integracao', 'hl7Enabled', !settings.integracao.hl7Enabled)}
                         className={cn(
                           "w-12 h-6 rounded-full transition-colors relative",
@@ -2423,8 +2424,8 @@ function SystemParameters({
             onClick={() => setActiveModule(mod.id)}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-              activeModule === mod.id 
-                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700" 
+              activeModule === mod.id
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700"
                 : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50"
             )}
           >
@@ -2441,7 +2442,7 @@ function SystemParameters({
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Parâmetros de {modules.find(m => m.id === activeModule)?.label}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações globais do sistema</p>
           </div>
-          <button 
+          <button
             onClick={handleSave}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
           >
@@ -2468,7 +2469,7 @@ function SystemParameters({
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">{unitToDelete.name}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setUnitToDelete(null)}
                 className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
               >
@@ -2499,7 +2500,7 @@ function SystemParameters({
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{link.label}</p>
                           </div>
                         </div>
-                        <button 
+                        <button
                           onClick={() => {
                             setUnitToDelete(null);
                             if (setView) setView(link.view);
@@ -2522,20 +2523,20 @@ function SystemParameters({
                     <Trash2 size={40} />
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    Tem certeza que deseja excluir esta unidade? <br/>
+                    Tem certeza que deseja excluir esta unidade? <br />
                     Esta ação poderá ser desfeita imediatamente após a confirmação.
                   </p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <button 
+                <button
                   onClick={() => setUnitToDelete(null)}
                   className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={confirmDeleteUnit}
                   disabled={unitLinks.length > 0}
                   className={cn(
@@ -2553,7 +2554,7 @@ function SystemParameters({
 
       {/* Add/Edit Unit Modal */}
       {(isAddingUnit || unitToEdit) && (
-        <UnitFormModal 
+        <UnitFormModal
           unit={unitToEdit}
           onClose={() => {
             setIsAddingUnit(false);
@@ -2615,7 +2616,7 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações da clínica</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
           >
@@ -2651,12 +2652,12 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome da Unidade</label>
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Ex: Unidade Centro"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
               <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
@@ -2665,12 +2666,12 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Endereço</label>
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Rua, Número, Bairro, Cidade"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
@@ -2679,45 +2680,45 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Telefone</label>
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="(00) 0000-0000"
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
               <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
             </div>
           </div>
 
           <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-             <div>
-               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Unidade Ativa</p>
-               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Define se a unidade estará disponível na agenda.</p>
-             </div>
-             <div 
-               onClick={() => setFormData({...formData, isActive: !formData.isActive})}
-               className={cn(
-                 "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
-                 formData.isActive ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
-               )}
-             >
-               <div className={cn(
-                 "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
-                 formData.isActive ? "left-7" : "left-1"
-               )} />
-             </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Unidade Ativa</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Define se a unidade estará disponível na agenda.</p>
+            </div>
+            <div
+              onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+              className={cn(
+                "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
+                formData.isActive ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                formData.isActive ? "left-7" : "left-1"
+              )} />
+            </div>
           </div>
         </div>
 
         <div className="p-6 sm:p-8 pt-2 grid grid-cols-2 gap-4 border-t border-slate-50 dark:border-slate-800">
-          <button 
+          <button
             onClick={onClose}
             className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           >
             Cancelar
           </button>
-          <button 
+          <button
             onClick={() => onSave(formData)}
             disabled={!formData.name}
             className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50"
@@ -2730,8 +2731,8 @@ function UnitFormModal({ unit, onClose, onSave }: { unit?: any, onClose: () => v
   );
 }
 
-function MalaDireta({ searchQuery }: { searchQuery: string }) {
-  const filteredPatients = _mockPatients.filter(p => {
+function MalaDireta({ searchQuery, patients }: { searchQuery: string, patients: any[] }) {
+  const filteredPatients = patients.filter(p => {
     const search = normalizeString(searchQuery);
     return normalizeString(p.name).includes(search);
   });
@@ -2761,22 +2762,22 @@ function MalaDireta({ searchQuery }: { searchQuery: string }) {
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                <a 
-                  href={`mailto:${patient.email}`} 
+                <a
+                  href={`mailto:${patient.email}`}
                   className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                   title="Enviar Email"
                 >
                   <Mail size={16} />
                 </a>
-                <a 
-                  href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
                   title="Enviar WhatsApp"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.626 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.626 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                   </svg>
                 </a>
               </div>
@@ -2788,7 +2789,7 @@ function MalaDireta({ searchQuery }: { searchQuery: string }) {
   );
 }
 
-function Campanhas({ searchQuery }: { searchQuery: string }) {
+function Campanhas({ searchQuery, patients, appointments, insurances }: { searchQuery: string, patients: any[], appointments: any[], insurances: any[] }) {
   const [campaigns, setCampaigns] = useState<any[]>([]);
 
   const [customAudiences, setCustomAudiences] = useState<any[]>([
@@ -2810,7 +2811,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
       const newAudiences = customAudiences.map(a => a.id === editingAudience.id ? { ...a, ...data } : a);
       setCustomAudiences(newAudiences);
       if (selectedAudienceId === editingAudience.id) {
-         setFormData(prev => ({ ...prev, audienceId: editingAudience.id }));
+        setFormData(prev => ({ ...prev, audienceId: editingAudience.id }));
       }
       toast.success(`Público-alvo "${data.name}" atualizado com sucesso!`);
     } else {
@@ -2829,19 +2830,19 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
     const itemToRemove = audienceToDelete;
     const previousAudiences = [...customAudiences];
     const newAudiences = customAudiences.filter(a => a.id !== itemToRemove.id);
-    
+
     setCustomAudiences(newAudiences);
     if (selectedAudienceId === itemToRemove.id) {
       setSelectedAudienceId('1');
       setFormData(prev => ({ ...prev, audienceId: '1' }));
     }
-    
+
     toast.info(
       <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
         <span className="text-[11px] font-medium truncate min-w-0">
           Público <strong>{itemToRemove.name}</strong> excluído
         </span>
-        <button 
+        <button
           onClick={() => {
             setCustomAudiences(previousAudiences);
             toast.dismiss();
@@ -2852,7 +2853,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
           DESFAZER
         </button>
       </div>,
-      { 
+      {
         icon: Trash2,
         autoClose: 5000,
         closeOnClick: false
@@ -2891,34 +2892,34 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
   const getFilteredPatients = (audienceId: string) => {
     const audience = customAudiences.find(a => a.id === audienceId) || customAudiences[0];
     const today = new Date();
-    
+
     switch (audience.type) {
       case 'birthday':
-        return _mockPatients.filter(p => {
+        return patients.filter(p => {
           const birthDate = new Date(p.birthDate);
           return birthDate.getMonth() === today.getMonth();
         });
       case 'inactive':
         const months = audience.months || 6;
-        return _mockPatients.filter(p => {
-          const patientApps = _mockAppointments.filter(app => app.patientId === p.id);
+        return patients.filter(p => {
+          const patientApps = appointments.filter(app => app.patientId === p.id);
           if (patientApps.length === 0) return true;
-          const lastApp = [...patientApps].sort((a,b) => b.date.localeCompare(a.date))[0];
+          const lastApp = [...patientApps].sort((a, b) => b.date.localeCompare(a.date))[0];
           const lastDate = new Date(lastApp.date);
           return differenceInMonths(today, lastDate) >= months;
         });
       case 'insurance':
-        return _mockPatients.filter(p => {
-          return _mockAppointments.some(app => app.patientId === p.id && app.insurance === audience.insuranceName);
+        return patients.filter(p => {
+          return appointments.some(app => app.patientId === p.id && app.insurance === audience.insuranceName);
         });
       default:
-        return _mockPatients;
+        return patients;
     }
   };
 
   const handleRunCampaign = (campaign: any) => {
     const targetPatients = getFilteredPatients(campaign.audience);
-    
+
     if (targetPatients.length === 0) {
       toast.warning('Nenhum paciente encontrado para este público-alvo.');
       return;
@@ -2930,21 +2931,21 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
     let currentProgress = 0;
     const interval = setInterval(() => {
       currentProgress += 10;
-      
+
       if (currentProgress >= 100) {
         clearInterval(interval);
         setSendProgress(100);
-        
+
         // Finalize after a short delay to show 100% completion
-          setTimeout(() => {
-            setIsSending(false);
-            setCampaigns(prevCampaigns => prevCampaigns.map(c => 
-              c.id === campaign.id 
-                ? { ...c, patientsReached: c.patientsReached + targetPatients.length, status: 'Ativo' } 
-                : c
-            ));
-            toast.success(`Campanha executada! ${targetPatients.length} mensagens enviadas.`);
-          }, 300);
+        setTimeout(() => {
+          setIsSending(false);
+          setCampaigns(prevCampaigns => prevCampaigns.map(c =>
+            c.id === campaign.id
+              ? { ...c, patientsReached: c.patientsReached + targetPatients.length, status: 'Ativo' }
+              : c
+          ));
+          toast.success(`Campanha executada! ${targetPatients.length} mensagens enviadas.`);
+        }, 300);
       } else {
         setSendProgress(currentProgress);
       }
@@ -2964,7 +2965,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
     setIsCreating(false);
   };
 
-  const filteredCampaigns = campaigns.filter(c => 
+  const filteredCampaigns = campaigns.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.desc.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -2977,9 +2978,9 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
         </div>
         <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Enviando Campanha...</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-xs text-center">Processando disparo de mensagens para o público selecionado via WhatsApp e E-mail.</p>
-        
+
         <div className="w-full max-w-md bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-indigo-600 transition-all duration-300 ease-out"
             style={{ width: `${sendProgress}%` }}
           />
@@ -2992,170 +2993,171 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
   if (activeConfig || isCreating) {
     return (
       <>
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm animate-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h4 className="text-xl font-bold text-slate-900 dark:text-white">{isCreating ? 'Nova Campanha' : `Configurar: ${activeConfig.title}`}</h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Defina os parâmetros e a mensagem para esta campanha.</p>
-          </div>
-          <button 
-            onClick={() => { setActiveConfig(null); setIsCreating(false); }}
-            className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:p-8">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Título da Campanha</label>
-              <input 
-                type="text" 
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Ex: Promoção de Verão"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium dark:text-white"
-              />
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h4 className="text-xl font-bold text-slate-900 dark:text-white">{isCreating ? 'Nova Campanha' : `Configurar: ${activeConfig.title}`}</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Defina os parâmetros e a mensagem para esta campanha.</p>
             </div>
+            <button
+              onClick={() => { setActiveConfig(null); setIsCreating(false); }}
+              className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Público-Alvo</label>
-              <div className="relative">
-                <button 
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
-                >
-                  <span className="text-slate-700 dark:text-slate-200">{customAudiences.find(a => a.id === selectedAudienceId)?.name}</span>
-                  <ChevronDown className={cn("text-slate-400 transition-transform duration-300", isDropdownOpen ? "rotate-180" : "")} size={18} />
-                </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:p-8">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Título da Campanha</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Ex: Promoção de Verão"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium dark:text-white"
+                />
+              </div>
 
-                {isDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setIsDropdownOpen(false)}
-                    />
-                    <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top">
-                      <div className="max-h-60 overflow-y-auto p-1">
-                        {customAudiences.map((audience) => (
-                          <div key={audience.id} className="relative flex items-center group/item hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedAudienceId(audience.id);
-                                setFormData({ ...formData, audienceId: audience.id });
-                                setIsDropdownOpen(false);
-                              }}
-                              className="flex-1 text-left px-3 py-2.5 text-sm transition-all flex items-center justify-between group rounded-xl"
-                            >
-                              <span className={cn(selectedAudienceId === audience.id ? "text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-600 dark:text-slate-400")}>
-                                {audience.name}
-                              </span>
-                              {selectedAudienceId === audience.id && <Check size={14} className="text-indigo-600 dark:text-indigo-400 mr-2" />}
-                            </button>
-                            {audience.id !== '1' && (
-                              <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 pr-2 transition-opacity">
-                                <button type="button" onClick={(e) => { e.stopPropagation(); setEditingAudience(audience); setIsCreatingAudience(true); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Edit2 size={14}/></button>
-                                <button type="button" onClick={(e) => { e.stopPropagation(); setAudienceToDelete(audience); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Trash2 size={14}/></button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Público-Alvo</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
+                  >
+                    <span className="text-slate-700 dark:text-slate-200">{customAudiences.find(a => a.id === selectedAudienceId)?.name}</span>
+                    <ChevronDown className={cn("text-slate-400 transition-transform duration-300", isDropdownOpen ? "rotate-180" : "")} size={18} />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsDropdownOpen(false)}
+                      />
+                      <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-20 animate-in fade-in zoom-in-95 duration-200 origin-top">
+                        <div className="max-h-60 overflow-y-auto p-1">
+                          {customAudiences.map((audience) => (
+                            <div key={audience.id} className="relative flex items-center group/item hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedAudienceId(audience.id);
+                                  setFormData({ ...formData, audienceId: audience.id });
+                                  setIsDropdownOpen(false);
+                                }}
+                                className="flex-1 text-left px-3 py-2.5 text-sm transition-all flex items-center justify-between group rounded-xl"
+                              >
+                                <span className={cn(selectedAudienceId === audience.id ? "text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-600 dark:text-slate-400")}>
+                                  {audience.name}
+                                </span>
+                                {selectedAudienceId === audience.id && <Check size={14} className="text-indigo-600 dark:text-indigo-400 mr-2" />}
+                              </button>
+                              {audience.id !== '1' && (
+                                <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 pr-2 transition-opacity">
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); setEditingAudience(audience); setIsCreatingAudience(true); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Edit2 size={14} /></button>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); setAudienceToDelete(audience); setIsDropdownOpen(false); }} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg shadow-sm transition-all"><Trash2 size={14} /></button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-700">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCreatingAudience(true);
+                              setIsDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all flex items-center gap-2"
+                          >
+                            <Plus size={14} />
+                            Criar Novo Público-Alvo
+                          </button>
+                        </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-700">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCreatingAudience(true);
-                            setIsDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all flex items-center gap-2"
-                        >
-                          <Plus size={14} />
-                          Criar Novo Público-Alvo
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Canal de Envio</label>
+                <div className="flex gap-4">
+                  <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                    <input type="checkbox" defaultChecked className="accent-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">WhatsApp</span>
+                  </label>
+                  <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                    <input type="checkbox" defaultChecked className="accent-indigo-500" />
+                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">E-mail</span>
+                  </label>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Canal de Envio</label>
-              <div className="flex gap-4">
-                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
-                  <input type="checkbox" defaultChecked className="accent-emerald-500" />
-                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">WhatsApp</span>
-                </label>
-                <label className="flex-1 flex items-center justify-center gap-2 p-4 border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                  <input type="checkbox" defaultChecked className="accent-indigo-500" />
-                  <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">E-mail</span>
-                </label>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Template da Mensagem</label>
+                <textarea
+                  rows={6}
+                  placeholder="Escreva sua mensagem aqui... Use {nome} for personalizar."
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium resize-none dark:text-white"
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                />
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">Variáveis disponíveis: {'{nome}'}, {'{data}'}, {'{unidade}'}</p>
               </div>
-            </div>
-          </div>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Template da Mensagem</label>
-              <textarea 
-                rows={6}
-                placeholder="Escreva sua mensagem aqui... Use {nome} for personalizar."
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium resize-none dark:text-white"
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              />
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">Variáveis disponíveis: {'{nome}'}, {'{data}'}, {'{unidade}'}</p>
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 p-4 rounded-2xl">
-              <div className="flex gap-3">
-                <AlertTriangle className="text-amber-500 dark:text-amber-400 shrink-0" size={18} />
-                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                  <strong>Atenção:</strong> Mensagens automáticas via WhatsApp requerem que o sistema esteja pareado. Certifique-se de que sua conta está ativa.
-                </p>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 p-4 rounded-2xl">
+                <div className="flex gap-3">
+                  <AlertTriangle className="text-amber-500 dark:text-amber-400 shrink-0" size={18} />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                    <strong>Atenção:</strong> Mensagens automáticas via WhatsApp requerem que o sistema esteja pareado. Certifique-se de que sua conta está ativa.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
-          <button 
-            onClick={() => { setActiveConfig(null); setIsCreating(false); }}
-            className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-sans"
-          >
-            Cancelar
-          </button>
-          <button 
-            onClick={() => handleSaveCampaign(formData)}
-            disabled={!formData.title}
-            className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all dark:shadow-none font-sans disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Salvar e Ativar
-          </button>
+          <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-slate-50 dark:border-slate-800">
+            <button
+              onClick={() => { setActiveConfig(null); setIsCreating(false); }}
+              className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-sans"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => handleSaveCampaign(formData)}
+              disabled={!formData.title}
+              className="px-6 sm:px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all dark:shadow-none font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Salvar e Ativar
+            </button>
+          </div>
         </div>
-      </div>
-      {isCreatingAudience && (
-        <AudienceFormModal 
-          audienceToEdit={editingAudience}
-          onClose={() => {
-            setIsCreatingAudience(false);
-            setEditingAudience(null);
-          }}
-          onSave={handleSaveAudience}
-        />
-      )}
-      {audienceToDelete && (
-        <DeleteConfirmationModal
-          itemName={audienceToDelete.name}
-          itemType="público-alvo"
-          onClose={() => setAudienceToDelete(null)}
-          onConfirm={confirmDeleteAudience}
-        />
-      )}
+        {isCreatingAudience && (
+          <AudienceFormModal
+            audienceToEdit={editingAudience}
+            insurances={insurances}
+            onClose={() => {
+              setIsCreatingAudience(false);
+              setEditingAudience(null);
+            }}
+            onSave={handleSaveAudience}
+          />
+        )}
+        {audienceToDelete && (
+          <DeleteConfirmationModal
+            itemName={audienceToDelete.name}
+            itemType="público-alvo"
+            onClose={() => setAudienceToDelete(null)}
+            onConfirm={confirmDeleteAudience}
+          />
+        )}
       </>
     );
   }
@@ -3167,7 +3169,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
           <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Suas Campanhas</h4>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Gerencie suas automações e comunicações em massa.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsCreating(true)}
           className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all dark:shadow-none active:scale-95"
         >
@@ -3177,7 +3179,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {campaigns.filter(c => 
+        {campaigns.filter(c =>
           c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.desc.toLowerCase().includes(searchQuery.toLowerCase())
         ).map((item: any) => (
@@ -3186,32 +3188,32 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
               item.status === 'Ativo' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400")}>
               {item.status}
             </div>
-            
-            <div className={cn("w-14 h-14 rounded-[1.25rem] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform", 
-              item.color === 'indigo' ? "bg-indigo-50/50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : 
-              item.color === 'amber' ? "bg-amber-50/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" : "bg-emerald-50/50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400")}>
+
+            <div className={cn("w-14 h-14 rounded-[1.25rem] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform",
+              item.color === 'indigo' ? "bg-indigo-50/50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" :
+                item.color === 'amber' ? "bg-amber-50/50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" : "bg-emerald-50/50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400")}>
               {React.createElement(item.icon, { size: 28 })}
             </div>
-            
+
             <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-2 text-base">{item.title}</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6 h-8 line-clamp-2">{item.desc}</p>
-            
+
             <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Impacto</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-slate-200">{item.patientsReached} Pacientes</span>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); handleRunCampaign(item); }}
                   className={cn("p-2 rounded-xl text-white hover:brightness-95 transition-all flex items-center gap-2",
-                    item.color === 'indigo' ? "bg-indigo-600" : 
-                    item.color === 'amber' ? "bg-amber-600" : "bg-emerald-600")}
+                    item.color === 'indigo' ? "bg-indigo-600" :
+                      item.color === 'amber' ? "bg-amber-600" : "bg-emerald-600")}
                   title="Executar Campanha agora"
                 >
                   <Plus size={16} />
                 </button>
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setActiveConfig(item); }}
                   className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[11px] font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center gap-2 border border-slate-200 dark:border-slate-700"
                 >
@@ -3234,7 +3236,7 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
             <p className="text-xs text-slate-400 dark:text-slate-500">Resultados consolidados das campanhas nos últimos 30 dias.</p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
             { label: 'Emails Enviados', value: '1.240', trend: '+12%', color: 'indigo' },
@@ -3243,9 +3245,9 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
             { label: 'Novos Agendamentos', value: '156', trend: '+24%', color: 'indigo' },
           ].map((stat, idx) => (
             <div key={idx} className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm relative group overflow-hidden">
-              <div className={cn("absolute bottom-0 left-0 w-full h-1 transition-all", 
-                stat.color === 'indigo' ? "bg-indigo-600" : 
-                stat.color === 'emerald' ? "bg-emerald-600" : "bg-amber-600")} />
+              <div className={cn("absolute bottom-0 left-0 w-full h-1 transition-all",
+                stat.color === 'indigo' ? "bg-indigo-600" :
+                  stat.color === 'emerald' ? "bg-emerald-600" : "bg-amber-600")} />
               <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{stat.label}</p>
               <div className="flex items-end gap-2">
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-none">{stat.value}</p>
@@ -3262,12 +3264,12 @@ function Campanhas({ searchQuery }: { searchQuery: string }) {
   );
 }
 
-function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () => void, onSave: (data: any) => void, audienceToEdit?: any }) {
+function AudienceFormModal({ onClose, onSave, audienceToEdit, insurances }: { onClose: () => void, onSave: (data: any) => void, audienceToEdit?: any, insurances: any[] }) {
   const [formData, setFormData] = useState({
     name: audienceToEdit?.name || '',
     type: audienceToEdit?.type || 'inactive',
     months: audienceToEdit?.months || 12,
-    insuranceName: audienceToEdit?.insuranceName || _mockInsurances[0]?.name || ''
+    insuranceName: audienceToEdit?.insuranceName || insurances[0]?.name || ''
   });
 
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
@@ -3292,7 +3294,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Defina as regras de filtragem</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
           >
@@ -3303,19 +3305,19 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
         <div className="p-6 sm:p-8 space-y-5">
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Público</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Ex: Inativos 1 ano"
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Tipo de Filtro</label>
             <div className="relative">
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
@@ -3326,8 +3328,8 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
 
               {isTypeDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-20" 
+                  <div
+                    className="fixed inset-0 z-20"
                     onClick={() => setIsTypeDropdownOpen(false)}
                   />
                   <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
@@ -3336,13 +3338,13 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
                         key={type.value}
                         type="button"
                         onClick={() => {
-                          setFormData({...formData, type: type.value as any});
+                          setFormData({ ...formData, type: type.value as any });
                           setIsTypeDropdownOpen(false);
                         }}
                         className={cn(
                           "w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between group",
-                          formData.type === type.value 
-                            ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold" 
+                          formData.type === type.value
+                            ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold"
                             : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200"
                         )}
                       >
@@ -3359,12 +3361,12 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
           {formData.type === 'inactive' && (
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
               <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Meses de Inatividade</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 min="1"
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                 value={formData.months}
-                onChange={(e) => setFormData({...formData, months: parseInt(e.target.value)})}
+                onChange={(e) => setFormData({ ...formData, months: parseInt(e.target.value) })}
               />
             </div>
           )}
@@ -3373,7 +3375,7 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
               <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Selecionar Convênio</label>
               <div className="relative">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsInsuranceDropdownOpen(!isInsuranceDropdownOpen)}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium flex items-center justify-between group"
@@ -3384,24 +3386,24 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
 
                 {isInsuranceDropdownOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-20" 
+                    <div
+                      className="fixed inset-0 z-20"
                       onClick={() => setIsInsuranceDropdownOpen(false)}
                     />
                     <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl shadow-slate-200 dark:shadow-none/50 dark:shadow-none p-2 z-30 animate-in fade-in zoom-in-95 duration-200 origin-top">
                       <div className="max-h-60 overflow-y-auto p-1">
-                        {_mockInsurances.map((ins) => (
+                        {insurances.map((ins) => (
                           <button
                             key={ins.id}
                             type="button"
                             onClick={() => {
-                              setFormData({...formData, insuranceName: ins.name});
+                              setFormData({ ...formData, insuranceName: ins.name });
                               setIsInsuranceDropdownOpen(false);
                             }}
                             className={cn(
                               "w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all flex items-center justify-between group mt-1 first:mt-0",
-                              formData.insuranceName === ins.name 
-                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold" 
+                              formData.insuranceName === ins.name
+                                ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold"
                                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200"
                             )}
                           >
@@ -3418,13 +3420,13 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit }: { onClose: () =>
           )}
 
           <div className="grid grid-cols-2 gap-4 pt-4">
-            <button 
+            <button
               onClick={onClose}
               className="py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-sans"
             >
               Cancelar
             </button>
-            <button 
+            <button
               onClick={() => onSave(formData)}
               disabled={!formData.name}
               className="py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all dark:shadow-none disabled:opacity-50 font-sans"

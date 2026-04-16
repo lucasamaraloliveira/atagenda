@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, CreditCard, Calendar, Phone, Mail, ChevronDown, Hash } from 'lucide-react';
 import { Patient } from '@/lib/types';
-import { mockPatients } from '@/lib/mockData';
 import CustomSelect from './CustomSelect';
 
 interface PatientFormModalProps {
@@ -40,14 +39,14 @@ export default function PatientFormModal({ patient, onClose, onSave }: PatientFo
     
     let recordNumber = patient?.recordNumber;
     if (!recordNumber && !patient) {
-      recordNumber = `PR-${(mockPatients.length + 1001).toString()}`;
+      recordNumber = `PR-${Date.now().toString().slice(-6)}`;
     }
 
     onSave({
-      id: patient?.id || Math.random().toString(36).substr(2, 9),
+      ...(patient?.id ? { id: patient.id } : {}),
       recordNumber,
       ...formData,
-    });
+    } as Patient);
   };
 
   const formatCPF = (value: string) => {

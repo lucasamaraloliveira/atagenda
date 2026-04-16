@@ -35,9 +35,9 @@ export default function Home() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [appointmentData, setAppointmentData] = useState<{ date?: string, time?: string, doctorId?: string, unitId?: string } | null>(null);
-  const [isTourOpen, setIsTourOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   // Login/Register State
   const [isRegistering, setIsRegistering] = useState(false);
@@ -343,9 +343,9 @@ export default function Home() {
           onUpdate={handleProfileUpdate}
         />
       )}
-      <GuidedTour
-        isOpen={isTourOpen}
-        onClose={() => setIsTourOpen(false)}
+      <GuidedTour 
+        isOpen={isTourOpen} 
+        onClose={() => setIsTourOpen(false)} 
         onSetView={setCurrentView}
       />
     </div>

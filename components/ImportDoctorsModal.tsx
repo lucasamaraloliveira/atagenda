@@ -81,7 +81,7 @@ export default function ImportDoctorsModal({ onClose, onImport, existingDoctors 
 
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(';').map(v => v.trim());
-        const doctor: any = { id: Math.random().toString(36).substr(2, 9) };
+        const doctor: any = {};
         let rowErrors = false;
         
         templateColumns.forEach((col, index) => {

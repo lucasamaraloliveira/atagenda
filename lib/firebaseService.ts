@@ -1,4 +1,4 @@
-import { auth, db, googleProvider } from './firebase';
+import { auth, db, googleProvider, firebaseConfig } from './firebase';
 import { 
   collection, 
   doc, 
@@ -11,13 +11,18 @@ import {
   orderBy, 
   deleteDoc, 
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  getDocsFromServer,
+  getDocFromServer
 } from 'firebase/firestore';
 import { 
   onAuthStateChanged,
   signInWithPopup,
-  signOut
+  signOut,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
+import { initializeApp, deleteApp, getApps } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { Appointment, Patient, Doctor, Unit, Procedure, ScheduleConfig, ScheduleBlock, Profile } from './types';
 
 export const firebaseService = {
@@ -30,7 +35,7 @@ export const firebaseService = {
     const docRef = doc(db, 'profiles', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Profile;
+      return { ...docSnap.data(), id: docSnap.id } as Profile;
     }
     return null;
   },
@@ -89,14 +94,14 @@ export const firebaseService = {
   // Units
   async getUnits() {
     const querySnapshot = await getDocs(query(collection(db, 'units'), orderBy('name')));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Unit[];
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Unit[];
   },
 
-  // Patients
+  // Patients — Force server reads to avoid stale cache
   async getPatients(search?: string) {
     let q = query(collection(db, 'patients'), orderBy('name'));
-    const querySnapshot = await getDocs(q);
-    let patients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Patient[];
+    const querySnapshot = await getDocsFromServer(q);
+    let patients = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Patient[];
     
     if (search) {
       search = search.toLowerCase();
@@ -126,17 +131,36 @@ export const firebaseService = {
     return true;
   },
 
+  // Clean delete: remove the document and clear local memory cache
+  async deletePatient(id: string) {
+    const docRef = doc(db, 'patients', id);
+    await deleteDoc(docRef);
+    // With memoryLocalCache, deleted docs won't persist in IndexedDB.
+    // No verification needed — deleteDoc is authoritative.
+    return true;
+  },
+
   // Appointments
-  async getAppointments(filters: { doctorId?: string, unitId?: string, date?: string }) {
+  async getAppointments(filters?: { doctorId?: string; unitId?: string; date?: string; patientId?: string }) {
     let q = collection(db, 'appointments');
-    let constraints: any[] = [orderBy('time')];
+    let constraints: any[] = [];
     
-    if (filters.doctorId) constraints.push(where('doctorId', '==', filters.doctorId));
-    if (filters.unitId) constraints.push(where('unitId', '==', filters.unitId));
-    if (filters.date) constraints.push(where('date', '==', filters.date));
+    if (filters) {
+      if (filters.doctorId) constraints.push(where('doctorId', '==', filters.doctorId));
+      if (filters.unitId) constraints.push(where('unitId', '==', filters.unitId));
+      if (filters.date) constraints.push(where('date', '==', filters.date));
+      if (filters.patientId) constraints.push(where('patientId', '==', filters.patientId));
+    }
 
     const querySnapshot = await getDocs(query(q, ...constraints));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
+    const appointments = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Appointment[];
+    
+    // Sort in memory to avoid "Missing Index" errors
+    return appointments.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.time.localeCompare(b.time);
+    });
   },
 
   async createAppointment(appointment: Omit<Appointment, 'id'>) {
@@ -147,7 +171,31 @@ export const firebaseService = {
     return { id: docRef.id, ...appointment } as Appointment;
   },
 
+  async updateAppointment(id: string, data: any) {
+    const docRef = doc(db, 'appointments', id);
+    await updateDoc(docRef, {
+      ...data,
+      updated_at: serverTimestamp()
+    });
+    return true;
+  },
+
+  async updateAppointmentStatus(id: string, status: string, history: any[]) {
+    const docRef = doc(db, 'appointments', id);
+    await updateDoc(docRef, {
+      status,
+      statusHistory: history,
+      updated_at: serverTimestamp()
+    });
+    return true;
+  },
+
   // Doctors
+  async getDoctors() {
+    const querySnapshot = await getDocsFromServer(query(collection(db, 'doctors'), orderBy('name')));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Doctor[];
+  },
+
   async createDoctor(doctor: Omit<Doctor, 'id'>) {
     const docRef = await addDoc(collection(db, 'doctors'), {
       ...doctor,
@@ -167,54 +215,65 @@ export const firebaseService = {
   },
 
   async deleteDoctor(id: string) {
-    await deleteDoc(doc(db, 'doctors', id));
+    const docRef = doc(db, 'doctors', id);
+    await deleteDoc(docRef);
     return true;
   },
 
-  async updateAppointmentStatus(id: string, status: string, history: any[]) {
-    const docRef = doc(db, 'appointments', id);
-    await updateDoc(docRef, {
-      status,
-      statusHistory: history,
-      updated_at: serverTimestamp()
-    });
-    return true;
+  // Schedules
+  async getScheduleConfig(doctorId: string, unitId: string): Promise<ScheduleConfig | null> {
+    const q = query(
+      collection(db, 'scheduleConfigs'),
+      where('doctorId', '==', doctorId),
+      where('unitId', '==', unitId)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { ...snap.docs[0].data(), id: snap.docs[0].id } as unknown as ScheduleConfig;
   },
 
-  async updateAppointment(id: string, data: any) {
-    const docRef = doc(db, 'appointments', id);
-    await updateDoc(docRef, {
-      ...data,
-      updated_at: serverTimestamp()
-    });
-    return true;
-  },
-
-  async getDoctors() {
-    const querySnapshot = await getDocs(query(collection(db, 'doctors'), orderBy('name')));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Doctor[];
-  },
-
-  async getScheduleConfig(doctorId: string, unitId: string) {
-    const q = query(collection(db, 'scheduleConfigs'), where('doctorId', '==', doctorId), where('unitId', '==', unitId));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const d = querySnapshot.docs[0];
-      return { id: d.id, ...d.data() } as any as ScheduleConfig;
+  async saveScheduleConfig(config: ScheduleConfig) {
+    const q = query(
+      collection(db, 'scheduleConfigs'),
+      where('doctorId', '==', config.doctorId),
+      where('unitId', '==', config.unitId)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const docRef = doc(db, 'scheduleConfigs', snap.docs[0].id);
+      await updateDoc(docRef, config as any);
+    } else {
+      await addDoc(collection(db, 'scheduleConfigs'), config);
     }
-    return null;
+    return true;
   },
 
-  async getScheduleBlocks(doctorId: string, unitId: string) {
-    const q = query(collection(db, 'scheduleBlocks'), where('doctorId', '==', doctorId), where('unitId', '==', unitId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ScheduleBlock[];
+  async getScheduleBlocks(doctorId: string, unitId: string): Promise<ScheduleBlock[]> {
+    const q = query(
+      collection(db, 'scheduleBlocks'),
+      where('doctorId', '==', doctorId),
+      where('unitId', '==', unitId)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ ...d.data(), id: d.id })) as ScheduleBlock[];
+  },
+
+  async saveScheduleBlocks(doctorId: string, unitId: string, blocks: ScheduleBlock[]) {
+    const q = query(
+      collection(db, 'scheduleBlocks'),
+      where('doctorId', '==', doctorId),
+      where('unitId', '==', unitId)
+    );
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'scheduleBlocks', d.id))));
+    await Promise.all(blocks.map(b => addDoc(collection(db, 'scheduleBlocks'), { ...b, doctorId, unitId })));
+    return true;
   },
 
   // Procedures
   async getProcedures() {
     const querySnapshot = await getDocs(query(collection(db, 'procedures'), orderBy('name')));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Procedure[];
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Procedure[];
   },
 
   async createProcedure(procedure: any) {
@@ -239,7 +298,7 @@ export const firebaseService = {
   // Insurances
   async getInsurances() {
     const querySnapshot = await getDocs(query(collection(db, 'insurances'), orderBy('name')));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
   },
 
   async createInsurance(insurance: any) {
@@ -277,8 +336,48 @@ export const firebaseService = {
     return true;
   },
 
-  async deletePatient(id: string) {
-    await deleteDoc(doc(db, 'patients', id));
+  // Child User Creation
+  async createChildUser(email: string, password: string, profileData: Omit<Profile, 'id'>) {
+    const tempAppName = `child-user-${Date.now()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
+
+    try {
+      const { user } = await createUserWithEmailAndPassword(tempAuth, email, password);
+
+      const profileDoc: Profile = {
+        id: user.uid,
+        name: profileData.name,
+        email: email,
+        profile: profileData.profile,
+        active: profileData.active !== undefined ? profileData.active : true,
+        permissions: profileData.permissions || ['Agenda'],
+        ...(profileData.allowed_units ? { allowed_units: profileData.allowed_units } : {})
+      };
+
+      const docRef = doc(db, 'profiles', user.uid);
+      await setDoc(docRef, {
+        ...profileDoc,
+        created_at: serverTimestamp()
+      });
+
+      return profileDoc;
+    } finally {
+      try {
+        await signOut(tempAuth);
+      } catch (_) { /* ignore */ }
+      await deleteApp(tempApp);
+    }
+  },
+
+  async getChildUsers(): Promise<Profile[]> {
+    const querySnapshot = await getDocsFromServer(collection(db, 'profiles'));
+    return querySnapshot.docs.map(d => ({ ...d.data(), id: d.id })) as Profile[];
+  },
+
+  async deleteChildUserProfile(userId: string) {
+    const docRef = doc(db, 'profiles', userId);
+    await deleteDoc(docRef);
     return true;
   }
 };

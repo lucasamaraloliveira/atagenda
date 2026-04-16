@@ -15,7 +15,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Appointment, Patient, Doctor } from '@/lib/types';
-import { mockDoctors } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import CustomSelect from './CustomSelect';
@@ -25,6 +24,7 @@ import { ptBR } from 'date-fns/locale';
 interface AppointmentStatusModalProps {
   appointment: Appointment;
   patient: Patient;
+  doctors: Doctor[];
   onClose: () => void;
   onUpdateStatus: (appointmentId: string, newStatus: Appointment['status']) => void;
   onTransfer: (appointmentId: string, newDate: string, newTime: string, newDoctorId: string) => void;
@@ -33,6 +33,7 @@ interface AppointmentStatusModalProps {
 export default function AppointmentStatusModal({ 
   appointment, 
   patient, 
+  doctors,
   onClose, 
   onUpdateStatus,
   onTransfer
@@ -259,7 +260,7 @@ export default function AppointmentStatusModal({
                     <div className="space-y-1.5 doctor-select-transfer">
                       <CustomSelect 
                         label="Médico Executante"
-                        options={mockDoctors.map(d => ({ id: d.id, name: d.name }))}
+                        options={doctors.map(d => ({ id: d.id, name: d.name }))}
                         value={transferData.doctorId}
                         onChange={(val) => setTransferData({ ...transferData, doctorId: val })}
                         className="w-full"

@@ -40,9 +40,9 @@ export default function DoctorFormModal({ doctor, onClose, onSave }: DoctorFormM
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      id: doctor?.id || Math.random().toString(36).substr(2, 9),
+      ...(doctor?.id ? { id: doctor.id } : {}),
       ...formData,
-    });
+    } as Doctor);
   };
 
   const formatCPF = (value: string) => {

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Search, Plus, Edit2, Trash2, UserRound, Stethoscope, RotateCcw, LayoutGrid, List, ChevronUp, ChevronDown, Settings, Upload, Info, FileDown, X, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mockDoctors as _mockDoctors, mockAppointments, mockScheduleConfigs, mockScheduleBlocks } from '@/lib/mockData';
 import { firebaseService } from '@/lib/firebaseService';
 import { cn, normalizeString } from '@/lib/utils';
 import { Doctor } from '@/lib/types';
@@ -20,9 +19,9 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
   const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Doctor; direction: 'asc' | 'desc' } | null>(null);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Load doctors from Firebase
   React.useEffect(() => {
@@ -89,26 +88,47 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
     setSelectedDoctorForForm(null);
   };
 
-  const handleImportDoctors = (importedDoctors: Doctor[]) => {
-    _mockDoctors.push(...importedDoctors);
-    setRefreshKey(prev => prev + 1);
+  const handleImportDoctors = async (importedDoctors: Doctor[]) => {
+    try {
+      for (const doc of importedDoctors) {
+        await firebaseService.createDoctor(doc as any);
+      }
+      toast.success(`${importedDoctors.length} médicos importados com sucesso!`);
+      const data = await firebaseService.getDoctors();
+      setDoctors(data);
+    } catch (err) {
+      toast.error('Erro ao importar alguns médicos.');
+    }
   };
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDeleteDoctor = async () => {
-    if (!doctorToDelete) return;
+    if (!doctorToDelete || isDeleting) return;
     const idToRemove = doctorToDelete.id;
+    const previousDoctors = [...doctors];
     
-    // Optimistic UI update
-    setDoctors(prev => prev.filter(d => d.id !== idToRemove));
-    setDoctorToDelete(null);
+    setIsDeleting(true);
 
     try {
-        await firebaseService.deleteDoctor(idToRemove);
-        toast.success('Médico removido com sucesso!');
+      // 1. OPTIMISTIC UI: Remove from list immediately
+      setDoctors(prev => prev.filter(d => d.id !== idToRemove));
+      setDoctorToDelete(null);
+
+      // 2. Perform deletion on server
+      await firebaseService.deleteDoctor(idToRemove);
+      
+      toast.success('Médico removido com sucesso!');
+      
+      // 3. DO NOT re-fetch immediately.
     } catch (err) {
-        console.error('Error deleting doctor:', err);
-        toast.error('Erro ao excluir médico no banco. Restaurando...');
-        setRefreshKey(prev => prev + 1); // Recover state
+      console.error('Error deleting doctor:', err);
+      toast.error('Falha ao excluir médico no servidor. Restaurando...');
+      // Rollback if failed
+      setDoctors(previousDoctors);
+    } finally {
+      setIsDeleting(false);
+      setDoctorToDelete(null);
     }
   };
 
@@ -140,7 +160,7 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setShowImportModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-800 rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 shadow-sm rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
           >
             <Upload size={18} />
             Importar Lista
@@ -380,19 +400,19 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
         />
       )}
 
-      {showImportModal && (
-        <ImportDoctorsModal 
-          onClose={() => setShowImportModal(false)}
-          onImport={handleImportDoctors}
-          existingDoctors={_mockDoctors}
-        />
-      )}
-
       {selectedDoctorForForm && (
         <DoctorFormModal 
           doctor={selectedDoctorForForm === 'new' ? null : selectedDoctorForForm}
           onClose={() => setSelectedDoctorForForm(null)}
           onSave={handleSaveDoctor}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportDoctorsModal 
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportDoctors}
+          existingDoctors={doctors}
         />
       )}
 
@@ -412,14 +432,18 @@ export default function Doctors({ searchQuery = '' }: { searchQuery?: string }) 
               <button 
                 onClick={() => setDoctorToDelete(null)}
                 className="flex-1 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                disabled={isDeleting}
               >
                 Manter
               </button>
               <button 
                 onClick={handleDeleteDoctor}
-                className="flex-1 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-100 dark:shadow-none transition-all active:scale-[0.98]"
+                disabled={isDeleting}
+                className="flex-1 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-100 dark:shadow-none transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Excluir Tudo
+                {isDeleting ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Excluindo...</>
+                ) : 'Excluir Tudo'}
               </button>
             </div>
           </div>

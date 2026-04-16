@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Plus, Save, X, User, Phone, Stethoscope, ClipboardList, Clock, ChevronDown, UserPlus, LayoutGrid, Calendar, AlertCircle, Check, Trash2, RotateCcw } from 'lucide-react';
-import { mockPatients as _mockPatients, mockDoctors as _mockDoctors, mockAppointments as _mockAppointments, mockScheduleConfigs as _mockScheduleConfigs, mockProcedures as _mockProcedures } from '@/lib/mockData';
 import { firebaseService } from '@/lib/firebaseService';
 import { Patient, Doctor, Procedure, ScheduleConfig } from '@/lib/types';
 import CustomSelect from './CustomSelect';

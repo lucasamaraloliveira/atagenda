@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, MoreVertical, UserPlus, RotateCcw, ChevronUp, ChevronDown, Eye, ChevronLeft, ChevronRight, LayoutGrid, List, Upload } from 'lucide-react';
-import { mockPatients as _mockPatients } from '@/lib/mockData';
 import { firebaseService } from '@/lib/firebaseService';
 import { cn, normalizeString } from '@/lib/utils';
 import { Patient } from '@/lib/types';
@@ -20,9 +19,9 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
   const [refreshKey, setRefreshKey] = useState<number>(0); 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Patient; direction: 'asc' | 'desc' } | null>(null);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Load patients from Firebase
   useEffect(() => {
@@ -30,9 +29,10 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
       try {
         setLoading(true);
         const data = await firebaseService.getPatients();
-        setPatients(data); 
+        setPatients(data);
       } catch (err) {
-        console.warn('Failed to load patients from Firebase:', err);
+        console.error('Failed to load patients:', err);
+        toast.error('Erro ao carregar pacientes');
       } finally {
         setLoading(false);
       }
@@ -95,22 +95,48 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
     }
   };
 
+  const handleImportPatients = async (importedPatients: Patient[]) => {
+    try {
+      for (const p of importedPatients) {
+        await firebaseService.createPatient(p as any);
+      }
+      toast.success(`${importedPatients.length} pacientes importados com sucesso!`);
+      const data = await firebaseService.getPatients();
+      setPatients(data);
+    } catch (err) {
+      toast.error('Erro ao importar lista de pacientes.');
+    }
+  };
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDeletePatient = async () => {
-    if (!patientToDelete) return;
+    if (!patientToDelete || isDeleting) return;
     const idToRemove = patientToDelete.id;
+    const previousPatients = [...patients];
     
-    // Optimistic UI update: remove from local state immediately
-    setPatients(prev => prev.filter(p => p.id !== idToRemove));
-    setPatientToDelete(null);
+    setIsDeleting(true);
 
     try {
+      // 1. OPTIMISTIC UI: Remove from list immediately
+      setPatients(prev => prev.filter(p => p.id !== idToRemove));
+      setPatientToDelete(null);
+
+      // 2. Perform deletion on server
       await firebaseService.deletePatient(idToRemove);
-      toast.success('Paciente removido com sucesso');
-      // No refreshKey here to avoid immediate re-fetching of potentially stale data
+      
+      toast.success('Paciente removido com sucesso!');
+      
+      // 3. DO NOT re-fetch immediately. The local state is already correct.
+      // Re-fetching too soon can sometimes return stale data from Firestore query indexes.
     } catch (err) {
       console.error('Error deleting patient:', err);
-      toast.error('Erro ao excluir no servidor. Restaurando...');
-      setRefreshKey(prev => prev + 1); // Re-sync to restore if failed
+      toast.error('Falha ao excluir paciente no servidor. Restaurando...');
+      // Rollback if failed
+      setPatients(previousPatients);
+    } finally {
+      setIsDeleting(false);
+      setPatientToDelete(null);
     }
   };
 
@@ -142,10 +168,10 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setShowImportModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-800 rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 shadow-sm rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
           >
             <Upload size={18} />
-            Importar
+            Importar Lista
           </button>
           <button 
             onClick={() => setSelectedPatientForForm('new')}
@@ -240,8 +266,13 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
       {patientForHistory && (
         <PatientHistoryModal patient={patientForHistory} onClose={() => setPatientForHistory(null)} />
       )}
+
       {showImportModal && (
-        <ImportPatientsModal onClose={() => setShowImportModal(false)} onImport={(data) => { setPatients(prev => [...prev, ...data]); setShowImportModal(false); }} existingPatients={patients} />
+        <ImportPatientsModal 
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportPatients}
+          existingPatients={patients}
+        />
       )}
       {patientToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
@@ -249,8 +280,12 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
             <h3 className="text-xl font-bold mb-2">Excluir Paciente?</h3>
             <p className="text-sm text-slate-500 mb-6">Deseja realmente remover {patientToDelete.name}?</p>
             <div className="flex gap-3">
-              <button onClick={() => setPatientToDelete(null)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
-              <button onClick={handleDeletePatient} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold">Excluir</button>
+              <button onClick={() => setPatientToDelete(null)} className="flex-1 py-3 text-slate-500 font-bold" disabled={isDeleting}>Cancelar</button>
+              <button onClick={handleDeletePatient} disabled={isDeleting} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                {isDeleting ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Excluindo...</>
+                ) : 'Excluir'}
+              </button>
             </div>
           </div>
         </div>

@@ -80,7 +80,7 @@ export default function ImportPatientsModal({ onClose, onImport, existingPatient
 
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(';').map(v => v.trim());
-        const patient: any = { id: Math.random().toString(36).substr(2, 9) };
+        const patient: any = {};
         let rowErrors = false;
         
         templateColumns.forEach((col, index) => {

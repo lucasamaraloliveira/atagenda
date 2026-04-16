@@ -74,10 +74,14 @@ export default function Header({ setSidebarOpen, title, searchQuery, setSearchQu
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="absolute right-0 mt-3 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden z-50 p-2"
               >
+<div className="p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl m-2">
+  <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center font-medium">ATAgenda v1.0 Production</p>
+</div>
+
                 <button 
                   onClick={() => {
-                    onStartTour();
                     setShowHelpTray(false);
+                    onStartTour();
                   }}
                   className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all group text-left"
                 >
@@ -85,8 +89,8 @@ export default function Header({ setSidebarOpen, title, searchQuery, setSearchQu
                     <Play size={18} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Tour do Sistema</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Conheça as ferramentas</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Ver Tour pelo Sistema</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Guia rápido de uso</p>
                   </div>
                 </button>
 

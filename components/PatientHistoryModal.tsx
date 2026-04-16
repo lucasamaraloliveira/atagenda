@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, ClipboardList, CheckCircle2, AlertTriangle, PlayCircle, History as HistoryIcon } from 'lucide-react';
-import { Appointment, Patient } from '@/lib/types';
-import { mockAppointments, mockDoctors } from '@/lib/mockData';
+import { Appointment, Patient, Doctor } from '@/lib/types';
+import { firebaseService } from '@/lib/firebaseService';
 import { cn } from '@/lib/utils';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,10 +14,28 @@ interface PatientHistoryModalProps {
 }
 
 export default function PatientHistoryModal({ patient, onClose }: PatientHistoryModalProps) {
-  // Filter appointments for this patient
-  const patientAppointments = mockAppointments
-    .filter(app => app.patientId === patient.id)
-    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [appts, docs] = await Promise.all([
+          firebaseService.getAppointments({ patientId: patient.id }),
+          firebaseService.getDoctors()
+        ]);
+        setAppointments(appts.sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)));
+        setDoctors(docs);
+      } catch (err) {
+        console.error('Failed to load patient history:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [patient.id]);
 
   const getStatusConfig = (status: Appointment['status']) => {
     switch (status) {
@@ -43,7 +61,7 @@ export default function PatientHistoryModal({ patient, onClose }: PatientHistory
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Histórico do Paciente</h2>
                 {patient.recordNumber && (
-                  <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                   <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                     #{patient.recordNumber}
                   </span>
                 )}
@@ -61,10 +79,15 @@ export default function PatientHistoryModal({ patient, onClose }: PatientHistory
 
         {/* Content */}
         <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto flex-1 space-y-3">
-          {patientAppointments.length > 0 ? (
-            patientAppointments.map((app) => {
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-slate-500">Buscando histórico...</p>
+            </div>
+          ) : appointments.length > 0 ? (
+            appointments.map((app) => {
               const status = getStatusConfig(app.status);
-              const doctor = mockDoctors.find(d => d.id === app.doctorId);
+              const doctor = doctors.find(d => d.id === app.doctorId);
               const dateObj = parse(app.date, 'yyyy-MM-dd', new Date());
 
               return (
@@ -96,7 +119,7 @@ export default function PatientHistoryModal({ patient, onClose }: PatientHistory
                       </div>
                       <div className="space-y-1 text-left sm:text-right">
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Profissional</p>
-                        <p className="text-sm text-slate-800 dark:text-slate-200 font-bold">Dr. {doctor?.name}</p>
+                        <p className="text-sm text-slate-800 dark:text-slate-200 font-bold">Dr. {doctor?.name || 'Não informado'}</p>
                       </div>
                     </div>
                   </div>

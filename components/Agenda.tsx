@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FileBarChart, ChevronDown, Lock, Printer, Download, Eye, FileText, MoveHorizontal, X, Zap, AlertTriangle, ListChecks, Users, Clock } from 'lucide-react';
-import { mockPatients as _mockPatients, mockDoctors as _mockDoctors, mockAppointments as _mockAppointments, mockUnits as _mockUnits, mockScheduleConfigs as _mockScheduleConfigs, mockProcedures as _mockProcedures, mockSystemSettings as _mockSystemSettings, mockScheduleBlocks as _mockScheduleBlocks } from '@/lib/mockData';
 import { firebaseService } from '@/lib/firebaseService';
 import { Doctor, Unit, Appointment, Patient, ScheduleBlock, ScheduleConfig } from '@/lib/types';
 import { Procedure } from '@/lib/types';
@@ -84,11 +83,12 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
     async function loadInitialData() {
       try {
         setLoading(true);
-        const [u, d, p, proc] = await Promise.all([
+        const [u, d, p, proc, settings] = await Promise.all([
           firebaseService.getUnits(),
           firebaseService.getDoctors(),
           firebaseService.getPatients(),
-          firebaseService.getProcedures()
+          firebaseService.getProcedures(),
+          firebaseService.getSystemSettings()
         ]);
         
         // Only fallback to mocks if the result is truly empty and no user data exists
@@ -102,6 +102,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         setDoctors(d);
         setPatients(p);
         setProcedures(proc);
+        setSystemSettings(settings);
         
         if (d.length > 0) setSelectedDoctor(d[0].id);
         if (filteredUnits.length > 0) setSelectedUnit(filteredUnits[0].id);
@@ -133,7 +134,6 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
           firebaseService.getScheduleBlocks(selectedDoctor, selectedUnit)
         ]);
 
-        setAppointments(appts.length > 0 ? appts : _mockAppointments.filter(a => a.doctorId === selectedDoctor && a.unitId === selectedUnit));
         setAppointments(appts);
         if (configRes) {
             setScheduleConfigs(prev => {
@@ -154,14 +154,14 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
     // This is a partial migration for the demonstration
   }, [units, doctors, appointments, patients, scheduleConfigs]);
 
-  const currentUnits = units.length > 0 ? units : _mockUnits;
-  const currentDoctors = doctors.length > 0 ? doctors : _mockDoctors;
-  const currentPatients = patients.length > 0 ? patients : _mockPatients;
-  const currentAppointments = appointments.length > 0 ? appointments : _mockAppointments;
-  const currentProcedures = procedures.length > 0 ? procedures : _mockProcedures;
-  const currentBlocks = scheduleBlocks.length > 0 ? scheduleBlocks : _mockScheduleBlocks;
-  const currentConfigs = scheduleConfigs.length > 0 ? scheduleConfigs : _mockScheduleConfigs;
-  const currentSystemSettings = systemSettings || _mockSystemSettings;
+  const currentUnits = units;
+  const currentDoctors = doctors;
+  const currentPatients = patients;
+  const currentAppointments = appointments;
+  const currentProcedures = procedures;
+  const currentBlocks = scheduleBlocks;
+  const currentConfigs = scheduleConfigs;
+  const currentSystemSettings = systemSettings;
 
   const doctorOptions = currentDoctors
     .filter(doc => doc.type !== 'solicitante')
@@ -373,7 +373,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
               { autoClose: 5000 }
             );
             console.error('❌ RIS Integration Failed: Global RIS module is disabled.');
-          } else if (!(_mockSystemSettings as any).integracao.pacsUrl) {
+          } else if (!(currentSystemSettings as any).integracao.pacsUrl) {
              // Error case: Global RIS is enabled but no PACS URL is configured
              toast.error(
               <div className="flex flex-col gap-1">
@@ -874,6 +874,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         <AppointmentStatusModal
           appointment={selectedAppointmentForStatus}
           patient={currentPatients.find(p => p.id === selectedAppointmentForStatus.patientId)!}
+          doctors={currentDoctors}
           onClose={() => setSelectedAppointmentForStatus(null)}
           onUpdateStatus={handleStatusUpdate}
           onTransfer={handleTransfer}
