@@ -110,6 +110,12 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
 
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Set grid as default on mobile
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setViewMode('grid');
+    }
+  }, []);
   const handleDeletePatient = async () => {
     if (!patientToDelete || isDeleting) return;
     const idToRemove = patientToDelete.id;
@@ -165,19 +171,19 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
             <List size={18} />
           </button>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
             onClick={() => setShowImportModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 shadow-sm rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 shadow-sm rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
           >
-            <Upload size={18} />
-            Importar Lista
+            <Upload size={16} />
+            Importar
           </button>
           <button 
             onClick={() => setSelectedPatientForForm('new')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-sm active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none active:scale-[0.98]"
           >
-            <UserPlus size={18} />
+            <UserPlus size={16} />
             Novo Paciente
           </button>
         </div>
@@ -186,40 +192,84 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedPatients.map((patient) => (
-            <div key={patient.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+            <div key={patient.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-bl-[3rem] -mr-8 -mt-8" />
-              <div className="flex items-start justify-between mb-4 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xl">
-                  {patient.name.charAt(0)}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-100 dark:shadow-none">
+                    {patient.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-slate-100 text-base leading-tight truncate max-w-[150px] sm:max-w-none">{patient.name}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{patient.recordNumber || 'PR-000'}</p>
+                  </div>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => setPatientForHistory(patient)} className="p-2 hover:bg-indigo-50 dark:hover:bg-slate-800 text-emerald-600 rounded-lg"><Eye size={16} /></button>
-                  <button onClick={() => setSelectedPatientForForm(patient)} className="p-2 hover:bg-indigo-50 dark:hover:bg-slate-800 text-indigo-600 rounded-lg"><Edit2 size={16} /></button>
-                  <button onClick={() => setPatientToDelete(patient)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg"><Trash2 size={16} /></button>
+                <div className="flex gap-1">
+                  <button onClick={() => setPatientForHistory(patient)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-emerald-600 rounded-xl hover:bg-emerald-50 transition-colors"><Eye size={16} /></button>
+                  <button onClick={() => setSelectedPatientForForm(patient)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"><Edit2 size={16} /></button>
+                  <button onClick={() => setPatientToDelete(patient)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-red-600 rounded-xl hover:bg-red-50 transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
-              <div className="relative z-10">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg truncate">{patient.name}</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-4">Prontuário: {patient.recordNumber || 'N/A'}</p>
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between text-xs"><span className="text-slate-400">CPF</span><span className="font-bold dark:text-slate-200">{patient.cpf}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-slate-400">Nasc.</span><span className="font-bold dark:text-slate-200">{patient.birthDate.split('-').reverse().join('/')}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-slate-400">WhatsApp</span><span className="font-bold text-emerald-600">{patient.phone}</span></div>
+              <div className="relative z-10 pt-4 border-t border-slate-50 dark:border-slate-800">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">CPF</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{patient.cpf}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Nascimento</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{patient.birthDate.split('-').reverse().join('/')}</p>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden overflow-x-auto shadow-sm">
-          <table className="w-full text-left">
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+          {/* Mobile List View */}
+          <div className="block sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {paginatedPatients.map((patient) => (
+              <div key={patient.id} className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                      {patient.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{patient.name}</p>
+                      <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest">{patient.recordNumber || 'PR-000'}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => setPatientForHistory(patient)} className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"><Eye size={16} /></button>
+                    <button onClick={() => setSelectedPatientForForm(patient)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"><Edit2 size={16} /></button>
+                    <button onClick={() => setPatientToDelete(patient)} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+                <div className="flex gap-4 pl-[52px]">
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">CPF</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 font-mono">{patient.cpf}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Nascimento</p>
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{patient.birthDate.split('-').reverse().join('/')}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <table className="hidden sm:table w-full text-left">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
                 <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('name')}>Paciente</th>
                 <th className="px-6 py-4">Prontuário</th>
                 <th className="px-6 py-4">CPF</th>
                 <th className="px-6 py-4">Nasc.</th>
-                <th className="px-6 py-4">Ações</th>
+                <th className="px-6 py-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -234,8 +284,8 @@ export default function Patients({ searchQuery = '' }: { searchQuery?: string })
                   <td className="px-6 py-3 text-xs font-bold text-indigo-600 dark:text-indigo-400">{patient.recordNumber || '-'}</td>
                   <td className="px-6 py-3 text-xs text-slate-600 dark:text-slate-400 font-mono">{patient.cpf}</td>
                   <td className="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">{patient.birthDate.split('-').reverse().join('/')}</td>
-                  <td className="px-6 py-3">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <td className="px-6 py-3 text-right">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-all">
                       <button onClick={() => setPatientForHistory(patient)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"><Eye size={14} /></button>
                       <button onClick={() => setSelectedPatientForForm(patient)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"><Edit2 size={14} /></button>
                       <button onClick={() => setPatientToDelete(patient)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"><Trash2 size={14} /></button>

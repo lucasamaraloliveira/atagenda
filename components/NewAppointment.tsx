@@ -34,6 +34,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [insurances, setInsurances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isVerifyingPatient, setIsVerifyingPatient] = useState(false);
   const [showOverbookModal, setShowOverbookModal] = useState<number | null>(null);
@@ -44,14 +45,16 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
   React.useEffect(() => {
     async function loadData() {
       try {
-        const [p, d, proc] = await Promise.all([
+        const [p, d, proc, ins] = await Promise.all([
           firebaseService.getPatients(),
           firebaseService.getDoctors(),
-          firebaseService.getProcedures()
+          firebaseService.getProcedures(),
+          firebaseService.getInsurances()
         ]);
         setPatients(p);
         setDoctors(d);
         setProcedures(proc);
+        setInsurances(ins);
       } finally {
         setLoading(false);
       }
@@ -277,12 +280,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
   const doctorOptions = doctors
     .filter(d => d.type !== 'solicitante')
     .map(d => ({ id: d.id, name: d.name }));
-  const insuranceOptions = [
-    { id: 'bradesco', name: 'Bradesco' },
-    { id: 'unimed', name: 'Unimed' },
-    { id: 'sulamerica', name: 'SulAmérica' },
-    { id: 'particular', name: 'Particular' },
-  ];
+  const insuranceOptions = insurances.map(i => ({ id: i.id, name: i.name }));
   const modalityOptions = [
     { id: 'US', name: 'US (Ultrassom)' },
     { id: 'CR', name: 'CR (Raio-X)' },

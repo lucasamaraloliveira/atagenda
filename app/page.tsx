@@ -12,6 +12,7 @@ import SystemSettings from '@/components/SystemSettings';
 import Reports from '@/components/Reports';
 import UserProfileModal from '@/components/UserProfileModal';
 import GuidedTour from '@/components/GuidedTour';
+import BottomNavBar from '@/components/BottomNavBar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { View, Profile } from '@/lib/types';
 import { auth } from '@/lib/firebase';
@@ -317,10 +318,11 @@ export default function Home() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onStartTour={() => setIsTourOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
           user={currentUser}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-40 lg:pb-12">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
@@ -335,6 +337,12 @@ export default function Home() {
           </AnimatePresence>
         </main>
       </div>
+
+      <BottomNavBar 
+        currentView={currentView} 
+        setView={setCurrentView} 
+        user={currentUser} 
+      />
 
       {isProfileModalOpen && (
         <UserProfileModal

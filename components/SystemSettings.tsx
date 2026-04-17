@@ -241,24 +241,29 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6">
       {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 bg-white/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200/60 dark:border-slate-800 backdrop-blur-sm">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
-              activeTab === tab.id
-                ? "bg-indigo-600 text-white dark:shadow-none"
-                : "text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-            )}
-          >
-            <tab.icon size={18} />
-            {tab.label}
-          </button>
-        ))}
+      <div className="relative group/nav">
+        <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 sm:gap-2 bg-slate-100/50 dark:bg-slate-800/50 p-1 sm:p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-md">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                activeTab === tab.id
+                  ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
+              )}
+            >
+              <tab.icon size={14} className={activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        
+        {/* Mobile Scroll Indicator (Fade) */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-900 pointer-events-none opacity-0 group-hover/nav:opacity-100 transition-opacity sm:hidden" />
       </div>
 
       {/* Tab Content */}
@@ -341,33 +346,35 @@ function AccessProfiles({ searchQuery = '' }: { searchQuery: string }) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
       {filteredProfiles.map((profile) => (
-        <div key={profile.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex gap-4 items-center">
-              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-black/5", profile.color)}>
+        <div key={profile.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 dark:bg-slate-800/20 rounded-bl-[3rem] -mr-8 -mt-8" />
+          
+          <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex gap-3 items-center">
+              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-black/5", profile.color)}>
                 {profile.name.charAt(0)}
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 text-lg">{profile.name}</h4>
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest mt-0.5">Perfil de Acesso</p>
+                <h4 className="font-black text-slate-900 dark:text-slate-100 text-base">{profile.name}</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Perfil de Acesso</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 relative z-20">
               <button
                 onClick={() => {
                   setProfileToEdit(profile);
                   setProfileFormOpen(true);
                 }}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-600 transition-colors"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400 transition-colors"
                 title="Editar Nome/Cor"
               >
                 <Edit2 size={16} />
               </button>
               <button
                 onClick={() => setItemToDelete({ id: profile.id, name: profile.name, type: 'perfil' })}
-                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl text-red-400 dark:text-red-500 transition-colors"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl text-red-500 dark:text-red-400 transition-colors"
               >
                 <Trash2 size={16} />
               </button>
@@ -628,7 +635,7 @@ function Insurances({
 }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -678,103 +685,123 @@ function Insurances({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
-        <h3 className="font-bold text-slate-900 dark:text-white">Convênios Ativos</h3>
-        <div className="flex items-center gap-3">
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-white">Convênios Ativos</h3>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Gestão de operadoras de saúde</p>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
           >
-            <Upload size={16} /> Importar Lista
+            <Upload size={16} /> Importar
           </button>
           <button
             onClick={() => {
               setEditingInsurance(null);
               setModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-[0.98]"
           >
-            <Plus size={16} /> Novo Convênio
+            <Plus size={16} /> Novo
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-              <th
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                onClick={() => handleSort('name')}
-              >
-                <div className="flex items-center gap-2">
-                  Nome do Convênio
-                  {sortConfig?.key === 'name' && (
-                    sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                  )}
-                </div>
-              </th>
-              <th
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                onClick={() => handleSort('status')}
-              >
-                <div className="flex items-center gap-2">
-                  Status
-                  {sortConfig?.key === 'status' && (
-                    sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                  )}
-                </div>
-              </th>
-              <th
-                className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                onClick={() => handleSort('patients')}
-              >
-                <div className="flex items-center gap-2">
-                  Pacientes
-                  {sortConfig?.key === 'patients' && (
-                    sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                  )}
-                </div>
-              </th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {paginatedInsurances.map((ins) => (
-              <tr key={ins.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200 text-sm">{ins.name}</td>
-                <td className="px-6 py-4">
+
+      <div className="flex-1">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                <th 
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-2">
+                    Nome do Convênio
+                    {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500">Status</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              {paginatedInsurances.map((ins) => (
+                <tr key={ins.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
+                  <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200 text-sm">{ins.name}</td>
+                  <td className="px-6 py-4">
+                    <span className={cn(
+                      "px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-widest transition-all",
+                      ins.status === 'Ativo' ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-slate-50 text-slate-400 border-slate-100"
+                    )}>
+                      {ins.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-100 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => {
+                          setEditingInsurance(ins);
+                          setModalOpen(true);
+                        }}
+                        className="p-2.5 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 dark:text-slate-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => setItemToDelete({ id: ins.id, name: ins.name, type: 'convênio' })}
+                        className="p-2.5 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-red-400 dark:text-red-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden grid grid-cols-1 gap-4 p-4">
+          {paginatedInsurances.map((ins) => (
+            <div key={ins.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">{ins.name}</h4>
                   <span className={cn(
-                    "px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase",
-                    ins.status === 'Ativo' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700"
+                    "mt-2 inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+                    ins.status === 'Ativo' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
                   )}>
                     {ins.status}
                   </span>
-                </td>
-                <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{ins.patients} pacientes vinculados</td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => {
-                        setEditingInsurance(ins);
-                        setModalOpen(true);
-                      }}
-                      className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 dark:text-slate-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => setItemToDelete({ id: ins.id, name: ins.name, type: 'convênio' })}
-                      className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-red-400 dark:text-red-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingInsurance(ins);
+                      setModalOpen(true);
+                    }}
+                    className="p-2.5 bg-white dark:bg-slate-800 text-indigo-600 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => setItemToDelete({ id: ins.id, name: ins.name, type: 'convênio' })}
+                    className="p-2.5 bg-white dark:bg-slate-800 text-red-500 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {filteredInsurances.length === 0 && (
           <div className="p-12 text-center text-slate-400 italic text-sm">
             Nenhum convênio encontrado para "{searchQuery}"
@@ -792,28 +819,22 @@ function Insurances({
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
               >
                 <ChevronLeft size={18} />
               </button>
 
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page => {
-                    return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
-                  })
+                  .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
                   .map((page, index, array) => (
                     <React.Fragment key={page}>
-                      {index > 0 && array[index - 1] !== page - 1 && (
-                        <span className="text-slate-300 px-1 font-bold">...</span>
-                      )}
+                      {index > 0 && array[index - 1] !== page - 1 && <span className="text-slate-300 px-1">...</span>}
                       <button
                         onClick={() => setCurrentPage(page)}
                         className={cn(
                           "w-10 h-10 rounded-xl text-xs font-bold transition-all",
-                          currentPage === page
-                            ? "bg-indigo-600 text-white dark:shadow-none"
-                            : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
+                          currentPage === page ? "bg-indigo-600 text-white" : "text-slate-400 hover:bg-white border border-slate-100"
                         )}
                       >
                         {page}
@@ -825,7 +846,7 @@ function Insurances({
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
               >
                 <ChevronRight size={18} />
               </button>
@@ -865,23 +886,22 @@ function Insurances({
   );
 }
 
-function Procedures({ 
-  searchQuery = '', 
-  procedures, 
-  onSave, 
+function Procedures({
+  searchQuery = '',
+  procedures,
+  onSave,
   onDelete,
   onImport
-}: { 
-  searchQuery: string, 
-  procedures: any[], 
+}: {
+  searchQuery: string,
+  procedures: any[],
   onSave: (data: any, editingProcedure?: any) => void,
   onDelete: (item: any) => void,
   onImport: (items: any[]) => void
 }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
+  const itemsPerPage = 8;
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const handleSort = (key: string) => {
@@ -893,16 +913,15 @@ function Procedures({
   };
 
   const filteredProcedures = procedures.filter(p => {
+    if (!p || !p.name) return false;
     const search = normalizeString(searchQuery);
-    return normalizeString(p.name).includes(search) ||
-      normalizeString(p.modality).includes(search);
+    return normalizeString(p.name).includes(search) || 
+           normalizeString(p.modality).includes(search);
   }).sort((a: any, b: any) => {
-    if (!sortConfig) return 0;
+    if (!sortConfig) return 1;
     const { key, direction } = sortConfig;
-    const valA = key === 'price' ? parseFloat(a[key]) : a[key];
-    const valB = key === 'price' ? parseFloat(b[key]) : b[key];
-    if (valA < valB) return direction === 'asc' ? -1 : 1;
-    if (valA > valB) return direction === 'asc' ? 1 : -1;
+    if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+    if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
     return 0;
   });
 
@@ -933,63 +952,54 @@ function Procedures({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex justify-between items-center">
-          <h3 className="font-bold text-slate-900 dark:text-white">Procedimentos</h3>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-xl text-xs font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
-            >
-              <Upload size={16} /> Importar Lista
-            </button>
-            <button
-              onClick={() => {
-                setEditingProcedure(null);
-                setModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
-            >
-              <Plus size={16} /> Novo Procedimento
-            </button>
-          </div>
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-white">Procedimentos e Exames</h3>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Catálogo técnico da clínica</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:bg-indigo-50 transition-all active:scale-[0.98]"
+          >
+            <Upload size={16} /> Importar
+          </button>
+          <button
+            onClick={() => {
+              setEditingProcedure(null);
+              setModalOpen(true);
+            }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} /> Novo
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                 <th
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
                     Procedimento
-                    {sortConfig?.key === 'name' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                    )}
+                    {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
                   </div>
                 </th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500">Modalidade</th>
                 <th
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                  onClick={() => handleSort('modality')}
-                >
-                  <div className="flex items-center gap-2">
-                    Modalidade
-                    {sortConfig?.key === 'modality' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                    )}
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 cursor-pointer hover:text-indigo-600 transition-colors"
                   onClick={() => handleSort('price')}
                 >
                   <div className="flex items-center gap-2">
-                    Valor
-                    {sortConfig?.key === 'price' && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                    )}
+                    Valor Padrão
+                    {sortConfig?.key === 'price' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
                   </div>
                 </th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 text-right">Ações</th>
@@ -1001,39 +1011,42 @@ function Procedures({
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{proc.name}</span>
+                      {proc.integraRis && (
+                        <span className="flex items-center gap-1 mt-1 text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md w-fit border border-indigo-100 dark:border-indigo-800">
+                          <Activity size={10} /> Integrado RIS
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={cn(
-                      "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all",
-                      proc.modality === 'CONSULTA' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800 shadow-sm shadow-emerald-50 dark:shadow-none" :
-                        proc.modality === 'US' ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800 shadow-sm shadow-indigo-50 dark:shadow-none" :
-                          proc.modality === 'CT' ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800 shadow-sm shadow-amber-50 dark:shadow-none" :
-                            proc.modality === 'CR' ? "bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-800 shadow-sm shadow-sky-50 dark:shadow-none" :
-                              "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700"
+                      "px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-widest",
+                      proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                      proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                      proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
+                      "bg-slate-50 text-slate-600 border-slate-100"
                     )}>
                       {proc.modality}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                      R$ {parseFloat(proc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
+                  <td className="px-6 py-4 font-black text-slate-900 dark:text-white text-sm">
+                    R$ {parseFloat(proc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => {
                           setEditingProcedure(proc);
                           setModalOpen(true);
                         }}
-                        className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                        className="p-2.5 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 dark:text-slate-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button
                         onClick={() => setItemToDelete({ id: proc.id, name: proc.name, type: 'procedimento' })}
-                        className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                        className="p-2.5 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-red-400 dark:text-red-500 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-600"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -1043,64 +1056,105 @@ function Procedures({
               ))}
             </tbody>
           </table>
-          {filteredProcedures.length === 0 && (
-            <div className="p-12 text-center text-slate-400 italic text-sm">
-              Nenhum procedimento encontrado para "{searchQuery}"
-            </div>
-          )}
+        </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/10">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
-                Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedProcedures.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredProcedures.length}</span> procedimentos
-              </p>
-
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => {
-                      return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
-                    })
-                    .map((page, index, array) => (
-                      <React.Fragment key={page}>
-                        {index > 0 && array[index - 1] !== page - 1 && (
-                          <span className="text-slate-300 px-1 font-bold">...</span>
-                        )}
-                        <button
-                          onClick={() => setCurrentPage(page)}
-                          className={cn(
-                            "w-10 h-10 rounded-xl text-xs font-bold transition-all",
-                            currentPage === page
-                              ? "bg-indigo-600 text-white dark:shadow-none"
-                              : "text-slate-400 hover:bg-white hover:text-slate-600 border border-slate-100 hover:border-slate-200"
-                          )}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    ))}
+        {/* Mobile Card Layout */}
+        <div className="sm:hidden grid grid-cols-1 gap-4 p-4">
+          {paginatedProcedures.map((proc) => (
+            <div key={proc.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight">{proc.name}</h4>
+                  <span className={cn(
+                    "mt-2 inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+                    proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                        proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                          proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
+                            "bg-slate-50 text-slate-600 border-slate-100"
+                  )}>
+                    {proc.modality}
+                  </span>
                 </div>
-
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm"
-                >
-                  <ChevronRight size={18} />
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingProcedure(proc);
+                      setModalOpen(true);
+                    }}
+                    className="p-2.5 bg-white dark:bg-slate-800 text-indigo-600 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => setItemToDelete({ id: proc.id, name: proc.name, type: 'procedimento' })}
+                    className="p-2.5 bg-white dark:bg-slate-800 text-red-500 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor Padrão</p>
+                 <p className="font-black text-slate-900 dark:text-white text-sm">
+                    R$ {parseFloat(proc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                 </p>
               </div>
             </div>
-          )}
+          ))}
         </div>
+
+        {filteredProcedures.length === 0 && (
+          <div className="p-12 text-center text-slate-400 italic text-sm">
+            Nenhum procedimento encontrado para "{searchQuery}"
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-slate-50 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/10">
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">
+              Mostrando <span className="text-slate-600 dark:text-slate-300">{paginatedProcedures.length}</span> de <span className="text-slate-600 dark:text-slate-300">{filteredProcedures.length}</span> procedimentos
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                  .map((page, index, array) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && <span className="text-slate-300 px-1">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "w-10 h-10 rounded-xl text-xs font-bold transition-all",
+                          currentPage === page ? "bg-indigo-600 text-white" : "text-slate-400 hover:bg-white border border-slate-100"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  ))}
+              </div>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-white hover:text-indigo-600 disabled:opacity-30 transition-all shadow-sm"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {modalOpen && (
@@ -1329,7 +1383,7 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
             <div className="lg:col-span-3 space-y-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modalidade Técnica</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {standardModalities.map((m) => {
                     const colorMap: Record<string, string> = {
                       indigo: modality === m.code ? "bg-indigo-50 border-indigo-500 shadow-indigo-100 dark:shadow-none text-indigo-600" : "text-slate-400 border-slate-100",
@@ -1917,52 +1971,54 @@ function SystemParameters({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {settings.unidades.map((unit: any, index: number) => (
-                <div key={unit.id} className="p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900 transition-all group flex flex-col justify-between">
-                  <div className="flex justify-between items-start mb-4">
+                <div key={unit.id} className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900 transition-all group flex flex-col justify-between relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-bl-[3rem] -mr-8 -mt-8" />
+                  
+                  <div className="flex justify-between items-start mb-6 relative z-10">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 overflow-hidden border border-slate-100 dark:border-slate-800">
+                      <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 overflow-hidden border border-white dark:border-slate-800 shadow-sm">
                         {unit.logo ? (
                           <img src={unit.logo} alt={unit.name} className="w-full h-full object-cover" />
                         ) : (
-                          <Building2 size={24} />
+                          <Building2 size={28} />
                         )}
                       </div>
                       <div>
-                        <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">{unit.name}</h5>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest mt-0.5">ID: {unit.id}</p>
+                        <h5 className="text-base font-black text-slate-800 dark:text-slate-100">{unit.name}</h5>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">ID: {unit.id}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setUnitToEdit(unit)}
-                        className="p-2 text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
+                        className="p-2.5 bg-slate-50 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-xl transition-all"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleTryDeleteUnit(unit)}
-                        className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                        className="p-2.5 bg-slate-50 dark:bg-slate-800 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl transition-all"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      <MapPin size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                  <div className="space-y-4 relative z-10">
+                    <div className="flex items-center gap-3 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <MapPin size={16} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
                       <span className="truncate">{unit.address || 'Endereço não informado'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      <PhoneIcon size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                    <div className="flex items-center gap-3 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <PhoneIcon size={16} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
                       <span>{unit.phone || 'Telefone não informado'}</span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <div className={cn("w-2 h-2 rounded-full", unit.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")} />
-                        <span className={cn("text-[10px] font-bold uppercase tracking-widest", unit.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600")}>
-                          {unit.isActive ? 'Unidade Ativa' : 'Unidade Inativa'}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-800">
+                        <div className={cn("w-2 h-2 rounded-full animate-pulse", unit.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")} />
+                        <span className={cn("text-[9px] font-black uppercase tracking-widest", unit.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600")}>
+                          {unit.isActive ? 'Ativa' : 'Inativa'}
                         </span>
                       </div>
                     </div>
@@ -1977,7 +2033,7 @@ function SystemParameters({
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios no Agendamento</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {['Paciente', 'Procedimento', 'Médico', 'Convênio', 'Telefone', 'Motivo'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
@@ -2000,7 +2056,7 @@ function SystemParameters({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-50 dark:border-slate-800">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Duração Padrão (Slot)</label>
                 <select
@@ -2080,7 +2136,7 @@ function SystemParameters({
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios na Ficha do Paciente</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {['Nome Completo', 'CPF', 'RG', 'Data de Nascimento', 'Telefone', 'Email', 'Endereço', 'Nome da Mãe'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
@@ -2166,7 +2222,7 @@ function SystemParameters({
           <div className="space-y-8 animate-in fade-in duration-300">
             <div>
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Campos Obrigatórios (Médicos/Técnicos)</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {['Nome', 'CRM', 'CPF', 'Especialidade', 'Telefone', 'Email'].map((field) => (
                   <label key={field} className={cn(
                     "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all",
@@ -2403,43 +2459,48 @@ function SystemParameters({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row min-h-[600px]">
       {/* Side Menu */}
-      <div className="w-full md:w-64 bg-slate-50/50 dark:bg-slate-800/50 border-r border-slate-100 dark:border-slate-800 p-6 space-y-2">
-        <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-4">Módulos do Sistema</h3>
-        {modules.map((mod) => (
-          <button
-            key={mod.id}
-            onClick={() => setActiveModule(mod.id)}
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
-              activeModule === mod.id
-                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700"
-                : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50"
-            )}
-          >
-            <mod.icon size={18} className={activeModule === mod.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
-            {mod.label}
-          </button>
-        ))}
+      <div className="w-full lg:w-60 bg-slate-50/50 dark:bg-slate-800/50 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 p-4 lg:p-6 space-y-2">
+        <h3 className="hidden lg:block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-4">Módulos do Sistema</h3>
+        <div className="relative group/tabs">
+          <div className="flex flex-nowrap lg:flex-col overflow-x-auto lg:overflow-x-visible no-scrollbar gap-2">
+          {modules.map((mod) => (
+            <button
+              key={mod.id}
+              onClick={() => setActiveModule(mod.id)}
+              className={cn(
+                "flex-shrink-0 lg:w-full flex items-center gap-3 px-6 py-4 lg:px-4 lg:py-3 rounded-2xl lg:rounded-xl text-xs sm:text-sm font-black lg:font-bold transition-all whitespace-nowrap lg:whitespace-normal",
+                activeModule === mod.id
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50"
+              )}
+            >
+              <mod.icon size={18} className={activeModule === mod.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
+              {mod.label}
+            </button>
+          ))}
+        </div>
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-100/80 dark:from-slate-800/80 pointer-events-none opacity-0 group-hover/tabs:opacity-100 transition-opacity lg:hidden" />
       </div>
+    </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full bg-white dark:bg-slate-900">
-        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Parâmetros de {modules.find(m => m.id === activeModule)?.label}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações globais do sistema</p>
+      <div className="flex-1 flex flex-col bg-white dark:bg-slate-900">
+        <div className="p-4 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex flex-col sm:flex-row gap-4 sm:items-center justify-between bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-[-1px] z-20">
+          <div className="min-w-0">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">Parâmetros de {modules.find(m => m.id === activeModule)?.label}</h3>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mt-0.5">Configurações globais</p>
           </div>
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98]"
+            className="flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 dark:shadow-none transition-all active:scale-[0.98] w-full sm:w-auto"
           >
             <Save size={18} /> Salvar Tudo
           </button>
         </div>
 
-        <div className="p-6 sm:p-8">
+        <div className="p-4 sm:p-8 pt-8 sm:pt-8 pb-32 sm:pb-8 overflow-x-auto lg:overflow-x-visible">
           {renderModuleContent()}
         </div>
       </div>

@@ -87,7 +87,7 @@ export default function Sidebar({
       )}
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl lg:shadow-none flex flex-col transition-colors",
+        "fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl lg:shadow-none flex flex-col transition-colors hidden lg:flex",
         isOpen ? "translate-x-0" : "-translate-x-full",
         isCollapsed ? "w-20" : "w-64"
       )}>

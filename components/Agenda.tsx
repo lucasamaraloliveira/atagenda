@@ -753,22 +753,22 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
       {/* Grid */}
       <div id="agenda-grid" className="flex-1 overflow-auto">
         <div className={cn(
-          "grid min-w-[500px] md:min-w-[800px]",
+          "grid min-w-[320px] md:min-w-[800px]",
           viewType === 'dia' 
-            ? "grid-cols-[60px_1fr] md:grid-cols-[100px_1fr]" 
-            : "grid-cols-[60px_repeat(7,1fr)] md:grid-cols-[100px_repeat(7,1fr)]"
+            ? "grid-cols-[50px_1fr] md:grid-cols-[100px_1fr]" 
+            : "grid-cols-[50px_repeat(7,1fr)] md:grid-cols-[100px_repeat(7,1fr)]"
         )}>
           {/* Header */}
           <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-800 h-10"></div>
           {viewType === 'dia' ? (
-            <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-10 flex items-center justify-center font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-12 flex items-center justify-center font-black text-[10px] md:text-xs uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
               {format(currentDate, "EEEE, dd/MM", { locale: ptBR })}
             </div>
           ) : (
             weekDays.map((day, i) => (
-              <div key={i} className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-800 h-10 flex flex-col items-center justify-center font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <span className="text-[10px] md:text-xs">{format(day, "EEE", { locale: ptBR }).replace('.', '')}</span>
-                <span className="text-[9px] md:text-[10px] font-normal">{format(day, "dd/MM")}</span>
+              <div key={i} className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-800 h-12 flex flex-col items-center justify-center font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[9px] md:text-xs">{format(day, "EEE", { locale: ptBR }).replace('.', '')}</span>
+                <span className="text-[8px] md:text-[10px] font-normal">{format(day, "dd/MM")}</span>
               </div>
             ))
           )}
@@ -776,7 +776,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
           {/* Body */}
           {times.map((time, i) => (
             <React.Fragment key={i}>
-              <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 flex items-center justify-center text-[10px] font-mono text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="border-b border-r border-slate-100 dark:border-slate-800 h-14 md:h-12 flex items-center justify-center text-[9px] md:text-[10px] font-mono font-bold text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-900/50">
                 {time}
               </div>
               {viewType === 'dia' ? (
@@ -1052,8 +1052,8 @@ function TimeSlot({
 
   if (isInactiveDay && !appointment) {
     return (
-      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-slate-50 dark:bg-slate-900/80 flex items-center justify-center">
-        <span className="text-[9px] md:text-[10px] text-slate-300 dark:text-slate-600 font-medium text-center leading-tight">Não atende</span>
+      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-14 md:h-12 p-1 relative bg-slate-50 dark:bg-slate-900/80 flex items-center justify-center">
+        <span className="text-[8px] md:text-[10px] text-slate-300 dark:text-slate-600 font-medium text-center leading-tight uppercase tracking-widest">Folga</span>
       </div>
     );
   }
@@ -1062,12 +1062,12 @@ function TimeSlot({
     return (
       <div 
         onClick={() => onBlockClick?.(block)}
-        className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-red-50/80 dark:bg-red-900/20 flex flex-col items-center justify-center text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/80 dark:hover:bg-red-900/30 transition-colors"
+        className="border-b border-r border-slate-100 dark:border-slate-800 h-14 md:h-12 p-1 relative bg-red-50/80 dark:bg-red-900/20 flex flex-col items-center justify-center text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/80 dark:hover:bg-red-900/30 transition-colors"
         title="Clique para remover o bloqueio"
       >
-        <Lock size={14} className="mb-0.5 opacity-60" />
-        <span className="text-[9px] font-semibold uppercase tracking-wider truncate w-full text-center px-1">
-          {block.reason || 'Bloqueado'}
+        <Lock size={12} className="mb-0.5 opacity-60" />
+        <span className="text-[8px] font-bold uppercase tracking-widest truncate w-full text-center px-1">
+          {block.reason || 'Bloq'}
         </span>
       </div>
     );
@@ -1075,10 +1075,9 @@ function TimeSlot({
 
   if (isLunchBreak && !appointment) {
     return (
-      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-12 p-1 relative bg-slate-100/50 dark:bg-slate-800/30 flex items-center justify-center">
-        <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-600 text-center leading-tight">
-          <span className="md:hidden">Pausa</span>
-          <span className="hidden md:inline">Almoço / Pausa</span>
+      <div className="border-b border-r border-slate-100 dark:border-slate-800 h-14 md:h-12 p-1 relative bg-slate-100/50 dark:bg-slate-800/30 flex items-center justify-center">
+        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-600 text-center leading-tight">
+          Pausa
         </span>
       </div>
     );
@@ -1101,7 +1100,7 @@ function TimeSlot({
       onMouseEnter={() => !appointment && showAddButton && setHoverAdd(true)}
       onMouseLeave={() => !appointment && showAddButton && setHoverAdd(false)}
       className={cn(
-        "border-b border-r border-slate-100 dark:border-slate-800 h-12 p-0.5 relative group transition-colors",
+        "border-b border-r border-slate-100 dark:border-slate-800 h-14 md:h-12 p-0.5 relative group transition-colors",
         isOverbookSlot ? "bg-amber-50/30 dark:bg-amber-900/10 hover:bg-amber-50/80 dark:hover:bg-amber-900/20" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/50",
         !appointment && showAddButton && "cursor-pointer"
       )}
@@ -1128,7 +1127,7 @@ function TimeSlot({
           )}
         >
           <div className="flex justify-between items-start gap-1">
-            <p className="truncate uppercase flex-1">{patientName}</p>
+            <p className="truncate uppercase flex-1 font-black sm:font-bold">{patientName}</p>
             {appointment.status === 'confirmado' && (
               <div className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-sm animate-pulse shrink-0 mt-1" />
             )}
@@ -1142,11 +1141,11 @@ function TimeSlot({
         <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none">
           <div 
             className={cn(
-              "w-8 h-8 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+              "w-7 h-7 sm:w-8 sm:h-8 opacity-40 sm:opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95",
               isOverbookSlot ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30 rounded-full" : "text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-full"
             )}
           >
-            <PlusCircle size={18} />
+            <PlusCircle size={14} />
           </div>
           
           <AnimatePresence>

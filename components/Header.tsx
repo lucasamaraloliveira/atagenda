@@ -13,10 +13,11 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onStartTour: () => void;
+  onOpenProfile?: () => void;
   user: any;
 }
 
-export default function Header({ setSidebarOpen, title, searchQuery, setSearchQuery, onStartTour, user }: HeaderProps) {
+export default function Header({ setSidebarOpen, title, searchQuery, setSearchQuery, onStartTour, onOpenProfile, user }: HeaderProps) {
   const [showHelpTray, setShowHelpTray] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
 
@@ -28,13 +29,21 @@ export default function Header({ setSidebarOpen, title, searchQuery, setSearchQu
   return (
     <header className="h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 md:px-6 sm:px-8 sticky top-0 z-30 transition-colors">
       <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
-        <button 
-          onClick={() => setSidebarOpen(true)}
-          className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-600 dark:text-slate-400 shrink-0"
-        >
-          <Menu size={20} />
-        </button>
-        <h1 className="text-sm md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</h1>
+        {user && (
+          <button 
+            onClick={onOpenProfile}
+            className="lg:hidden flex-shrink-0"
+          >
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold overflow-hidden shadow-sm">
+              <img 
+                src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=EEF2FF&color=4F46E5`} 
+                alt="Avatar" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+          </button>
+        )}
+        <h1 className="text-sm md:text-lg font-black text-slate-900 dark:text-slate-100 truncate">{title}</h1>
       </div>
 
       <div className="flex items-center gap-2 lg:gap-4">
