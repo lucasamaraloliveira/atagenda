@@ -6,7 +6,6 @@ import Header from '@/components/Header';
 import Agenda from '@/components/Agenda';
 import Patients from '@/components/Patients';
 import Doctors from '@/components/Doctors';
-import History from '@/components/History';
 import NewAppointment from '@/components/NewAppointment';
 import SystemSettings from '@/components/SystemSettings';
 import Reports from '@/components/Reports';
@@ -165,7 +164,6 @@ export default function Home() {
       case 'agenda': return <Agenda onNewAppointment={handleNewAppointment} searchQuery={searchQuery} user={currentUser} />;
       case 'pacientes': return <Patients searchQuery={searchQuery} />;
       case 'medicos': return <Doctors searchQuery={searchQuery} />;
-      case 'historico': return <History searchQuery={searchQuery} />;
       case 'novo-agendamento': return <NewAppointment initialData={appointmentData} onCancel={() => setCurrentView('agenda')} />;
       case 'configuracoes': return <SystemSettings searchQuery={searchQuery} setView={setCurrentView} />;
       case 'relatorios': return <Reports />;
@@ -178,7 +176,6 @@ export default function Home() {
       case 'agenda': return 'Agenda de Atendimentos';
       case 'pacientes': return 'Gestão de Pacientes';
       case 'medicos': return 'Corpo Clínico';
-      case 'historico': return 'Histórico de Atendimentos';
       case 'novo-agendamento': return 'Novo Agendamento';
       case 'configuracoes': return 'Configurações do Sistema';
       case 'relatorios': return 'Relatórios e Dashboards';

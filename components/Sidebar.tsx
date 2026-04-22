@@ -64,7 +64,6 @@ export default function Sidebar({
     { id: 'agenda', label: 'Agenda', icon: Calendar, perm: 'Agenda' },
     { id: 'pacientes', label: 'Pacientes', icon: Users, perm: 'Pacientes' },
     { id: 'medicos', label: 'Médicos', icon: UserRound, perm: 'Profissionais' },
-    { id: 'historico', label: 'Histórico', icon: History, perm: 'Histórico' },
     { id: 'relatorios', label: 'Relatórios', icon: BarChart3, perm: 'Relatórios' },
     { id: 'configuracoes', label: 'Configurações', icon: Settings, perm: 'Configurações' },
   ].filter(item => {

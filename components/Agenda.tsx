@@ -59,6 +59,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
   const [scheduleConfigs, setScheduleConfigs] = useState<ScheduleConfig[]>([]);
   const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
   const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [preparationTemplates, setPreparationTemplates] = useState<any[]>([]);
 
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
@@ -66,6 +67,8 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
   const [viewType, setViewType] = useState<'dia' | 'semana'>('dia');
   const [blockToRemove, setBlockToRemove] = useState<any>(null);
   const [selectedAppointmentForStatus, setSelectedAppointmentForStatus] = useState<any | null>(null);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportPeriod, setReportPeriod] = useState<'dia' | 'semana' | 'personalizado'>('dia');
   const [reportDateRange, setReportDateRange] = useState({
@@ -83,12 +86,22 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
     async function loadInitialData() {
       try {
         setLoading(true);
-        const [u, d, p, proc, settings] = await Promise.all([
+        // 1. One-time cleanup for existing 'cancelado' appointments (case-insensitive) as requested
+        const allAppts = await firebaseService.getAppointments();
+        const canceledAppts = allAppts.filter(a => a.status.toLowerCase() === 'cancelado');
+
+        if (canceledAppts.length > 0) {
+          console.log(`Cleaning up ${canceledAppts.length} appointments...`);
+          await Promise.all(canceledAppts.map(a => firebaseService.deleteAppointment(a.id)));
+        }
+
+        const [u, d, p, proc, settings, prep] = await Promise.all([
           firebaseService.getUnits(),
           firebaseService.getDoctors(),
           firebaseService.getPatients(),
           firebaseService.getProcedures(),
-          firebaseService.getSystemSettings()
+          firebaseService.getSystemSettings(),
+          firebaseService.getPreparationTemplates()
         ]);
         
         // Only fallback to mocks if the result is truly empty and no user data exists
@@ -103,8 +116,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
         setPatients(p);
         setProcedures(proc);
         setSystemSettings(settings);
-        
-        if (d.length > 0) setSelectedDoctor(d[0].id);
+        setPreparationTemplates(prep);
         if (filteredUnits.length > 0) setSelectedUnit(filteredUnits[0].id);
 
       } catch (err) {
@@ -331,6 +343,13 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
   const handleStatusUpdate = (appointmentId: string, newStatus: any) => {
     const appointment = currentAppointments.find((a: any) => a.id === appointmentId);
     if (appointment) {
+      if (newStatus === 'cancelado') {
+        setAppointmentToCancel(appointment);
+        setShowCancelConfirmModal(true);
+        setSelectedAppointmentForStatus(null);
+        return;
+      }
+
       const oldStatus = appointment.status;
       appointment.status = newStatus;
       
@@ -350,18 +369,18 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
       firebaseService.updateAppointmentStatus(appointmentId, newStatus, updatedHistory)
         .then(() => {
             setRefreshKey(k => k + 1);
-            toast.success(`Status atualizado no Firebase`);
+            toast.success(`Status atualizado para "${newStatus}"`);
         })
         .catch(() => toast.error('Falha ao sincronizar com Firebase'));
 
       // Trigger Integration if status changed to 'realizado'
+      // ... (remaining logic same)
       if (newStatus === 'realizado' && oldStatus !== 'realizado') {
         const proc = currentProcedures.find((p: Procedure) => p.name === appointment.procedure);
         if (proc?.integraRis) {
           const isGlobalRisEnabled = currentSystemSettings.integracao.risEnabled;
           
           if (!isGlobalRisEnabled) {
-            // Error case: Procedure requires RIS but global integration is disabled
             toast.error(
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 font-bold">
@@ -372,9 +391,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
               </div>,
               { autoClose: 5000 }
             );
-            console.error('❌ RIS Integration Failed: Global RIS module is disabled.');
           } else if (!(currentSystemSettings as any).integracao.pacsUrl) {
-             // Error case: Global RIS is enabled but no PACS URL is configured
              toast.error(
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 font-bold">
@@ -385,9 +402,7 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
               </div>,
               { autoClose: 5000 }
             );
-            console.error('❌ RIS Integration Failed: PACS URL is missing.');
           } else {
-            // Success case: Log only, as requested by user
             const patient = currentPatients.find(p => p.id === appointment.patientId);
             const doctor = currentDoctors.find(d => d.id === appointment.doctorId);
             const unit = currentUnits.find(u => u.id === appointment.unitId);
@@ -400,39 +415,53 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
                 date: appointment.date,
                 time: appointment.time,
                 status: appointment.status,
-                patient: {
-                  id: patient?.id,
-                  name: patient?.name,
-                  cpf: patient?.cpf,
-                  recordNumber: patient?.recordNumber
-                },
-                doctor: {
-                  id: doctor?.id,
-                  name: doctor?.name,
-                  crm: doctor?.crm,
-                  specialty: doctor?.specialty
-                },
-                procedure: {
-                  name: proc.name,
-                  modality: proc.modality,
-                  price: proc.price
-                },
-                unit: {
-                  id: unit?.id,
-                  name: unit?.name
-                },
+                patient: { id: patient?.id, name: patient?.name, cpf: patient?.cpf, recordNumber: patient?.recordNumber },
+                doctor: { id: doctor?.id, name: doctor?.name, crm: doctor?.crm, specialty: doctor?.specialty },
+                procedure: { name: proc.name, modality: proc.modality, price: proc.price },
+                unit: { id: unit?.id, name: unit?.name },
                 insurance: appointment.insurance
               }
             };
-            
-            console.log('🚀 RIS Integration Triggered (Silent Success):', integrationPayload);
+            console.log('🚀 RIS Integration Triggered:', integrationPayload);
           }
         }
       }
 
-      setRefreshKey(k => k + 1);
       setSelectedAppointmentForStatus(null);
-      toast.success(`Status do agendamento atualizado para "${newStatus}"`);
+    }
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!appointmentToCancel) return;
+    
+    const idToRestore = appointmentToCancel.id;
+    const dataToRestore = { ...appointmentToCancel };
+    delete (dataToRestore as any).id; // Remove ID for creation logic
+
+    try {
+      await firebaseService.deleteAppointment(idToRestore);
+      toast.success(
+        <div className="flex items-center justify-between gap-4">
+          <span>Agendamento removido com sucesso!</span>
+          <button 
+            onClick={async () => {
+              await firebaseService.createAppointmentWithId(idToRestore, dataToRestore);
+              setRefreshKey(k => k + 1);
+              toast.info('Agendamento restaurado.');
+            }}
+            className="px-2 py-1 bg-white text-indigo-600 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Desfazer
+          </button>
+        </div>,
+        { autoClose: 10000 }
+      );
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      toast.error('Erro ao remover agendamento.');
+    } finally {
+      setShowCancelConfirmModal(false);
+      setAppointmentToCancel(null);
     }
   };
 
@@ -792,6 +821,8 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
                   isLunchBreak={isLunchBreakInternal(currentDate, time)}
                   isInactiveDay={isInactiveDayInternal(currentDate)}
                   overbookStatus={getOverbookStatus(currentDate)}
+                  procedures={procedures}
+                  preparationTemplates={preparationTemplates}
                   onNewAppointment={onNewAppointment}
                   onBlockClick={handleBlockClick}
                   onAppointmentClick={setSelectedAppointmentForStatus}
@@ -812,6 +843,8 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
                     isLunchBreak={isLunchBreakInternal(day, time)}
                     isInactiveDay={isInactiveDayInternal(day)}
                     overbookStatus={getOverbookStatus(day)}
+                    procedures={procedures}
+                    preparationTemplates={preparationTemplates}
                     onNewAppointment={onNewAppointment}
                     onBlockClick={handleBlockClick}
                     onAppointmentClick={setSelectedAppointmentForStatus}
@@ -823,6 +856,40 @@ export default function Agenda({ onNewAppointment, searchQuery = '', user }: Age
           ))}
         </div>
       </div>
+
+      {/* Cancellation Confirmation Modal */}
+      {showCancelConfirmModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-600 dark:text-red-400 mb-6 mx-auto">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Confirmar Cancelamento</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                Deseja realmente cancelar este agendamento? Ele será excluído permanentemente para liberar espaço na agenda.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={confirmCancelAppointment}
+                  className="w-full py-4 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-xl shadow-red-100 dark:shadow-none active:scale-[0.98]"
+                >
+                  Sim, Confirmar Cancelamento
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCancelConfirmModal(false);
+                    setAppointmentToCancel(null);
+                  }}
+                  className="w-full py-4 text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-all border border-slate-200 dark:border-slate-700"
+                >
+                  Manter Agendamento
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {blockToRemove && (
@@ -1027,6 +1094,8 @@ function TimeSlot({
   isLunchBreak,
   isInactiveDay,
   overbookStatus,
+  procedures,
+  preparationTemplates,
   onNewAppointment,
   onBlockClick,
   onAppointmentClick,
@@ -1043,6 +1112,8 @@ function TimeSlot({
   isLunchBreak?: boolean,
   isInactiveDay?: boolean,
   overbookStatus?: { allowed: boolean, max: number, current: number },
+  procedures?: any[],
+  preparationTemplates?: any[],
   onNewAppointment?: (date: string, time: string, doctorId: string, unitId: string) => void,
   onBlockClick?: (block: any) => void,
   onAppointmentClick?: (appointment: any) => void,
@@ -1094,6 +1165,44 @@ function TimeSlot({
     onNewAppointment?.(format(date, 'yyyy-MM-dd'), time, doctorId, unitId);
   };
 
+  const linkedProcedure = appointment ? procedures?.find(p => p.name === appointment.procedure) : null;
+  const hasPreparation = linkedProcedure?.preparationTemplateId && (linkedProcedure?.preparationText || (linkedProcedure as any)?.preparation);
+
+  const handlePrintPreparation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasPreparation || !preparationTemplates) return;
+
+    const template = preparationTemplates.find(t => t.id === linkedProcedure.preparationTemplateId);
+    if (!template) {
+      toast.error('Modelo de preparo não encontrado.');
+      return;
+    }
+
+    const prepText = linkedProcedure.preparationText || (linkedProcedure as any)?.preparation || '';
+    const htmlContent = template.content.replace('{{preparation_text}}', prepText.replace(/\n/g, '<br/>'));
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Preparo - ${patientName}</title>
+            <style>
+              @media print {
+                body { margin: 0; padding: 20px; }
+              }
+              body { font-family: sans-serif; }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            ${htmlContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   return (
     <div 
       onClick={!appointment && showAddButton ? handleAddClick : undefined}
@@ -1128,12 +1237,27 @@ function TimeSlot({
         >
           <div className="flex justify-between items-start gap-1">
             <p className="truncate uppercase flex-1 font-black sm:font-bold">{patientName}</p>
-            {appointment.status === 'confirmado' && (
-              <div className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-sm animate-pulse shrink-0 mt-1" />
-            )}
-            {appointment.status === 'em-atendimento' && (
-              <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-sm animate-pulse shrink-0 mt-1" />
-            )}
+            <div className="flex items-center gap-1 shrink-0 mt-0.5">
+              <button
+                onClick={handlePrintPreparation}
+                disabled={!hasPreparation}
+                className={cn(
+                  "p-1 rounded-md transition-colors",
+                  hasPreparation 
+                    ? "hover:bg-white/50 text-slate-600 dark:text-slate-300 pointer-events-auto" 
+                    : "opacity-20 text-slate-400 dark:text-slate-600 cursor-not-allowed pointer-events-none"
+                )}
+                title={hasPreparation ? "Imprimir Preparo" : "Preparo não configurado para este procedimento"}
+              >
+                <Printer size={12} />
+              </button>
+              {appointment.status === 'confirmado' && (
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-sm animate-pulse" />
+              )}
+              {appointment.status === 'em-atendimento' && (
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-sm animate-pulse" />
+              )}
+            </div>
           </div>
           <p className="opacity-70 truncate">{appointment.procedure}</p>
         </div>

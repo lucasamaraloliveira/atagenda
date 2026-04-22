@@ -118,7 +118,7 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
       // 2. Prepare appointments
       const proceduresToSchedule = formData.selectedProcedures.length > 0
         ? formData.selectedProcedures
-        : (formData.procedure ? [procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || { name: formData.procedure }] : []);
+        : (formData.procedure ? [procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure))].filter(Boolean) : []);
 
       if (proceduresToSchedule.length === 0) {
         toast.error('Selecione ao menos um procedimento.');
@@ -260,9 +260,16 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
   };
 
   const filteredProcedures = procedures.filter(p => {
+    // 1. Filter by insurance link
+    if (formData.insurance && p.insuranceIds && p.insuranceIds.length > 0) {
+      if (!p.insuranceIds.includes(formData.insurance)) return false;
+    }
+
+    // 2. Filter by modality
     const matchesModality = !formData.modality || p.modality === formData.modality;
     if (!matchesModality) return false;
 
+    // 3. Filter by search query
     if (!formData.procedure) return true;
     const query = sanitizeStr(formData.procedure);
     return sanitizeStr(p.name).includes(query);
@@ -454,100 +461,106 @@ export default function NewAppointment({ initialData, onCancel }: NewAppointment
                 value={formData.modality}
                 onChange={(val) => setFormData({ ...formData, modality: val, procedure: '' })}
               />
-              <div className="relative">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-1.5 block">Procedimento</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Ex: US Abdome Total"
-                    className="w-full pl-4 pr-12 h-[41px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
-                    value={formData.procedure}
-                    onChange={(e) => {
-                      setFormData({ ...formData, procedure: e.target.value });
-                      setShowProcedureDropdown(true);
-                    }}
-                    onFocus={() => setShowProcedureDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowProcedureDropdown(false), 200)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (formData.procedure) {
-                        const proc = procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure)) || {
-                          id: Math.random().toString(36).substr(2, 9),
-                          name: formData.procedure,
-                          modality: formData.modality || '---'
-                        };
-                        if (!formData.selectedProcedures.some(p => p.name === proc.name)) {
-                          setFormData({
-                            ...formData,
-                            selectedProcedures: [...formData.selectedProcedures, proc],
-                            procedure: ''
-                          });
+              {formData.modality ? (
+                <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 mb-1.5 block">Procedimento</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ex: US Abdome Total"
+                      className="w-full pl-4 pr-12 h-[41px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all dark:text-slate-100 dark:placeholder-slate-500"
+                      value={formData.procedure}
+                      onChange={(e) => {
+                        setFormData({ ...formData, procedure: e.target.value });
+                        setShowProcedureDropdown(true);
+                      }}
+                      onFocus={() => setShowProcedureDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowProcedureDropdown(false), 200)}
+                    />
+                    <button
+                      type="button"
+                      disabled={!procedures.some(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure))}
+                      onClick={() => {
+                        if (formData.procedure) {
+                          const proc = procedures.find(p => sanitizeStr(p.name) === sanitizeStr(formData.procedure));
+                          if (proc && !formData.selectedProcedures.some(p => p.name === proc.name)) {
+                            setFormData({
+                              ...formData,
+                              selectedProcedures: [...formData.selectedProcedures, proc],
+                              procedure: ''
+                            });
+                          }
                         }
-                      }
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                  >
-                    <Plus size={16} />
-                  </button>
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+
+                  {/* Selected Procedures List */}
+                  {formData.selectedProcedures.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {formData.selectedProcedures.map((proc, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 group animate-in slide-in-from-left-2 duration-200">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500" />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{proc.name}</span>
+                            <span className="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded">{proc.modality}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({
+                              ...formData,
+                              selectedProcedures: formData.selectedProcedures.filter((_, i) => i !== idx)
+                            })}
+                            className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showProcedureDropdown && (formData.procedure || formData.modality) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                      {filteredProcedures.length > 0 ? (
+                        filteredProcedures.map(proc => (
+                          <div
+                            key={proc.id}
+                            className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                            onClick={() => {
+                              if (!formData.selectedProcedures.some(p => p.id === proc.id)) {
+                                setFormData({
+                                  ...formData,
+                                  selectedProcedures: [...formData.selectedProcedures, proc],
+                                  procedure: ''
+                                });
+                              }
+                              setShowProcedureDropdown(false);
+                            }}
+                          >
+                            <div className="font-medium text-slate-900 dark:text-white text-sm">{proc.name}</div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold mt-0.5">{proc.modality}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-xs text-red-500 dark:text-red-400 font-bold bg-red-50/50 dark:bg-red-900/10">
+                          Procedimento não encontrado ou não permitido para este convênio.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {/* Selected Procedures List */}
-                {formData.selectedProcedures.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {formData.selectedProcedures.map((proc, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 group animate-in slide-in-from-left-2 duration-200">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500" />
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{proc.name}</span>
-                          <span className="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded">{proc.modality}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({
-                            ...formData,
-                            selectedProcedures: formData.selectedProcedures.filter((_, i) => i !== idx)
-                          })}
-                          className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {showProcedureDropdown && (formData.procedure || formData.modality) && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
-                    {filteredProcedures.length > 0 ? (
-                      filteredProcedures.map(proc => (
-                        <div
-                          key={proc.id}
-                          className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
-                          onClick={() => {
-                            if (!formData.selectedProcedures.some(p => p.id === proc.id)) {
-                              setFormData({
-                                ...formData,
-                                selectedProcedures: [...formData.selectedProcedures, proc],
-                                procedure: ''
-                              });
-                            }
-                            setShowProcedureDropdown(false);
-                          }}
-                        >
-                          <div className="font-medium text-slate-900 dark:text-white text-sm">{proc.name}</div>
-                          <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold mt-0.5">{proc.modality}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 italic">
-                        Novo procedimento será cadastrado.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+                  <ClipboardList className="text-slate-300 dark:text-slate-600 mb-2" size={24} />
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black text-center leading-tight">
+                    Selecione a Modalidade<br />para listar os procedimentos
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

@@ -41,7 +41,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  UserPlus
+  UserPlus,
+  FileText,
+  Layout
 } from 'lucide-react';
 import { format, differenceInMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -68,7 +70,7 @@ import ImportInsurancesModal from './ImportInsurancesModal';
 import ImportProceduresModal from './ImportProceduresModal';
 import CustomSelect from './CustomSelect';
 
-type SettingTab = 'perfis' | 'convenios' | 'procedimentos' | 'parametros' | 'mala-direta' | 'campanha';
+type SettingTab = 'perfis' | 'convenios' | 'procedimentos' | 'parametros' | 'preparos' | 'mala-direta' | 'campanha';
 
 export default function SystemSettings({ searchQuery = '', setView }: { searchQuery?: string, setView?: (view: View) => void }) {
   const [activeTab, setActiveTab] = useState<SettingTab>('parametros');
@@ -80,6 +82,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [preparationTemplates, setPreparationTemplates] = useState<any[]>([]);
 
   // Initial Data Load from Firebase
   useEffect(() => {
@@ -87,19 +90,21 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
       try {
         setLoading(true);
         // Use individual try-catches to avoid one failure blocking everything
-        const [proc, settings, ins, uList, pats, apps] = await Promise.all([
+        const [proc, settings, ins, uList, pats, apps, prep] = await Promise.all([
           firebaseService.getProcedures().catch(() => []),
           firebaseService.getSystemSettings().catch(() => null),
           firebaseService.getInsurances().catch(() => []),
           firebaseService.getUnits().catch(() => []),
           firebaseService.getPatients().catch(() => []),
-          firebaseService.getAppointments().catch(() => [])
+          firebaseService.getAppointments().catch(() => []),
+          firebaseService.getPreparationTemplates().catch(() => [])
         ]);
 
         setProcedures(proc);
         setInsurances(ins);
         setPatients(pats);
         setAppointments(apps);
+        setPreparationTemplates(prep);
 
         // Merge fetched settings with DEFAULT_SYSTEM_SETTINGS to ensure all keys exist
         const mergedSettings = {
@@ -190,6 +195,7 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     { id: 'perfis', label: 'Perfis de Acesso', icon: ShieldCheck },
     { id: 'convenios', label: 'Convênios', icon: CreditCard },
     { id: 'procedimentos', label: 'Procedimentos', icon: ClipboardList },
+    { id: 'preparos', label: 'Modelos de Preparo', icon: FileText },
     { id: 'mala-direta', label: 'Mala Direta', icon: Mail },
     { id: 'campanha', label: 'Campanha', icon: Megaphone },
   ];
@@ -202,6 +208,8 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
         return <Procedures
           searchQuery={searchQuery}
           procedures={procedures}
+          insurances={insurances}
+          preparationTemplates={preparationTemplates}
           onSave={handleProceduresSave}
           onDelete={handleProceduresDelete}
           onImport={(items: any[]) => items.forEach(i => handleProceduresSave(i))}
@@ -220,6 +228,12 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
           setView={setView}
           settings={globalSettings}
           setSettings={setGlobalSettings}
+        />;
+      case 'preparos':
+        return <PreparationTemplates 
+          searchQuery={searchQuery}
+          templates={preparationTemplates}
+          setTemplates={setPreparationTemplates}
         />;
       case 'mala-direta':
         return <MalaDireta searchQuery={searchQuery} patients={patients} />;
@@ -244,26 +258,23 @@ export default function SystemSettings({ searchQuery = '', setView }: { searchQu
     <div className="w-full max-w-[1400px] mx-auto space-y-6 px-4 sm:px-6">
       {/* Tab Navigation */}
       <div className="relative group/nav">
-        <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 sm:gap-2 bg-slate-100/50 dark:bg-slate-800/50 p-1 sm:p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-md">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 xl:flex xl:flex-nowrap items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-md">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                 activeTab === tab.id
                   ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-600"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
               )}
             >
               <tab.icon size={14} className={activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"} />
-              {tab.label}
+              <span className="truncate">{tab.label}</span>
             </button>
           ))}
         </div>
-        
-        {/* Mobile Scroll Indicator (Fade) */}
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-900 pointer-events-none opacity-0 group-hover/nav:opacity-100 transition-opacity sm:hidden" />
       </div>
 
       {/* Tab Content */}
@@ -889,12 +900,16 @@ function Insurances({
 function Procedures({
   searchQuery = '',
   procedures,
+  insurances,
+  preparationTemplates,
   onSave,
   onDelete,
   onImport
 }: {
   searchQuery: string,
   procedures: any[],
+  insurances: any[],
+  preparationTemplates: any[],
   onSave: (data: any, editingProcedure?: any) => void,
   onDelete: (item: any) => void,
   onImport: (items: any[]) => void
@@ -1019,16 +1034,23 @@ function Procedures({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={cn(
-                      "px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-widest",
-                      proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                      proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
-                      proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                      proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
-                      "bg-slate-50 text-slate-600 border-slate-100"
-                    )}>
-                      {proc.modality}
-                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      <span className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase tracking-widest w-fit",
+                        proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                        proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                        proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                        proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
+                        "bg-slate-50 text-slate-600 border-slate-100"
+                      )}>
+                        {proc.modality}
+                      </span>
+                      {proc.insuranceIds && proc.insuranceIds.length > 0 && (
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight flex items-center gap-1">
+                          <Link2 size={10} /> {proc.insuranceIds.length} convênios vinculados
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 font-black text-slate-900 dark:text-white text-sm">
                     R$ {parseFloat(proc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -1065,16 +1087,23 @@ function Procedures({
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight">{proc.name}</h4>
-                  <span className={cn(
-                    "mt-2 inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
-                    proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                      proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
-                        proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                          proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
-                            "bg-slate-50 text-slate-600 border-slate-100"
-                  )}>
-                    {proc.modality}
-                  </span>
+                  <div className="mt-2 flex flex-wrap gap-2 items-center">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all",
+                      proc.modality === 'CONSULTA' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                        proc.modality === 'US' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                          proc.modality === 'CT' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                            proc.modality === 'CR' ? "bg-sky-50 text-sky-600 border-sky-100" :
+                              "bg-slate-50 text-slate-600 border-slate-100"
+                    )}>
+                      {proc.modality}
+                    </span>
+                    {proc.insuranceIds && proc.insuranceIds.length > 0 && (
+                      <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Link2 size={10} /> {proc.insuranceIds.length} Conv.
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -1160,6 +1189,8 @@ function Procedures({
       {modalOpen && (
         <ProcedureModal
           procedure={editingProcedure}
+          insurances={insurances}
+          preparationTemplates={preparationTemplates}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
         />
@@ -1236,14 +1267,16 @@ function InsuranceModal({ insurance, onClose, onSave }: { insurance: any, onClos
   );
 }
 
-function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClose: () => void, onSave: (data: any) => void }) {
+function ProcedureModal({ procedure, insurances, preparationTemplates, onClose, onSave }: { procedure: any, insurances: any[], preparationTemplates: any[], onClose: () => void, onSave: (data: any) => void }) {
   const [name, setName] = useState(procedure?.name || '');
   const [modality, setModality] = useState(procedure?.modality || 'US');
   const [customModality, setCustomModality] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [price, setPrice] = useState(procedure?.price || '');
-  const [preparation, setPreparation] = useState(procedure?.preparation || '');
+  const [preparationText, setPreparationText] = useState(procedure?.preparationText || procedure?.preparation || '');
+  const [preparationTemplateId, setPreparationTemplateId] = useState(procedure?.preparationTemplateId || '');
   const [integraRis, setIntegraRis] = useState(procedure?.integraRis || false);
+  const [selectedInsurances, setSelectedInsurances] = useState<string[]>(procedure?.insuranceIds || []);
 
   const standardModalities = [
     { code: 'US', label: 'Ultrassom', color: 'indigo' },
@@ -1273,19 +1306,20 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
       name: sanitize(name),
       modality: finalModality,
       price,
-      preparation: preparation,
-      integraRis: integraRis
+      preparationText,
+      preparationTemplateId,
+      integraRis,
+      insuranceIds: selectedInsurances
     });
   };
 
-  const sanitize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  const formatCurrencyValue = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    const amount = (parseFloat(numbers) / 100).toFixed(2);
-    if (isNaN(parseFloat(amount))) return '';
-    return amount.replace('.', ',');
+  const toggleInsurance = (id: string) => {
+    setSelectedInsurances(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
+
+  const sanitize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
@@ -1299,76 +1333,96 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300 max-h-[96vh] sm:max-h-[92vh]">
-        <div className="p-10 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300 max-h-[96vh] sm:max-h-[92vh]">
+        <div className="p-8 sm:p-10 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
           <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white">{procedure ? 'Editar Procedimento' : 'Novo Procedimento'}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Configure os detalhes e modalidade técnica</p>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{procedure ? 'Editar Procedimento' : 'Novo Procedimento'}</h2>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Detalhes técnicos e faturamento</p>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSave} className="p-10 space-y-10 overflow-y-auto no-scrollbar">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-            <div className="lg:col-span-2 space-y-8">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Descrição do Procedimento</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Ultrassom de Abdome Total"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor Sugerido (R$)</label>
-                <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                    <span className="text-slate-400 dark:text-slate-500 font-black text-base group-focus-within:text-indigo-600 transition-colors">R$</span>
-                    <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 group-focus-within:bg-indigo-300 transition-colors" />
-                  </div>
+        
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto no-scrollbar p-8 sm:p-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Left Column: Basic Info */}
+            <div className="lg:col-span-5 space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Informações Básicas</h3>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Descrição</label>
                   <input
                     type="text"
                     required
-                    className="w-full pl-24 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all dark:text-white"
-                    value={price ? parseFloat(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
-                    onChange={handlePriceChange}
-                    placeholder="0,00"
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Ultrassom de Abdome Total"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor Padrão (R$)</label>
+                  <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                      <span className="text-slate-400 dark:text-slate-500 font-black text-base group-focus-within:text-indigo-600 transition-colors">R$</span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      className="w-full pl-16 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all dark:text-white"
+                      value={price ? parseFloat(price).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
+                      onChange={handlePriceChange}
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo de Layout do Preparo</label>
+                  <select
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all dark:text-slate-100"
+                    value={preparationTemplateId}
+                    onChange={(e) => setPreparationTemplateId(e.target.value)}
+                  >
+                    <option value="">Sem modelo vinculado</option>
+                    {preparationTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Conteúdo do Preparo (Paciente)</label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100 resize-none"
+                    value={preparationText}
+                    onChange={(e) => setPreparationText(e.target.value)}
+                    placeholder="Instruções específicas para o paciente..."
+                  />
+                  <p className="text-[9px] text-slate-400 font-medium italic ml-1">* Este texto será impresso no layout selecionado acima.</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modelo de Preparo</label>
-                <textarea
-                  rows={4}
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all placeholder:text-slate-300 dark:text-slate-100 resize-none"
-                  value={preparation}
-                  onChange={(e) => setPreparation(e.target.value)}
-                  placeholder="Instruções de preparo para o paciente..."
-                />
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-                <label className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+              <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex items-center gap-3">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", integraRis ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-600")}>
-                      <Activity size={18} />
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-all", integraRis ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none" : "bg-white dark:bg-slate-800 text-slate-300")}>
+                      <Activity size={20} />
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Integra RIS</span>
-                      <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">Habilitar exportação automática para o RIS/PACS.</p>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Exportar para RIS/PACS</span>
+                      <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Integração Automática</p>
                     </div>
                   </div>
                   <div
                     onClick={() => setIntegraRis(!integraRis)}
                     className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      integraRis ? "bg-indigo-600" : "bg-slate-200"
+                      "w-12 h-6 rounded-full transition-all relative",
+                      integraRis ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
                     )}
                   >
                     <div className={cn(
@@ -1380,99 +1434,115 @@ function ProcedureModal({ procedure, onClose, onSave }: { procedure: any, onClos
               </div>
             </div>
 
-            <div className="lg:col-span-3 space-y-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Modalidade Técnica</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {standardModalities.map((m) => {
-                    const colorMap: Record<string, string> = {
-                      indigo: modality === m.code ? "bg-indigo-50 border-indigo-500 shadow-indigo-100 dark:shadow-none text-indigo-600" : "text-slate-400 border-slate-100",
-                      sky: modality === m.code ? "bg-sky-50 border-sky-500 shadow-sky-100 text-sky-600" : "text-slate-400 border-slate-100",
-                      amber: modality === m.code ? "bg-amber-50 border-amber-500 shadow-amber-100 text-amber-600" : "text-slate-400 border-slate-100",
-                      rose: modality === m.code ? "bg-rose-50 border-rose-500 shadow-rose-100 text-rose-600" : "text-slate-400 border-slate-100",
-                      violet: modality === m.code ? "bg-violet-50 border-violet-500 shadow-violet-100 text-violet-600" : "text-slate-400 border-slate-100",
-                      emerald: modality === m.code ? "bg-emerald-50 border-emerald-500 shadow-emerald-100 text-emerald-600" : "text-slate-400 border-slate-100",
-                    };
-
-                    const dotColorMap: Record<string, string> = {
-                      indigo: "bg-indigo-500",
-                      sky: "bg-sky-500",
-                      amber: "bg-amber-500",
-                      rose: "bg-rose-500",
-                      violet: "bg-violet-500",
-                      emerald: "bg-emerald-500",
-                    };
-
-                    return (
+            {/* Right Column: Modality & Insurances */}
+            <div className="lg:col-span-7 space-y-10">
+              <div className="space-y-4">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Modalidade e Convênios</h3>
+                
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Seleção de Modalidade</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {standardModalities.map((m) => (
                       <button
                         key={m.code}
                         type="button"
-                        onClick={() => {
-                          setModality(m.code);
-                          setShowCustomInput(false);
-                        }}
+                        onClick={() => { setModality(m.code); setShowCustomInput(false); }}
                         className={cn(
-                          "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group relative overflow-hidden",
-                          colorMap[m.color],
-                          modality === m.code ? "shadow-lg" : "bg-white hover:border-slate-200 hover:bg-slate-50"
+                          "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all relative group overflow-hidden",
+                          modality === m.code 
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100 dark:shadow-none" 
+                            : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 hover:border-indigo-200"
                         )}
                       >
-                        <span className={cn(
-                          "text-lg font-black mb-1 transition-transform group-active:scale-90",
-                        )}>{m.code}</span>
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase tracking-widest opacity-80 text-center",
-                        )}>{m.label}</span>
-
-                        {modality === m.code && (
-                          <div className={cn("absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse", dotColorMap[m.color])} />
-                        )}
+                        <span className="text-lg font-black mb-1">{m.code}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest opacity-80">{m.label}</span>
+                        {modality === m.code && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
                       </button>
-                    );
-                  })}
-
-                  {/* Option for New Modality */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModality('OUTRO');
-                      setShowCustomInput(true);
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group relative",
-                      modality === 'OUTRO'
-                        ? "bg-slate-900 border-slate-900 text-white shadow-xl"
-                        : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
-                    )}
-                  >
-                    <Plus size={20} className="mb-1" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Nova Modl.</span>
-                  </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => { setModality('OUTRO'); setShowCustomInput(true); }}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all",
+                        modality === 'OUTRO' ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 text-slate-400"
+                      )}
+                    >
+                      <Plus size={18} className="mb-1" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest">Outro</span>
+                    </button>
+                  </div>
                 </div>
 
                 {showCustomInput && (
-                  <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Especificar Nova Modalidade</label>
+                  <div className="animate-in slide-in-from-top-2">
                     <input
                       type="text"
-                      placeholder="DIX, PET, etc..."
-                      className="w-full px-4 py-3 mt-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black focus:ring-2 focus:ring-slate-900 dark:focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all uppercase dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black uppercase tracking-widest outline-none dark:text-white"
                       value={customModality}
                       onChange={(e) => setCustomModality(e.target.value)}
-                      required={modality === 'OUTRO'}
+                      placeholder="Qual modalidade? (Ex: PET, DIX)"
                     />
                   </div>
                 )}
               </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Vincular Convênios</label>
+                  <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-full">
+                    {selectedInsurances.length} selecionados
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[250px] overflow-y-auto no-scrollbar p-1">
+                  {insurances.length > 0 ? (
+                    insurances.map((ins) => (
+                      <button
+                        key={ins.id}
+                        type="button"
+                        onClick={() => toggleInsurance(ins.id)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-xl border transition-all text-left",
+                          selectedInsurances.includes(ins.id)
+                            ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700"
+                            : "bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                          selectedInsurances.includes(ins.id)
+                            ? "bg-indigo-600 border-indigo-600 text-white"
+                            : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        )}>
+                          {selectedInsurances.includes(ins.id) && <Check size={12} />}
+                        </div>
+                        <span className={cn(
+                          "text-xs font-bold transition-colors",
+                          selectedInsurances.includes(ins.id) ? "text-indigo-700 dark:text-indigo-300" : "text-slate-600 dark:text-slate-400"
+                        )}>{ins.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Nenhum convênio cadastrado</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm">Cancelar</button>
-            <button type="submit" className="flex-3 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm dark:shadow-none flex items-center justify-center gap-2 px-6 sm:px-8">
-              <Save size={18} /> Salvar
-            </button>
-          </div>
         </form>
+
+        <div className="p-8 sm:p-10 border-t border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex gap-4">
+          <button type="button" onClick={onClose} className="flex-1 py-4 bg-white dark:bg-slate-800 text-slate-500 font-bold text-sm rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
+          <button 
+            type="submit" 
+            onClick={handleSave}
+            className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-100 dark:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Save size={20} /> Salvar Procedimento
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2464,24 +2534,23 @@ function SystemParameters({
       <div className="w-full lg:w-60 bg-slate-50/50 dark:bg-slate-800/50 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 p-4 lg:p-6 space-y-2">
         <h3 className="hidden lg:block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mb-4">Módulos do Sistema</h3>
         <div className="relative group/tabs">
-          <div className="flex flex-nowrap lg:flex-col overflow-x-auto lg:overflow-x-visible no-scrollbar gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-1 gap-2">
           {modules.map((mod) => (
             <button
               key={mod.id}
               onClick={() => setActiveModule(mod.id)}
               className={cn(
-                "flex-shrink-0 lg:w-full flex items-center gap-3 px-6 py-4 lg:px-4 lg:py-3 rounded-2xl lg:rounded-xl text-xs sm:text-sm font-black lg:font-bold transition-all whitespace-nowrap lg:whitespace-normal",
+                "w-full flex items-center gap-2 sm:gap-3 px-3 py-3 lg:px-4 lg:py-3 rounded-2xl lg:rounded-xl text-[10px] sm:text-xs font-black lg:font-bold transition-all whitespace-nowrap lg:whitespace-normal",
                 activeModule === mod.id
                   ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700"
                   : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50"
               )}
             >
-              <mod.icon size={18} className={activeModule === mod.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
-              {mod.label}
+              <mod.icon size={16} className={activeModule === mod.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
+              <span className="truncate">{mod.label}</span>
             </button>
           ))}
         </div>
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-100/80 dark:from-slate-800/80 pointer-events-none opacity-0 group-hover/tabs:opacity-100 transition-opacity lg:hidden" />
       </div>
     </div>
 
@@ -3486,6 +3555,186 @@ function AudienceFormModal({ onClose, onSave, audienceToEdit, insurances }: { on
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PreparationTemplates({
+  searchQuery = '',
+  templates,
+  setTemplates
+}: {
+  searchQuery: string,
+  templates: any[],
+  setTemplates: (templates: any[]) => void
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+
+  const filteredTemplates = templates.filter(t => 
+    normalizeString(t.name).includes(normalizeString(searchQuery))
+  );
+
+  const handleSave = async (data: any) => {
+    try {
+      if (editingTemplate) {
+        await firebaseService.updatePreparationTemplate(editingTemplate.id, data);
+        setTemplates(templates.map(t => t.id === editingTemplate.id ? { ...t, ...data } : t));
+        toast.success('Modelo de preparo atualizado!');
+      } else {
+        const newTemplate = await firebaseService.createPreparationTemplate(data);
+        setTemplates([...templates, newTemplate]);
+        toast.success('Novo modelo de preparo criado!');
+      }
+      setModalOpen(false);
+      setEditingTemplate(null);
+    } catch (err) {
+      toast.error('Erro ao salvar modelo de preparo.');
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      if (itemToDelete) {
+        await firebaseService.deletePreparationTemplate(itemToDelete.id);
+        setTemplates(templates.filter(t => t.id !== itemToDelete.id));
+        toast.success('Modelo de preparo excluído!');
+      }
+    } catch (err) {
+      toast.error('Erro ao excluir modelo.');
+    }
+    setItemToDelete(null);
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="p-6 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-white">Modelos de Preparo</h3>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Layouts para impressão de instruções</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditingTemplate(null);
+            setModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-[0.98]"
+        >
+          <Plus size={16} /> Novo Modelo
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+        {filteredTemplates.map((template) => (
+          <div key={template.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-indigo-100 dark:hover:border-indigo-900 transition-all group flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-700">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">{template.name}</h4>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Layout de Impressão</p>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    setEditingTemplate(template);
+                    setModalOpen(true);
+                  }}
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  onClick={() => setItemToDelete({ id: template.id, name: template.name, type: 'modelo' })}
+                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 min-h-[100px] max-h-[100px] overflow-hidden opacity-50 text-[8px] dark:text-slate-400 font-mono">
+              {template.content || 'Nenhum conteúdo definido'}
+            </div>
+          </div>
+        ))}
+
+        {filteredTemplates.length === 0 && (
+          <div className="col-span-full py-12 text-center text-slate-400 italic text-sm">
+            Nenhum modelo encontrado.
+          </div>
+        )}
+      </div>
+
+      {modalOpen && (
+        <PreparationTemplateModal
+          template={editingTemplate}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
+
+      {itemToDelete && (
+        <DeleteConfirmationModal
+          itemName={itemToDelete.name}
+          itemType={itemToDelete.type}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function PreparationTemplateModal({ template, onClose, onSave }: { template: any, onClose: () => void, onSave: (data: any) => void }) {
+  const [name, setName] = useState(template?.name || '');
+  const [content, setContent] = useState(template?.content || '<div style="font-family: sans-serif; padding: 20px;">\n  <h1>Instruções de Preparo</h1>\n  <p>Aqui virão as instruções do procedimento selecionado.</p>\n  <hr />\n  <div id="prep-content">{{preparation_text}}</div>\n</div>');
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-white dark:border-slate-800 animate-in zoom-in-95 duration-300">
+        <div className="p-6 sm:p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-900/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{template ? 'Editar Modelo' : 'Novo Modelo de Preparo'}</h2>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Layout base para o documento</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={20} /></button>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); onSave({ name, content }); }} className="p-6 sm:p-8 space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nome do Modelo</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Layout Padrão Clínica"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Estrutura HTML (Use {'{{preparation_text}}'} como placeholder)</label>
+              <textarea
+                rows={8}
+                required
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white resize-none"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold text-sm">Cancelar</button>
+            <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2">
+              <Save size={18} /> Salvar Modelo
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -83,6 +83,14 @@ export interface ScheduleConfig {
   multiProcedureStrategy?: 'next_minute' | 'next_slot';
 }
 
+export interface PreparationTemplate {
+  id: string;
+  name: string;
+  header?: string;
+  footer?: string;
+  css?: string; // For customized styling of the print view
+}
+
 export interface Procedure {
   id: string;
   name: string;
@@ -90,7 +98,10 @@ export interface Procedure {
   modality: string;
   price: string;
   preparation?: string;
+  preparationText?: string; // New field for detailed instructions
+  preparationTemplateId?: string; // Link to a layout model
   integraRis?: boolean;
+  insuranceIds?: string[];
 }
 
 export interface Insurance {

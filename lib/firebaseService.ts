@@ -191,6 +191,15 @@ export const firebaseService = {
     return { id: docRef.id, ...appointment } as Appointment;
   },
 
+  async createAppointmentWithId(id: string, appointment: any) {
+    const docRef = doc(db, 'appointments', id);
+    await setDoc(docRef, {
+      ...appointment,
+      updated_at: serverTimestamp()
+    });
+    return { id, ...appointment } as Appointment;
+  },
+
   async updateAppointment(id: string, data: any) {
     const docRef = doc(db, 'appointments', id);
     await updateDoc(docRef, {
@@ -207,6 +216,12 @@ export const firebaseService = {
       statusHistory: history,
       updated_at: serverTimestamp()
     });
+    return true;
+  },
+
+  async deleteAppointment(id: string) {
+    const docRef = doc(db, 'appointments', id);
+    await deleteDoc(docRef);
     return true;
   },
 
@@ -337,6 +352,31 @@ export const firebaseService = {
 
   async deleteInsurance(id: string) {
     await deleteDoc(doc(db, 'insurances', id));
+    return true;
+  },
+
+  // Preparation Templates
+  async getPreparationTemplates() {
+    const querySnapshot = await getDocs(query(collection(db, 'preparationTemplates'), orderBy('name')));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  },
+
+  async createPreparationTemplate(template: any) {
+    const docRef = await addDoc(collection(db, 'preparationTemplates'), {
+      ...template,
+      created_at: serverTimestamp()
+    });
+    return { id: docRef.id, ...template };
+  },
+
+  async updatePreparationTemplate(id: string, template: any) {
+    const docRef = doc(db, 'preparationTemplates', id);
+    await updateDoc(docRef, { ...template, updated_at: serverTimestamp() });
+    return true;
+  },
+
+  async deletePreparationTemplate(id: string) {
+    await deleteDoc(doc(db, 'preparationTemplates', id));
     return true;
   },
 
